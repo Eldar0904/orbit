@@ -1,0 +1,27 @@
+kind = "web"
+previewPath = "/"
+title = "Project Manager"
+version = "1.0.0"
+id = "artifacts/pm-app"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23704
+
+[services.development]
+run = "pnpm --filter @workspace/pm-app run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/pm-app", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/pm-app/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23704"
+BASE_PATH = "/"
