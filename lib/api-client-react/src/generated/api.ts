@@ -21,11 +21,15 @@ import type {
 
 import type {
   ActivityItem,
+  CatalogInfo,
+  CatalogUploadBody,
   DashboardSummary,
   GetRecentActivityParams,
   HealthStatus,
   ListProjectsParams,
   ListTasksParams,
+  MatchRequest,
+  MatchResponse,
   Member,
   MemberInput,
   MemberUpdate,
@@ -595,6 +599,298 @@ export function useGetProjectProgress<TData = Awaited<ReturnType<typeof getProje
 
 
 
+
+export const getGetProjectCatalogUrl = (id: number,) => {
+
+
+
+
+  return `/api/projects/${id}/catalog`
+}
+
+/**
+ * @summary Get the catalog for a project
+ */
+export const getProjectCatalog = async (id: number, options?: RequestInit): Promise<CatalogInfo> => {
+
+  return customFetch<CatalogInfo>(getGetProjectCatalogUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetProjectCatalogQueryKey = (id: number,) => {
+    return [
+    `/api/projects/${id}/catalog`
+    ] as const;
+    }
+
+
+export const getGetProjectCatalogQueryOptions = <TData = Awaited<ReturnType<typeof getProjectCatalog>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getProjectCatalog>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetProjectCatalogQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProjectCatalog>>> = ({ signal }) => getProjectCatalog(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getProjectCatalog>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetProjectCatalogQueryResult = NonNullable<Awaited<ReturnType<typeof getProjectCatalog>>>
+export type GetProjectCatalogQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get the catalog for a project
+ */
+
+export function useGetProjectCatalog<TData = Awaited<ReturnType<typeof getProjectCatalog>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getProjectCatalog>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetProjectCatalogQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUploadProjectCatalogUrl = (id: number,) => {
+
+
+
+
+  return `/api/projects/${id}/catalog`
+}
+
+/**
+ * @summary Upload or replace the catalog for a project
+ */
+export const uploadProjectCatalog = async (id: number,
+    catalogUploadBody: CatalogUploadBody, options?: RequestInit): Promise<CatalogInfo> => {
+
+  return customFetch<CatalogInfo>(getUploadProjectCatalogUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(catalogUploadBody)
+  }
+);}
+
+
+
+
+
+export const getUploadProjectCatalogMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadProjectCatalog>>, TError,{id: number;data: BodyType<CatalogUploadBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof uploadProjectCatalog>>, TError,{id: number;data: BodyType<CatalogUploadBody>}, TContext> => {
+
+const mutationKey = ['uploadProjectCatalog'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof uploadProjectCatalog>>, {id: number;data: BodyType<CatalogUploadBody>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  uploadProjectCatalog(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UploadProjectCatalogMutationResult = NonNullable<Awaited<ReturnType<typeof uploadProjectCatalog>>>
+    export type UploadProjectCatalogMutationBody = BodyType<CatalogUploadBody>
+    export type UploadProjectCatalogMutationError = ErrorType<void>
+
+    /**
+ * @summary Upload or replace the catalog for a project
+ */
+export const useUploadProjectCatalog = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadProjectCatalog>>, TError,{id: number;data: BodyType<CatalogUploadBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof uploadProjectCatalog>>,
+        TError,
+        {id: number;data: BodyType<CatalogUploadBody>},
+        TContext
+      > => {
+      return useMutation(getUploadProjectCatalogMutationOptions(options));
+    }
+
+export const getDeleteProjectCatalogUrl = (id: number,) => {
+
+
+
+
+  return `/api/projects/${id}/catalog`
+}
+
+/**
+ * @summary Delete the catalog for a project
+ */
+export const deleteProjectCatalog = async (id: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteProjectCatalogUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteProjectCatalogMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteProjectCatalog>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteProjectCatalog>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['deleteProjectCatalog'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteProjectCatalog>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteProjectCatalog(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteProjectCatalogMutationResult = NonNullable<Awaited<ReturnType<typeof deleteProjectCatalog>>>
+
+    export type DeleteProjectCatalogMutationError = ErrorType<void>
+
+    /**
+ * @summary Delete the catalog for a project
+ */
+export const useDeleteProjectCatalog = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteProjectCatalog>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteProjectCatalog>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getDeleteProjectCatalogMutationOptions(options));
+    }
+
+export const getMatchProjectItemsUrl = (id: number,) => {
+
+
+
+
+  return `/api/projects/${id}/match`
+}
+
+/**
+ * @summary Match spec items against the project catalog
+ */
+export const matchProjectItems = async (id: number,
+    matchRequest: MatchRequest, options?: RequestInit): Promise<MatchResponse> => {
+
+  return customFetch<MatchResponse>(getMatchProjectItemsUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(matchRequest)
+  }
+);}
+
+
+
+
+
+export const getMatchProjectItemsMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof matchProjectItems>>, TError,{id: number;data: BodyType<MatchRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof matchProjectItems>>, TError,{id: number;data: BodyType<MatchRequest>}, TContext> => {
+
+const mutationKey = ['matchProjectItems'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof matchProjectItems>>, {id: number;data: BodyType<MatchRequest>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  matchProjectItems(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MatchProjectItemsMutationResult = NonNullable<Awaited<ReturnType<typeof matchProjectItems>>>
+    export type MatchProjectItemsMutationBody = BodyType<MatchRequest>
+    export type MatchProjectItemsMutationError = ErrorType<void>
+
+    /**
+ * @summary Match spec items against the project catalog
+ */
+export const useMatchProjectItems = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof matchProjectItems>>, TError,{id: number;data: BodyType<MatchRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof matchProjectItems>>,
+        TError,
+        {id: number;data: BodyType<MatchRequest>},
+        TContext
+      > => {
+      return useMutation(getMatchProjectItemsMutationOptions(options));
+    }
 
 export const getListTasksUrl = (params?: ListTasksParams,) => {
   const normalizedParams = new URLSearchParams();

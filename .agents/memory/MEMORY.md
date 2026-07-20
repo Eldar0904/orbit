@@ -1,0 +1,3 @@
+- [Procurement module architecture](procurement-module.md) — catalog per-project (JSONB in postgres), matching runs server-side, frontend parses CSV/Excel with xlsx then POSTs JSON.
+- [Zod in API server](api-server-zod.md) — api-server must declare zod as a direct dep; importing zod/v4 without it fails typecheck even though api-zod uses it internally.
+- [OpenAPI codegen gotcha](openapi-codegen.md) — do not use format:email in spec; Orval generates zod.email() which doesn't exist in zod/v4.

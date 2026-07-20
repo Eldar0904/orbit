@@ -136,6 +136,100 @@ export const GetProjectProgressResponse = zod.object({
 
 
 /**
+ * @summary Get the catalog for a project
+ */
+export const GetProjectCatalogParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetProjectCatalogResponse = zod.object({
+  "id": zod.number(),
+  "projectId": zod.number(),
+  "filename": zod.string(),
+  "itemCount": zod.number(),
+  "items": zod.array(zod.object({
+  "name": zod.string(),
+  "code": zod.string().nullish(),
+  "unit": zod.string().nullish(),
+  "price": zod.number().nullish()
+})),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Upload or replace the catalog for a project
+ */
+export const UploadProjectCatalogParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UploadProjectCatalogBody = zod.object({
+  "filename": zod.string(),
+  "items": zod.array(zod.object({
+  "name": zod.string(),
+  "code": zod.string().nullish(),
+  "unit": zod.string().nullish(),
+  "price": zod.number().nullish()
+}))
+})
+
+export const UploadProjectCatalogResponse = zod.object({
+  "id": zod.number(),
+  "projectId": zod.number(),
+  "filename": zod.string(),
+  "itemCount": zod.number(),
+  "items": zod.array(zod.object({
+  "name": zod.string(),
+  "code": zod.string().nullish(),
+  "unit": zod.string().nullish(),
+  "price": zod.number().nullish()
+})),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Delete the catalog for a project
+ */
+export const DeleteProjectCatalogParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const DeleteProjectCatalogResponse = zod.void()
+
+
+/**
+ * @summary Match spec items against the project catalog
+ */
+export const MatchProjectItemsParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const MatchProjectItemsBody = zod.object({
+  "items": zod.array(zod.string())
+})
+
+export const MatchProjectItemsResponse = zod.object({
+  "projectId": zod.number(),
+  "results": zod.array(zod.object({
+  "input": zod.string(),
+  "matched": zod.string().nullish(),
+  "score": zod.number(),
+  "status": zod.enum(['matched', 'partial', 'unmatched']),
+  "catalogItem": zod.object({
+  "name": zod.string(),
+  "code": zod.string().nullish(),
+  "unit": zod.string().nullish(),
+  "price": zod.number().nullish()
+}).optional()
+}))
+})
+
+
+/**
  * @summary List tasks with optional filters
  */
 export const ListTasksQueryParams = zod.object({
