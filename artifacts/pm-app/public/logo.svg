@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <!-- Background rounded square -->
+  <rect width="48" height="48" rx="12" fill="#6366f1"/>
+  <!-- Orbital ring -->
+  <ellipse cx="24" cy="24" rx="16" ry="7" stroke="white" stroke-width="2" stroke-opacity="0.4" fill="none" stroke-dasharray="4 2"/>
+  <!-- Center planet -->
+  <circle cx="24" cy="24" r="8" fill="white" fill-opacity="0.95"/>
+  <circle cx="24" cy="24" r="4" fill="#6366f1"/>
+  <!-- Orbiting dot -->
+  <circle cx="40" cy="24" r="3" fill="white"/>
+</svg>
