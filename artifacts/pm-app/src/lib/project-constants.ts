@@ -1,0 +1,53 @@
+export const PROJECT_STAGES = [
+  { id: "p1", label: "Type Definition", short: "P1" },
+  { id: "p2", label: "Item List", short: "P2" },
+  { id: "p3", label: "Spec & Estimate", short: "P3" },
+  { id: "p4", label: "Delivery & Install", short: "P4" },
+  { id: "p5", label: "Financial Close", short: "P5" },
+  { id: "p6", label: "Post-Service", short: "P6" },
+] as const;
+
+export type ProjectStageId = (typeof PROJECT_STAGES)[number]["id"];
+
+export const PROJECT_KINDS = [
+  { id: "akr", label: "AKR" },
+  { id: "ep", label: "EP" },
+  { id: "no_plan", label: "No Plan" },
+] as const;
+
+export const DOCUMENT_CATEGORIES = [
+  { id: "specification", label: "Specification" },
+  { id: "contract", label: "Contract" },
+  { id: "floor_plan", label: "Floor Plan" },
+  { id: "invoice", label: "Invoice" },
+  { id: "permit", label: "Permit" },
+  { id: "photo", label: "Photo" },
+  { id: "procurement", label: "Procurement" },
+  { id: "act", label: "Act" },
+  { id: "other", label: "Other" },
+] as const;
+
+export const KANBAN_COLUMNS = [
+  { id: "todo", label: "To Do", color: "bg-slate-200" },
+  { id: "in_progress", label: "In Progress", color: "bg-blue-500" },
+  { id: "blocked", label: "Blocked", color: "bg-amber-500" },
+  { id: "done", label: "Done", color: "bg-green-500" },
+] as const;
+
+export function formatCurrency(amount: number | null | undefined): string {
+  if (amount == null) return "—";
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(amount);
+}
+
+export function getStageLabel(stage: string | null | undefined): string {
+  return PROJECT_STAGES.find((s) => s.id === stage)?.label ?? "P1";
+}
+
+export function getKindLabel(kind: string | null | undefined): string {
+  if (!kind) return "—";
+  return PROJECT_KINDS.find((k) => k.id === kind)?.label ?? kind;
+}
+
+export function getDocumentCategoryLabel(category: string): string {
+  return DOCUMENT_CATEGORIES.find((c) => c.id === category)?.label ?? category;
+}

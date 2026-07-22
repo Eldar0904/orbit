@@ -17,76 +17,28 @@ export const ProjectStatus = {
   archived: 'archived',
 } as const;
 
-export interface Project {
-  id: number;
-  name: string;
-  /** @nullable */
-  description?: string | null;
-  status: ProjectStatus;
-  color: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export type ProjectInputStatus = typeof ProjectInputStatus[keyof typeof ProjectInputStatus];
+/**
+ * @nullable
+ */
+export type ProjectKind = typeof ProjectKind[keyof typeof ProjectKind] | null;
 
 
-export const ProjectInputStatus = {
-  active: 'active',
-  archived: 'archived',
+export const ProjectKind = {
+  akr: 'akr',
+  ep: 'ep',
+  no_plan: 'no_plan',
 } as const;
 
-export interface ProjectInput {
-  /** @minLength 1 */
-  name: string;
-  description?: string;
-  status?: ProjectInputStatus;
-  color?: string;
-}
-
-export type ProjectUpdateStatus = typeof ProjectUpdateStatus[keyof typeof ProjectUpdateStatus];
+export type ProjectStage = typeof ProjectStage[keyof typeof ProjectStage];
 
 
-export const ProjectUpdateStatus = {
-  active: 'active',
-  archived: 'archived',
-} as const;
-
-export interface ProjectUpdate {
-  /** @minLength 1 */
-  name?: string;
-  /** @nullable */
-  description?: string | null;
-  status?: ProjectUpdateStatus;
-  color?: string;
-}
-
-export interface ProjectProgress {
-  projectId: number;
-  total: number;
-  todo: number;
-  inProgress: number;
-  done: number;
-  completionPercent: number;
-  overdue: number;
-}
-
-export type TaskStatus = typeof TaskStatus[keyof typeof TaskStatus];
-
-
-export const TaskStatus = {
-  todo: 'todo',
-  in_progress: 'in_progress',
-  done: 'done',
-} as const;
-
-export type TaskPriority = typeof TaskPriority[keyof typeof TaskPriority];
-
-
-export const TaskPriority = {
-  low: 'low',
-  medium: 'medium',
-  high: 'high',
+export const ProjectStage = {
+  p1: 'p1',
+  p2: 'p2',
+  p3: 'p3',
+  p4: 'p4',
+  p5: 'p5',
+  p6: 'p6',
 } as const;
 
 export type MemberRole = typeof MemberRole[keyof typeof MemberRole];
@@ -106,6 +58,258 @@ export interface Member {
   role: MemberRole;
   createdAt: string;
 }
+
+export interface Project {
+  id: number;
+  name: string;
+  /** @nullable */
+  description?: string | null;
+  status: ProjectStatus;
+  color: string;
+  /** @nullable */
+  projectType?: string | null;
+  /** @nullable */
+  kind?: ProjectKind;
+  stage: ProjectStage;
+  /** @nullable */
+  location?: string | null;
+  /** @nullable */
+  client?: string | null;
+  /** @nullable */
+  budget?: number | null;
+  budgetSpent: number;
+  /** @nullable */
+  startDate?: string | null;
+  /** @nullable */
+  endDate?: string | null;
+  /** @nullable */
+  area?: number | null;
+  /** @nullable */
+  rooms?: number | null;
+  /** @nullable */
+  floors?: number | null;
+  /** @nullable */
+  note?: string | null;
+  managerIds?: number[];
+  managers?: Member[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProjectProgress {
+  projectId: number;
+  total: number;
+  todo: number;
+  inProgress: number;
+  blocked: number;
+  done: number;
+  completionPercent: number;
+  overdue: number;
+}
+
+export interface RoleBreakdownItem {
+  memberId: number;
+  memberName: string;
+  total: number;
+  done: number;
+}
+
+export type ProjectWithStats = Project & {
+  progress: ProjectProgress;
+  documentCount: number;
+  roleBreakdown: RoleBreakdownItem[];
+};
+
+export type ProjectDocumentCategory = typeof ProjectDocumentCategory[keyof typeof ProjectDocumentCategory];
+
+
+export const ProjectDocumentCategory = {
+  specification: 'specification',
+  contract: 'contract',
+  floor_plan: 'floor_plan',
+  invoice: 'invoice',
+  permit: 'permit',
+  photo: 'photo',
+  procurement: 'procurement',
+  act: 'act',
+  other: 'other',
+} as const;
+
+export interface ProjectDocument {
+  id: number;
+  projectId: number;
+  name: string;
+  category: ProjectDocumentCategory;
+  /** @nullable */
+  storageKey?: string | null;
+  /** @nullable */
+  mimeType?: string | null;
+  /** @nullable */
+  sizeBytes?: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ProjectDocumentInputCategory = typeof ProjectDocumentInputCategory[keyof typeof ProjectDocumentInputCategory];
+
+
+export const ProjectDocumentInputCategory = {
+  specification: 'specification',
+  contract: 'contract',
+  floor_plan: 'floor_plan',
+  invoice: 'invoice',
+  permit: 'permit',
+  photo: 'photo',
+  procurement: 'procurement',
+  act: 'act',
+  other: 'other',
+} as const;
+
+export interface ProjectDocumentInput {
+  /** @minLength 1 */
+  name: string;
+  category?: ProjectDocumentInputCategory;
+  storageKey?: string;
+  mimeType?: string;
+  sizeBytes?: number;
+}
+
+export type ProjectInputStatus = typeof ProjectInputStatus[keyof typeof ProjectInputStatus];
+
+
+export const ProjectInputStatus = {
+  active: 'active',
+  archived: 'archived',
+} as const;
+
+export type ProjectInputKind = typeof ProjectInputKind[keyof typeof ProjectInputKind];
+
+
+export const ProjectInputKind = {
+  akr: 'akr',
+  ep: 'ep',
+  no_plan: 'no_plan',
+} as const;
+
+export type ProjectInputStage = typeof ProjectInputStage[keyof typeof ProjectInputStage];
+
+
+export const ProjectInputStage = {
+  p1: 'p1',
+  p2: 'p2',
+  p3: 'p3',
+  p4: 'p4',
+  p5: 'p5',
+  p6: 'p6',
+} as const;
+
+export interface ProjectInput {
+  /** @minLength 1 */
+  name: string;
+  description?: string;
+  status?: ProjectInputStatus;
+  color?: string;
+  projectType?: string;
+  kind?: ProjectInputKind;
+  stage?: ProjectInputStage;
+  location?: string;
+  client?: string;
+  budget?: number;
+  budgetSpent?: number;
+  startDate?: string;
+  endDate?: string;
+  area?: number;
+  rooms?: number;
+  floors?: number;
+  note?: string;
+  managerIds?: number[];
+}
+
+export type ProjectUpdateStatus = typeof ProjectUpdateStatus[keyof typeof ProjectUpdateStatus];
+
+
+export const ProjectUpdateStatus = {
+  active: 'active',
+  archived: 'archived',
+} as const;
+
+/**
+ * @nullable
+ */
+export type ProjectUpdateKind = typeof ProjectUpdateKind[keyof typeof ProjectUpdateKind] | null;
+
+
+export const ProjectUpdateKind = {
+  akr: 'akr',
+  ep: 'ep',
+  no_plan: 'no_plan',
+} as const;
+
+export type ProjectUpdateStage = typeof ProjectUpdateStage[keyof typeof ProjectUpdateStage];
+
+
+export const ProjectUpdateStage = {
+  p1: 'p1',
+  p2: 'p2',
+  p3: 'p3',
+  p4: 'p4',
+  p5: 'p5',
+  p6: 'p6',
+} as const;
+
+export interface ProjectUpdate {
+  /** @minLength 1 */
+  name?: string;
+  /** @nullable */
+  description?: string | null;
+  status?: ProjectUpdateStatus;
+  color?: string;
+  /** @nullable */
+  projectType?: string | null;
+  /** @nullable */
+  kind?: ProjectUpdateKind;
+  stage?: ProjectUpdateStage;
+  /** @nullable */
+  location?: string | null;
+  /** @nullable */
+  client?: string | null;
+  /** @nullable */
+  budget?: number | null;
+  /** @nullable */
+  budgetSpent?: number | null;
+  /** @nullable */
+  startDate?: string | null;
+  /** @nullable */
+  endDate?: string | null;
+  /** @nullable */
+  area?: number | null;
+  /** @nullable */
+  rooms?: number | null;
+  /** @nullable */
+  floors?: number | null;
+  /** @nullable */
+  note?: string | null;
+  managerIds?: number[];
+}
+
+export type TaskStatus = typeof TaskStatus[keyof typeof TaskStatus];
+
+
+export const TaskStatus = {
+  todo: 'todo',
+  in_progress: 'in_progress',
+  blocked: 'blocked',
+  done: 'done',
+} as const;
+
+export type TaskPriority = typeof TaskPriority[keyof typeof TaskPriority];
+
+
+export const TaskPriority = {
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+} as const;
 
 export interface Task {
   id: number;
@@ -131,6 +335,7 @@ export type TaskInputStatus = typeof TaskInputStatus[keyof typeof TaskInputStatu
 export const TaskInputStatus = {
   todo: 'todo',
   in_progress: 'in_progress',
+  blocked: 'blocked',
   done: 'done',
 } as const;
 
@@ -162,6 +367,7 @@ export type TaskUpdateStatus = typeof TaskUpdateStatus[keyof typeof TaskUpdateSt
 export const TaskUpdateStatus = {
   todo: 'todo',
   in_progress: 'in_progress',
+  blocked: 'blocked',
   done: 'done',
 } as const;
 
@@ -325,6 +531,7 @@ export interface MatchResponse {
 
 export type ListProjectsParams = {
 status?: ListProjectsStatus;
+withStats?: boolean;
 };
 
 export type ListProjectsStatus = typeof ListProjectsStatus[keyof typeof ListProjectsStatus];
@@ -348,6 +555,7 @@ export type ListTasksStatus = typeof ListTasksStatus[keyof typeof ListTasksStatu
 export const ListTasksStatus = {
   todo: 'todo',
   in_progress: 'in_progress',
+  blocked: 'blocked',
   done: 'done',
 } as const;
 

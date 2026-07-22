@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq, and } from "drizzle-orm";
 import { db, tasksTable, projectsTable, membersTable, activityTable } from "@workspace/db";
+import { syncProjectStatus } from "../lib/project-utils";
 import {
   ListTasksQueryParams,
   CreateTaskBody,
@@ -27,7 +28,7 @@ router.get("/tasks", async (req, res): Promise<void> => {
     conditions.push(eq(tasksTable.assigneeId, params.data.assigneeId));
   }
   if (params.data.status) {
-    conditions.push(eq(tasksTable.status, params.data.status as "todo" | "in_progress" | "done"));
+    conditions.push(eq(tasksTable.status, params.data.status as "todo" | "in_progress" | "blocked" | "done"));
   }
   if (params.data.priority) {
     conditions.push(eq(tasksTable.priority, params.data.priority as "low" | "medium" | "high"));
@@ -92,7 +93,7 @@ router.post("/tasks", async (req, res): Promise<void> => {
       projectId: parsed.data.projectId,
       title: parsed.data.title,
       description: parsed.data.description,
-      status: (parsed.data.status as "todo" | "in_progress" | "done") ?? "todo",
+      status: (parsed.data.status as "todo" | "in_progress" | "blocked" | "done") ?? "todo",
       priority: (parsed.data.priority as "low" | "medium" | "high") ?? "medium",
       assigneeId: parsed.data.assigneeId ?? null,
       dueDate: parsed.data.dueDate ? String(parsed.data.dueDate) : null,
@@ -125,6 +126,8 @@ router.post("/tasks", async (req, res): Promise<void> => {
     projectName,
     assigneeName,
   });
+
+  await syncProjectStatus(task.projectId);
 
   // Return task with joined data
   const [fullTask] = await db
@@ -282,6 +285,8 @@ router.patch("/tasks/:id", async (req, res): Promise<void> => {
     assigneeName,
   });
 
+  await syncProjectStatus(task.projectId);
+
   // Return with joined data
   const [fullTask] = await db
     .select({
@@ -342,6 +347,8 @@ router.delete("/tasks/:id", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Task not found" });
     return;
   }
+
+  await syncProjectStatus(task.projectId);
 
   res.sendStatus(204);
 });

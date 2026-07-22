@@ -76,8 +76,8 @@ function parseCatalogSpreadsheet(buffer: ArrayBuffer): {
     const unitCol = findCol("unit", "ед", "единица", "uom");
     const priceCol = findCol("price", "цена", "стоимость", "cost");
 
-    const items: CatalogItem[] = raw
-      .map((row) => {
+    const items = raw
+      .map((row): CatalogItem | null => {
         const name = String(row[nameCol] ?? "").trim();
         if (!name) return null;
         return {
@@ -85,7 +85,7 @@ function parseCatalogSpreadsheet(buffer: ArrayBuffer): {
           code: codeCol ? String(row[codeCol] ?? "").trim() || null : null,
           unit: unitCol ? String(row[unitCol] ?? "").trim() || null : null,
           price: priceCol ? parseFloat(String(row[priceCol] ?? "")) || null : null,
-        } satisfies CatalogItem;
+        };
       })
       .filter((x): x is CatalogItem => x !== null);
 
@@ -201,7 +201,7 @@ export function ProcurementTab({ projectId }: { projectId: number }) {
     isLoading: isCatalogLoading,
     error: catalogError,
   } = useGetProjectCatalog(projectId, {
-    query: { retry: false },
+    query: { retry: false, queryKey: getGetProjectCatalogQueryKey(projectId) },
   });
 
   const uploadCatalog = useUploadProjectCatalog();

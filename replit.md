@@ -4,6 +4,8 @@ A B2B SaaS project management tool for small startup teams to track tasks, assig
 
 ## Run & Operate
 
+See [LOCAL_DEV.md](./LOCAL_DEV.md) for Windows local setup (env, Postgres, two-terminal run).
+
 - `pnpm --filter @workspace/api-server run dev` — run the API server (port 8080, served at `/api`)
 - `pnpm --filter @workspace/pm-app run dev` — run the React frontend (served at `/`)
 - `pnpm run typecheck` — full typecheck across all packages

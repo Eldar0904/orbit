@@ -6,13 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface ProjectProgress {
-  projectId: number;
+export interface RoleBreakdownItem {
+  memberId: number;
+  memberName: string;
   total: number;
-  todo: number;
-  inProgress: number;
-  blocked: number;
   done: number;
-  completionPercent: number;
-  overdue: number;
 }

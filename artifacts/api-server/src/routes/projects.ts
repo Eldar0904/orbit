@@ -1,6 +1,11 @@
 import { Router, type IRouter } from "express";
-import { eq, and, sql } from "drizzle-orm";
-import { db, projectsTable, tasksTable, activityTable } from "@workspace/db";
+import { eq, and } from "drizzle-orm";
+import {
+  db,
+  projectsTable,
+  tasksTable,
+  projectDocumentsTable,
+} from "@workspace/db";
 import {
   ListProjectsQueryParams,
   CreateProjectBody,
@@ -9,9 +14,35 @@ import {
   UpdateProjectBody,
   DeleteProjectParams,
   GetProjectProgressParams,
+  ListProjectDocumentsParams,
+  CreateProjectDocumentParams,
+  CreateProjectDocumentBody,
+  DeleteProjectDocumentParams,
 } from "@workspace/api-zod";
+import {
+  computeProgress,
+  formatProject,
+  getProjectManagers,
+  setProjectManagers,
+  buildRoleBreakdown,
+  getDocumentCount,
+  projectValuesFromInput,
+} from "../lib/project-utils";
 
 const router: IRouter = Router();
+
+async function enrichProjectWithStats(project: ReturnType<typeof formatProject>) {
+  const tasks = await db
+    .select({ status: tasksTable.status, dueDate: tasksTable.dueDate })
+    .from(tasksTable)
+    .where(eq(tasksTable.projectId, project.id));
+
+  const progress = computeProgress(tasks, project.id);
+  const documentCount = await getDocumentCount(project.id);
+  const roleBreakdown = await buildRoleBreakdown(project.id);
+
+  return { ...project, progress, documentCount, roleBreakdown };
+}
 
 router.get("/projects", async (req, res): Promise<void> => {
   const params = ListProjectsQueryParams.safeParse(req.query);
@@ -31,7 +62,26 @@ router.get("/projects", async (req, res): Promise<void> => {
     .where(conditions.length ? and(...conditions) : undefined)
     .orderBy(projectsTable.createdAt);
 
-  res.json(projects);
+  const withStats = params.data.withStats === true;
+
+  if (withStats) {
+    const enriched = await Promise.all(
+      projects.map(async (p) => {
+        const managers = await getProjectManagers(p.id);
+        return enrichProjectWithStats(formatProject(p, managers));
+      }),
+    );
+    res.json(enriched);
+    return;
+  }
+
+  const result = await Promise.all(
+    projects.map(async (p) => {
+      const managers = await getProjectManagers(p.id);
+      return formatProject(p, managers);
+    }),
+  );
+  res.json(result);
 });
 
 router.post("/projects", async (req, res): Promise<void> => {
@@ -41,6 +91,9 @@ router.post("/projects", async (req, res): Promise<void> => {
     return;
   }
 
+  const { managerIds, ...rest } = parsed.data;
+  const values = projectValuesFromInput(rest);
+
   const [project] = await db
     .insert(projectsTable)
     .values({
@@ -48,19 +101,17 @@ router.post("/projects", async (req, res): Promise<void> => {
       description: parsed.data.description,
       status: (parsed.data.status as "active" | "archived") ?? "active",
       color: parsed.data.color ?? "#6366f1",
+      stage: (parsed.data.stage as "p1" | "p2" | "p3" | "p4" | "p5" | "p6") ?? "p1",
+      ...values,
     })
     .returning();
 
-  // Log activity
-  await db.insert(activityTable).values({
-    type: "project_created",
-    title: `Project "${project.name}" created`,
-    entityType: "project",
-    entityId: project.id,
-    projectName: project.name,
-  });
+  if (managerIds?.length) {
+    await setProjectManagers(project.id, managerIds);
+  }
 
-  res.status(201).json(project);
+  const managers = await getProjectManagers(project.id);
+  res.status(201).json(formatProject(project, managers));
 });
 
 router.get("/projects/:id", async (req, res): Promise<void> => {
@@ -81,7 +132,8 @@ router.get("/projects/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  res.json(project);
+  const managers = await getProjectManagers(project.id);
+  res.json(formatProject(project, managers));
 });
 
 router.patch("/projects/:id", async (req, res): Promise<void> => {
@@ -98,13 +150,8 @@ router.patch("/projects/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  const updateData: Record<string, unknown> = {
-    updatedAt: new Date(),
-  };
-  if (parsed.data.name !== undefined) updateData.name = parsed.data.name;
-  if (parsed.data.description !== undefined) updateData.description = parsed.data.description;
-  if (parsed.data.status !== undefined) updateData.status = parsed.data.status;
-  if (parsed.data.color !== undefined) updateData.color = parsed.data.color;
+  const { managerIds, ...rest } = parsed.data;
+  const updateData = { ...projectValuesFromInput(rest), updatedAt: new Date() };
 
   const [project] = await db
     .update(projectsTable)
@@ -117,15 +164,12 @@ router.patch("/projects/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  await db.insert(activityTable).values({
-    type: "project_updated",
-    title: `Project "${project.name}" updated`,
-    entityType: "project",
-    entityId: project.id,
-    projectName: project.name,
-  });
+  if (managerIds !== undefined) {
+    await setProjectManagers(project.id, managerIds);
+  }
 
-  res.json(project);
+  const managers = await getProjectManagers(project.id);
+  res.json(formatProject(project, managers));
 });
 
 router.delete("/projects/:id", async (req, res): Promise<void> => {
@@ -172,25 +216,103 @@ router.get("/projects/:id/progress", async (req, res): Promise<void> => {
     .from(tasksTable)
     .where(eq(tasksTable.projectId, params.data.id));
 
-  const now = new Date().toISOString().split("T")[0];
-  const total = tasks.length;
-  const todo = tasks.filter((t) => t.status === "todo").length;
-  const inProgress = tasks.filter((t) => t.status === "in_progress").length;
-  const done = tasks.filter((t) => t.status === "done").length;
-  const overdue = tasks.filter(
-    (t) => t.dueDate && t.dueDate < now && t.status !== "done"
-  ).length;
-  const completionPercent = total > 0 ? Math.round((done / total) * 100) : 0;
+  res.json(computeProgress(tasks, params.data.id));
+});
 
-  res.json({
-    projectId: params.data.id,
-    total,
-    todo,
-    inProgress,
-    done,
-    completionPercent,
-    overdue,
+router.get("/projects/:id/documents", async (req, res): Promise<void> => {
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const params = ListProjectDocumentsParams.safeParse({ id: parseInt(raw, 10) });
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  const [project] = await db
+    .select({ id: projectsTable.id })
+    .from(projectsTable)
+    .where(eq(projectsTable.id, params.data.id));
+
+  if (!project) {
+    res.status(404).json({ error: "Project not found" });
+    return;
+  }
+
+  const documents = await db
+    .select()
+    .from(projectDocumentsTable)
+    .where(eq(projectDocumentsTable.projectId, params.data.id))
+    .orderBy(projectDocumentsTable.createdAt);
+
+  res.json(documents);
+});
+
+router.post("/projects/:id/documents", async (req, res): Promise<void> => {
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const params = CreateProjectDocumentParams.safeParse({ id: parseInt(raw, 10) });
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  const parsed = CreateProjectDocumentBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  const [project] = await db
+    .select({ id: projectsTable.id })
+    .from(projectsTable)
+    .where(eq(projectsTable.id, params.data.id));
+
+  if (!project) {
+    res.status(404).json({ error: "Project not found" });
+    return;
+  }
+
+  const [document] = await db
+    .insert(projectDocumentsTable)
+    .values({
+      projectId: params.data.id,
+      name: parsed.data.name,
+      category: (parsed.data.category ?? "other") as typeof projectDocumentsTable.$inferInsert.category,
+      storageKey: parsed.data.storageKey ?? null,
+      mimeType: parsed.data.mimeType ?? null,
+      sizeBytes: parsed.data.sizeBytes ?? null,
+    })
+    .returning();
+
+  res.status(201).json(document);
+});
+
+router.delete("/projects/:id/documents/:docId", async (req, res): Promise<void> => {
+  const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const rawDocId = Array.isArray(req.params.docId) ? req.params.docId[0] : req.params.docId;
+  const params = DeleteProjectDocumentParams.safeParse({
+    id: parseInt(rawId, 10),
+    docId: parseInt(rawDocId, 10),
   });
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  const [document] = await db
+    .delete(projectDocumentsTable)
+    .where(
+      and(
+        eq(projectDocumentsTable.id, params.data.docId),
+        eq(projectDocumentsTable.projectId, params.data.id),
+      ),
+    )
+    .returning();
+
+  if (!document) {
+    res.status(404).json({ error: "Document not found" });
+    return;
+  }
+
+  res.sendStatus(204);
 });
 
 export default router;

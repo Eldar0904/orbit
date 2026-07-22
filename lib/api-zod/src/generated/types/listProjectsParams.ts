@@ -9,4 +9,5 @@ import type { ListProjectsStatus } from './listProjectsStatus';
 
 export type ListProjectsParams = {
 status?: ListProjectsStatus;
+withStats?: boolean;
 };

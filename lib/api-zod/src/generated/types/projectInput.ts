@@ -5,6 +5,8 @@
  * Project Management API
  * OpenAPI spec version: 0.1.0
  */
+import type { ProjectInputKind } from './projectInputKind';
+import type { ProjectInputStage } from './projectInputStage';
 import type { ProjectInputStatus } from './projectInputStatus';
 
 export interface ProjectInput {
@@ -13,4 +15,18 @@ export interface ProjectInput {
   description?: string;
   status?: ProjectInputStatus;
   color?: string;
+  projectType?: string;
+  kind?: ProjectInputKind;
+  stage?: ProjectInputStage;
+  location?: string;
+  client?: string;
+  budget?: number;
+  budgetSpent?: number;
+  startDate?: Date;
+  endDate?: Date;
+  area?: number;
+  rooms?: number;
+  floors?: number;
+  note?: string;
+  managerIds?: number[];
 }

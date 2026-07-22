@@ -5,6 +5,9 @@
  * Project Management API
  * OpenAPI spec version: 0.1.0
  */
+import type { Member } from './member';
+import type { ProjectKind } from './projectKind';
+import type { ProjectStage } from './projectStage';
 import type { ProjectStatus } from './projectStatus';
 
 export interface Project {
@@ -14,6 +17,32 @@ export interface Project {
   description?: string | null;
   status: ProjectStatus;
   color: string;
+  /** @nullable */
+  projectType?: string | null;
+  /** @nullable */
+  kind?: ProjectKind;
+  stage: ProjectStage;
+  /** @nullable */
+  location?: string | null;
+  /** @nullable */
+  client?: string | null;
+  /** @nullable */
+  budget?: number | null;
+  budgetSpent: number;
+  /** @nullable */
+  startDate?: Date | null;
+  /** @nullable */
+  endDate?: Date | null;
+  /** @nullable */
+  area?: number | null;
+  /** @nullable */
+  rooms?: number | null;
+  /** @nullable */
+  floors?: number | null;
+  /** @nullable */
+  note?: string | null;
+  managerIds?: number[];
+  managers?: Member[];
   createdAt: Date;
   updatedAt: Date;
 }

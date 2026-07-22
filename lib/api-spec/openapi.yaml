@@ -45,6 +45,12 @@ paths:
           schema:
             type: string
             enum: [active, archived]
+        - name: withStats
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
       responses:
         "200":
           description: List of projects
@@ -53,7 +59,9 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Project"
+                  oneOf:
+                    - $ref: "#/components/schemas/Project"
+                    - $ref: "#/components/schemas/ProjectWithStats"
     post:
       operationId: createProject
       tags: [projects]
@@ -151,6 +159,76 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ProjectProgress"
+        "404":
+          description: Not found
+
+  /projects/{id}/documents:
+    get:
+      operationId: listProjectDocuments
+      tags: [projects]
+      summary: List documents for a project
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Project documents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProjectDocument"
+        "404":
+          description: Project not found
+    post:
+      operationId: createProjectDocument
+      tags: [projects]
+      summary: Register a document for a project
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectDocumentInput"
+      responses:
+        "201":
+          description: Created document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectDocument"
+        "404":
+          description: Project not found
+
+  /projects/{id}/documents/{docId}:
+    delete:
+      operationId: deleteProjectDocument
+      tags: [projects]
+      summary: Delete a project document
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: docId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
         "404":
           description: Not found
 
@@ -263,7 +341,7 @@ paths:
           required: false
           schema:
             type: string
-            enum: [todo, in_progress, done]
+            enum: [todo, in_progress, blocked, done]
         - name: priority
           in: query
           required: false
@@ -519,7 +597,7 @@ components:
 
     Project:
       type: object
-      required: [id, name, status, color, createdAt, updatedAt]
+      required: [id, name, status, color, stage, budgetSpent, createdAt, updatedAt]
       properties:
         id:
           type: integer
@@ -532,12 +610,122 @@ components:
           enum: [active, archived]
         color:
           type: string
+        projectType:
+          type: ["string", "null"]
+        kind:
+          type: ["string", "null"]
+          enum: [akr, ep, no_plan, null]
+        stage:
+          type: string
+          enum: [p1, p2, p3, p4, p5, p6]
+        location:
+          type: ["string", "null"]
+        client:
+          type: ["string", "null"]
+        budget:
+          type: ["integer", "null"]
+        budgetSpent:
+          type: integer
+        startDate:
+          type: ["string", "null"]
+          format: date
+        endDate:
+          type: ["string", "null"]
+          format: date
+        area:
+          type: ["integer", "null"]
+        rooms:
+          type: ["integer", "null"]
+        floors:
+          type: ["integer", "null"]
+        note:
+          type: ["string", "null"]
+        managerIds:
+          type: array
+          items:
+            type: integer
+        managers:
+          type: array
+          items:
+            $ref: "#/components/schemas/Member"
         createdAt:
           type: string
           format: date-time
         updatedAt:
           type: string
           format: date-time
+
+    ProjectWithStats:
+      allOf:
+        - $ref: "#/components/schemas/Project"
+        - type: object
+          required: [progress, documentCount, roleBreakdown]
+          properties:
+            progress:
+              $ref: "#/components/schemas/ProjectProgress"
+            documentCount:
+              type: integer
+            roleBreakdown:
+              type: array
+              items:
+                $ref: "#/components/schemas/RoleBreakdownItem"
+
+    RoleBreakdownItem:
+      type: object
+      required: [memberId, memberName, total, done]
+      properties:
+        memberId:
+          type: integer
+        memberName:
+          type: string
+        total:
+          type: integer
+        done:
+          type: integer
+
+    ProjectDocument:
+      type: object
+      required: [id, projectId, name, category, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        projectId:
+          type: integer
+        name:
+          type: string
+        category:
+          type: string
+          enum: [specification, contract, floor_plan, invoice, permit, photo, procurement, act, other]
+        storageKey:
+          type: ["string", "null"]
+        mimeType:
+          type: ["string", "null"]
+        sizeBytes:
+          type: ["integer", "null"]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ProjectDocumentInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        category:
+          type: string
+          enum: [specification, contract, floor_plan, invoice, permit, photo, procurement, act, other]
+          default: other
+        storageKey:
+          type: string
+        mimeType:
+          type: string
+        sizeBytes:
+          type: integer
 
     ProjectInput:
       type: object
@@ -555,6 +743,41 @@ components:
         color:
           type: string
           default: "#6366f1"
+        projectType:
+          type: string
+        kind:
+          type: string
+          enum: [akr, ep, no_plan]
+        stage:
+          type: string
+          enum: [p1, p2, p3, p4, p5, p6]
+          default: p1
+        location:
+          type: string
+        client:
+          type: string
+        budget:
+          type: integer
+        budgetSpent:
+          type: integer
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        area:
+          type: integer
+        rooms:
+          type: integer
+        floors:
+          type: integer
+        note:
+          type: string
+        managerIds:
+          type: array
+          items:
+            type: integer
 
     ProjectUpdate:
       type: object
@@ -569,10 +792,44 @@ components:
           enum: [active, archived]
         color:
           type: string
+        projectType:
+          type: ["string", "null"]
+        kind:
+          type: ["string", "null"]
+          enum: [akr, ep, no_plan, null]
+        stage:
+          type: string
+          enum: [p1, p2, p3, p4, p5, p6]
+        location:
+          type: ["string", "null"]
+        client:
+          type: ["string", "null"]
+        budget:
+          type: ["integer", "null"]
+        budgetSpent:
+          type: ["integer", "null"]
+        startDate:
+          type: ["string", "null"]
+          format: date
+        endDate:
+          type: ["string", "null"]
+          format: date
+        area:
+          type: ["integer", "null"]
+        rooms:
+          type: ["integer", "null"]
+        floors:
+          type: ["integer", "null"]
+        note:
+          type: ["string", "null"]
+        managerIds:
+          type: array
+          items:
+            type: integer
 
     ProjectProgress:
       type: object
-      required: [projectId, total, todo, inProgress, done, completionPercent, overdue]
+      required: [projectId, total, todo, inProgress, blocked, done, completionPercent, overdue]
       properties:
         projectId:
           type: integer
@@ -581,6 +838,8 @@ components:
         todo:
           type: integer
         inProgress:
+          type: integer
+        blocked:
           type: integer
         done:
           type: integer
@@ -603,7 +862,7 @@ components:
           type: ["string", "null"]
         status:
           type: string
-          enum: [todo, in_progress, done]
+          enum: [todo, in_progress, blocked, done]
         priority:
           type: string
           enum: [low, medium, high]
@@ -636,7 +895,7 @@ components:
           type: string
         status:
           type: string
-          enum: [todo, in_progress, done]
+          enum: [todo, in_progress, blocked, done]
           default: todo
         priority:
           type: string
@@ -658,7 +917,7 @@ components:
           type: ["string", "null"]
         status:
           type: string
-          enum: [todo, in_progress, done]
+          enum: [todo, in_progress, blocked, done]
         priority:
           type: string
           enum: [low, medium, high]

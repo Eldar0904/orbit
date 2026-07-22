@@ -10,7 +10,7 @@ export const tasksTable = pgTable("tasks", {
   assigneeId: integer("assignee_id").references(() => membersTable.id, { onDelete: "set null" }),
   title: text("title").notNull(),
   description: text("description"),
-  status: text("status", { enum: ["todo", "in_progress", "done"] }).notNull().default("todo"),
+  status: text("status", { enum: ["todo", "in_progress", "blocked", "done"] }).notNull().default("todo"),
   priority: text("priority", { enum: ["low", "medium", "high"] }).notNull().default("medium"),
   dueDate: date("due_date"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

@@ -26,7 +26,7 @@ export default function Dashboard() {
             <Card key={i}><CardContent className="h-28 flex items-center justify-center"><Skeleton className="h-full w-full" /></CardContent></Card>
           ))}
         </div>
-      ) : summary ? (
+      ) : summary && typeof summary === "object" && "totalProjects" in summary ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="shadow-sm border-border/50">
             <CardContent className="p-6 flex flex-col gap-2">
@@ -67,8 +67,8 @@ export default function Dashboard() {
                 <CheckCircle2 className="w-4 h-4 text-green-500" />
                 <span className="text-sm font-medium">Completion Rate</span>
               </div>
-              <div className="text-3xl font-bold font-mono tracking-tight text-green-600">{summary.completionRate.toFixed(1)}%</div>
-              <p className="text-xs text-muted-foreground">{summary.completedTasks} completed tasks</p>
+              <div className="text-3xl font-bold font-mono tracking-tight text-green-600">{(summary.completionRate ?? 0).toFixed(1)}%</div>
+              <p className="text-xs text-muted-foreground">{summary.completedTasks ?? 0} completed tasks</p>
             </CardContent>
           </Card>
         </div>

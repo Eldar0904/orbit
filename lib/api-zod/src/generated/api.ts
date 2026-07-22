@@ -20,19 +20,92 @@ export const HealthCheckResponse = zod.object({
 /**
  * @summary List all projects
  */
+export const listProjectsQueryWithStatsDefault = false;
+
 export const ListProjectsQueryParams = zod.object({
-  "status": zod.enum(['active', 'archived']).optional()
+  "status": zod.enum(['active', 'archived']).optional(),
+  "withStats": zod.coerce.boolean().default(listProjectsQueryWithStatsDefault)
 })
 
-export const ListProjectsResponseItem = zod.object({
+export const ListProjectsResponseItem = zod.union([zod.object({
   "id": zod.number(),
   "name": zod.string(),
   "description": zod.string().nullish(),
   "status": zod.enum(['active', 'archived']),
   "color": zod.string(),
+  "projectType": zod.string().nullish(),
+  "kind": zod.union([zod.literal('akr'),zod.literal('ep'),zod.literal('no_plan'),zod.literal(null)]).nullish(),
+  "stage": zod.enum(['p1', 'p2', 'p3', 'p4', 'p5', 'p6']),
+  "location": zod.string().nullish(),
+  "client": zod.string().nullish(),
+  "budget": zod.number().nullish(),
+  "budgetSpent": zod.number(),
+  "startDate": zod.coerce.date().nullish(),
+  "endDate": zod.coerce.date().nullish(),
+  "area": zod.number().nullish(),
+  "rooms": zod.number().nullish(),
+  "floors": zod.number().nullish(),
+  "note": zod.string().nullish(),
+  "managerIds": zod.array(zod.number()).optional(),
+  "managers": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "avatarUrl": zod.string().nullish(),
+  "role": zod.enum(['admin', 'member']),
+  "createdAt": zod.coerce.date()
+})).optional(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
-})
+}),zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "status": zod.enum(['active', 'archived']),
+  "color": zod.string(),
+  "projectType": zod.string().nullish(),
+  "kind": zod.union([zod.literal('akr'),zod.literal('ep'),zod.literal('no_plan'),zod.literal(null)]).nullish(),
+  "stage": zod.enum(['p1', 'p2', 'p3', 'p4', 'p5', 'p6']),
+  "location": zod.string().nullish(),
+  "client": zod.string().nullish(),
+  "budget": zod.number().nullish(),
+  "budgetSpent": zod.number(),
+  "startDate": zod.coerce.date().nullish(),
+  "endDate": zod.coerce.date().nullish(),
+  "area": zod.number().nullish(),
+  "rooms": zod.number().nullish(),
+  "floors": zod.number().nullish(),
+  "note": zod.string().nullish(),
+  "managerIds": zod.array(zod.number()).optional(),
+  "managers": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "avatarUrl": zod.string().nullish(),
+  "role": zod.enum(['admin', 'member']),
+  "createdAt": zod.coerce.date()
+})).optional(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}).and(zod.object({
+  "progress": zod.object({
+  "projectId": zod.number(),
+  "total": zod.number(),
+  "todo": zod.number(),
+  "inProgress": zod.number(),
+  "blocked": zod.number(),
+  "done": zod.number(),
+  "completionPercent": zod.number(),
+  "overdue": zod.number()
+}),
+  "documentCount": zod.number(),
+  "roleBreakdown": zod.array(zod.object({
+  "memberId": zod.number(),
+  "memberName": zod.string(),
+  "total": zod.number(),
+  "done": zod.number()
+}))
+}))])
 export const ListProjectsResponse = zod.array(ListProjectsResponseItem)
 
 
@@ -42,12 +115,27 @@ export const ListProjectsResponse = zod.array(ListProjectsResponseItem)
 
 export const createProjectBodyStatusDefault = `active`;
 export const createProjectBodyColorDefault = `#6366f1`;
+export const createProjectBodyStageDefault = `p1`;
 
 export const CreateProjectBody = zod.object({
   "name": zod.string().min(1),
   "description": zod.string().optional(),
   "status": zod.enum(['active', 'archived']).default(createProjectBodyStatusDefault),
-  "color": zod.string().default(createProjectBodyColorDefault)
+  "color": zod.string().default(createProjectBodyColorDefault),
+  "projectType": zod.string().optional(),
+  "kind": zod.enum(['akr', 'ep', 'no_plan']).optional(),
+  "stage": zod.enum(['p1', 'p2', 'p3', 'p4', 'p5', 'p6']).default(createProjectBodyStageDefault),
+  "location": zod.string().optional(),
+  "client": zod.string().optional(),
+  "budget": zod.number().optional(),
+  "budgetSpent": zod.number().optional(),
+  "startDate": zod.coerce.date().optional(),
+  "endDate": zod.coerce.date().optional(),
+  "area": zod.number().optional(),
+  "rooms": zod.number().optional(),
+  "floors": zod.number().optional(),
+  "note": zod.string().optional(),
+  "managerIds": zod.array(zod.number()).optional()
 })
 
 export const CreateProjectResponse = zod.object({
@@ -56,6 +144,28 @@ export const CreateProjectResponse = zod.object({
   "description": zod.string().nullish(),
   "status": zod.enum(['active', 'archived']),
   "color": zod.string(),
+  "projectType": zod.string().nullish(),
+  "kind": zod.union([zod.literal('akr'),zod.literal('ep'),zod.literal('no_plan'),zod.literal(null)]).nullish(),
+  "stage": zod.enum(['p1', 'p2', 'p3', 'p4', 'p5', 'p6']),
+  "location": zod.string().nullish(),
+  "client": zod.string().nullish(),
+  "budget": zod.number().nullish(),
+  "budgetSpent": zod.number(),
+  "startDate": zod.coerce.date().nullish(),
+  "endDate": zod.coerce.date().nullish(),
+  "area": zod.number().nullish(),
+  "rooms": zod.number().nullish(),
+  "floors": zod.number().nullish(),
+  "note": zod.string().nullish(),
+  "managerIds": zod.array(zod.number()).optional(),
+  "managers": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "avatarUrl": zod.string().nullish(),
+  "role": zod.enum(['admin', 'member']),
+  "createdAt": zod.coerce.date()
+})).optional(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })
@@ -74,6 +184,28 @@ export const GetProjectResponse = zod.object({
   "description": zod.string().nullish(),
   "status": zod.enum(['active', 'archived']),
   "color": zod.string(),
+  "projectType": zod.string().nullish(),
+  "kind": zod.union([zod.literal('akr'),zod.literal('ep'),zod.literal('no_plan'),zod.literal(null)]).nullish(),
+  "stage": zod.enum(['p1', 'p2', 'p3', 'p4', 'p5', 'p6']),
+  "location": zod.string().nullish(),
+  "client": zod.string().nullish(),
+  "budget": zod.number().nullish(),
+  "budgetSpent": zod.number(),
+  "startDate": zod.coerce.date().nullish(),
+  "endDate": zod.coerce.date().nullish(),
+  "area": zod.number().nullish(),
+  "rooms": zod.number().nullish(),
+  "floors": zod.number().nullish(),
+  "note": zod.string().nullish(),
+  "managerIds": zod.array(zod.number()).optional(),
+  "managers": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "avatarUrl": zod.string().nullish(),
+  "role": zod.enum(['admin', 'member']),
+  "createdAt": zod.coerce.date()
+})).optional(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })
@@ -93,7 +225,21 @@ export const UpdateProjectBody = zod.object({
   "name": zod.string().min(1).optional(),
   "description": zod.string().nullish(),
   "status": zod.enum(['active', 'archived']).optional(),
-  "color": zod.string().optional()
+  "color": zod.string().optional(),
+  "projectType": zod.string().nullish(),
+  "kind": zod.union([zod.literal('akr'),zod.literal('ep'),zod.literal('no_plan'),zod.literal(null)]).nullish(),
+  "stage": zod.enum(['p1', 'p2', 'p3', 'p4', 'p5', 'p6']).optional(),
+  "location": zod.string().nullish(),
+  "client": zod.string().nullish(),
+  "budget": zod.number().nullish(),
+  "budgetSpent": zod.number().nullish(),
+  "startDate": zod.coerce.date().nullish(),
+  "endDate": zod.coerce.date().nullish(),
+  "area": zod.number().nullish(),
+  "rooms": zod.number().nullish(),
+  "floors": zod.number().nullish(),
+  "note": zod.string().nullish(),
+  "managerIds": zod.array(zod.number()).optional()
 })
 
 export const UpdateProjectResponse = zod.object({
@@ -102,6 +248,28 @@ export const UpdateProjectResponse = zod.object({
   "description": zod.string().nullish(),
   "status": zod.enum(['active', 'archived']),
   "color": zod.string(),
+  "projectType": zod.string().nullish(),
+  "kind": zod.union([zod.literal('akr'),zod.literal('ep'),zod.literal('no_plan'),zod.literal(null)]).nullish(),
+  "stage": zod.enum(['p1', 'p2', 'p3', 'p4', 'p5', 'p6']),
+  "location": zod.string().nullish(),
+  "client": zod.string().nullish(),
+  "budget": zod.number().nullish(),
+  "budgetSpent": zod.number(),
+  "startDate": zod.coerce.date().nullish(),
+  "endDate": zod.coerce.date().nullish(),
+  "area": zod.number().nullish(),
+  "rooms": zod.number().nullish(),
+  "floors": zod.number().nullish(),
+  "note": zod.string().nullish(),
+  "managerIds": zod.array(zod.number()).optional(),
+  "managers": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "avatarUrl": zod.string().nullish(),
+  "role": zod.enum(['admin', 'member']),
+  "createdAt": zod.coerce.date()
+})).optional(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })
@@ -129,10 +297,74 @@ export const GetProjectProgressResponse = zod.object({
   "total": zod.number(),
   "todo": zod.number(),
   "inProgress": zod.number(),
+  "blocked": zod.number(),
   "done": zod.number(),
   "completionPercent": zod.number(),
   "overdue": zod.number()
 })
+
+
+/**
+ * @summary List documents for a project
+ */
+export const ListProjectDocumentsParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ListProjectDocumentsResponseItem = zod.object({
+  "id": zod.number(),
+  "projectId": zod.number(),
+  "name": zod.string(),
+  "category": zod.enum(['specification', 'contract', 'floor_plan', 'invoice', 'permit', 'photo', 'procurement', 'act', 'other']),
+  "storageKey": zod.string().nullish(),
+  "mimeType": zod.string().nullish(),
+  "sizeBytes": zod.number().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+export const ListProjectDocumentsResponse = zod.array(ListProjectDocumentsResponseItem)
+
+
+/**
+ * @summary Register a document for a project
+ */
+export const CreateProjectDocumentParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+export const createProjectDocumentBodyCategoryDefault = `other`;
+
+export const CreateProjectDocumentBody = zod.object({
+  "name": zod.string().min(1),
+  "category": zod.enum(['specification', 'contract', 'floor_plan', 'invoice', 'permit', 'photo', 'procurement', 'act', 'other']).default(createProjectDocumentBodyCategoryDefault),
+  "storageKey": zod.string().optional(),
+  "mimeType": zod.string().optional(),
+  "sizeBytes": zod.number().optional()
+})
+
+export const CreateProjectDocumentResponse = zod.object({
+  "id": zod.number(),
+  "projectId": zod.number(),
+  "name": zod.string(),
+  "category": zod.enum(['specification', 'contract', 'floor_plan', 'invoice', 'permit', 'photo', 'procurement', 'act', 'other']),
+  "storageKey": zod.string().nullish(),
+  "mimeType": zod.string().nullish(),
+  "sizeBytes": zod.number().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Delete a project document
+ */
+export const DeleteProjectDocumentParams = zod.object({
+  "id": zod.coerce.number(),
+  "docId": zod.coerce.number()
+})
+
+export const DeleteProjectDocumentResponse = zod.void()
 
 
 /**
@@ -235,7 +467,7 @@ export const MatchProjectItemsResponse = zod.object({
 export const ListTasksQueryParams = zod.object({
   "projectId": zod.coerce.number().optional(),
   "assigneeId": zod.coerce.number().optional(),
-  "status": zod.enum(['todo', 'in_progress', 'done']).optional(),
+  "status": zod.enum(['todo', 'in_progress', 'blocked', 'done']).optional(),
   "priority": zod.enum(['low', 'medium', 'high']).optional()
 })
 
@@ -244,7 +476,7 @@ export const ListTasksResponseItem = zod.object({
   "projectId": zod.number(),
   "title": zod.string(),
   "description": zod.string().nullish(),
-  "status": zod.enum(['todo', 'in_progress', 'done']),
+  "status": zod.enum(['todo', 'in_progress', 'blocked', 'done']),
   "priority": zod.enum(['low', 'medium', 'high']),
   "assigneeId": zod.number().nullish(),
   "assignee": zod.object({
@@ -261,6 +493,28 @@ export const ListTasksResponseItem = zod.object({
   "description": zod.string().nullish(),
   "status": zod.enum(['active', 'archived']),
   "color": zod.string(),
+  "projectType": zod.string().nullish(),
+  "kind": zod.union([zod.literal('akr'),zod.literal('ep'),zod.literal('no_plan'),zod.literal(null)]).nullish(),
+  "stage": zod.enum(['p1', 'p2', 'p3', 'p4', 'p5', 'p6']),
+  "location": zod.string().nullish(),
+  "client": zod.string().nullish(),
+  "budget": zod.number().nullish(),
+  "budgetSpent": zod.number(),
+  "startDate": zod.coerce.date().nullish(),
+  "endDate": zod.coerce.date().nullish(),
+  "area": zod.number().nullish(),
+  "rooms": zod.number().nullish(),
+  "floors": zod.number().nullish(),
+  "note": zod.string().nullish(),
+  "managerIds": zod.array(zod.number()).optional(),
+  "managers": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "avatarUrl": zod.string().nullish(),
+  "role": zod.enum(['admin', 'member']),
+  "createdAt": zod.coerce.date()
+})).optional(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 }).optional(),
@@ -282,7 +536,7 @@ export const CreateTaskBody = zod.object({
   "projectId": zod.number(),
   "title": zod.string().min(1),
   "description": zod.string().optional(),
-  "status": zod.enum(['todo', 'in_progress', 'done']).default(createTaskBodyStatusDefault),
+  "status": zod.enum(['todo', 'in_progress', 'blocked', 'done']).default(createTaskBodyStatusDefault),
   "priority": zod.enum(['low', 'medium', 'high']).default(createTaskBodyPriorityDefault),
   "assigneeId": zod.number().nullish(),
   "dueDate": zod.coerce.date().nullish()
@@ -293,7 +547,7 @@ export const CreateTaskResponse = zod.object({
   "projectId": zod.number(),
   "title": zod.string(),
   "description": zod.string().nullish(),
-  "status": zod.enum(['todo', 'in_progress', 'done']),
+  "status": zod.enum(['todo', 'in_progress', 'blocked', 'done']),
   "priority": zod.enum(['low', 'medium', 'high']),
   "assigneeId": zod.number().nullish(),
   "assignee": zod.object({
@@ -310,6 +564,28 @@ export const CreateTaskResponse = zod.object({
   "description": zod.string().nullish(),
   "status": zod.enum(['active', 'archived']),
   "color": zod.string(),
+  "projectType": zod.string().nullish(),
+  "kind": zod.union([zod.literal('akr'),zod.literal('ep'),zod.literal('no_plan'),zod.literal(null)]).nullish(),
+  "stage": zod.enum(['p1', 'p2', 'p3', 'p4', 'p5', 'p6']),
+  "location": zod.string().nullish(),
+  "client": zod.string().nullish(),
+  "budget": zod.number().nullish(),
+  "budgetSpent": zod.number(),
+  "startDate": zod.coerce.date().nullish(),
+  "endDate": zod.coerce.date().nullish(),
+  "area": zod.number().nullish(),
+  "rooms": zod.number().nullish(),
+  "floors": zod.number().nullish(),
+  "note": zod.string().nullish(),
+  "managerIds": zod.array(zod.number()).optional(),
+  "managers": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "avatarUrl": zod.string().nullish(),
+  "role": zod.enum(['admin', 'member']),
+  "createdAt": zod.coerce.date()
+})).optional(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 }).optional(),
@@ -331,7 +607,7 @@ export const GetTaskResponse = zod.object({
   "projectId": zod.number(),
   "title": zod.string(),
   "description": zod.string().nullish(),
-  "status": zod.enum(['todo', 'in_progress', 'done']),
+  "status": zod.enum(['todo', 'in_progress', 'blocked', 'done']),
   "priority": zod.enum(['low', 'medium', 'high']),
   "assigneeId": zod.number().nullish(),
   "assignee": zod.object({
@@ -348,6 +624,28 @@ export const GetTaskResponse = zod.object({
   "description": zod.string().nullish(),
   "status": zod.enum(['active', 'archived']),
   "color": zod.string(),
+  "projectType": zod.string().nullish(),
+  "kind": zod.union([zod.literal('akr'),zod.literal('ep'),zod.literal('no_plan'),zod.literal(null)]).nullish(),
+  "stage": zod.enum(['p1', 'p2', 'p3', 'p4', 'p5', 'p6']),
+  "location": zod.string().nullish(),
+  "client": zod.string().nullish(),
+  "budget": zod.number().nullish(),
+  "budgetSpent": zod.number(),
+  "startDate": zod.coerce.date().nullish(),
+  "endDate": zod.coerce.date().nullish(),
+  "area": zod.number().nullish(),
+  "rooms": zod.number().nullish(),
+  "floors": zod.number().nullish(),
+  "note": zod.string().nullish(),
+  "managerIds": zod.array(zod.number()).optional(),
+  "managers": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "avatarUrl": zod.string().nullish(),
+  "role": zod.enum(['admin', 'member']),
+  "createdAt": zod.coerce.date()
+})).optional(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 }).optional(),
@@ -370,7 +668,7 @@ export const UpdateTaskParams = zod.object({
 export const UpdateTaskBody = zod.object({
   "title": zod.string().min(1).optional(),
   "description": zod.string().nullish(),
-  "status": zod.enum(['todo', 'in_progress', 'done']).optional(),
+  "status": zod.enum(['todo', 'in_progress', 'blocked', 'done']).optional(),
   "priority": zod.enum(['low', 'medium', 'high']).optional(),
   "assigneeId": zod.number().nullish(),
   "dueDate": zod.coerce.date().nullish()
@@ -381,7 +679,7 @@ export const UpdateTaskResponse = zod.object({
   "projectId": zod.number(),
   "title": zod.string(),
   "description": zod.string().nullish(),
-  "status": zod.enum(['todo', 'in_progress', 'done']),
+  "status": zod.enum(['todo', 'in_progress', 'blocked', 'done']),
   "priority": zod.enum(['low', 'medium', 'high']),
   "assigneeId": zod.number().nullish(),
   "assignee": zod.object({
@@ -398,6 +696,28 @@ export const UpdateTaskResponse = zod.object({
   "description": zod.string().nullish(),
   "status": zod.enum(['active', 'archived']),
   "color": zod.string(),
+  "projectType": zod.string().nullish(),
+  "kind": zod.union([zod.literal('akr'),zod.literal('ep'),zod.literal('no_plan'),zod.literal(null)]).nullish(),
+  "stage": zod.enum(['p1', 'p2', 'p3', 'p4', 'p5', 'p6']),
+  "location": zod.string().nullish(),
+  "client": zod.string().nullish(),
+  "budget": zod.number().nullish(),
+  "budgetSpent": zod.number(),
+  "startDate": zod.coerce.date().nullish(),
+  "endDate": zod.coerce.date().nullish(),
+  "area": zod.number().nullish(),
+  "rooms": zod.number().nullish(),
+  "floors": zod.number().nullish(),
+  "note": zod.string().nullish(),
+  "managerIds": zod.array(zod.number()).optional(),
+  "managers": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "avatarUrl": zod.string().nullish(),
+  "role": zod.enum(['admin', 'member']),
+  "createdAt": zod.coerce.date()
+})).optional(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 }).optional(),

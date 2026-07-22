@@ -12,5 +12,6 @@ export type TaskInputStatus = typeof TaskInputStatus[keyof typeof TaskInputStatu
 export const TaskInputStatus = {
   todo: 'todo',
   in_progress: 'in_progress',
+  blocked: 'blocked',
   done: 'done',
 } as const;

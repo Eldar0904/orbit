@@ -12,5 +12,6 @@ export type TaskUpdateStatus = typeof TaskUpdateStatus[keyof typeof TaskUpdateSt
 export const TaskUpdateStatus = {
   todo: 'todo',
   in_progress: 'in_progress',
+  blocked: 'blocked',
   done: 'done',
 } as const;
