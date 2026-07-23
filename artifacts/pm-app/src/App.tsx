@@ -25,9 +25,12 @@ const clerkPubKey =
     import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
   ) ?? import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
-// REQUIRED — copy verbatim. Empty in dev (Clerk hits dev FAPI directly),
-// auto-set in prod. Do NOT gate on import.meta.env.PROD.
-const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
+// REQUIRED — copy verbatim. Empty in dev (Clerk hits dev FAPI directly).
+// Proxy only works for pk_live with the domain registered in Clerk; pk_test
+// instances must not use proxyUrl or FAPI calls fail with host_invalid.
+const clerkProxyUrl = clerkPubKey.startsWith("pk_live_")
+  ? import.meta.env.VITE_CLERK_PROXY_URL
+  : undefined;
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 

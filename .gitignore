@@ -53,3 +53,5 @@ Thumbs.db
 .env.*.local
 vercel.env
 artifacts/pm-app/.env.local
+
+.vercel

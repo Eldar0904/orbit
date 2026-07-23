@@ -32,7 +32,7 @@ Add these in Vercel → Project → Settings → Environment Variables (Producti
 | `CLERK_SECRET_KEY` | `sk_live_...` | Production secret key |
 | `CLERK_PUBLISHABLE_KEY` | `pk_live_...` | Production publishable key |
 | `VITE_CLERK_PUBLISHABLE_KEY` | `pk_live_...` | Same as above — needed at **build** time |
-| `VITE_CLERK_PROXY_URL` | `/api/__clerk` | Clerk proxy through your domain |
+| `VITE_CLERK_PROXY_URL` | `/api/__clerk` | **Only for `pk_live_`** — omit for `pk_test_` |
 | `NODE_ENV` | `production` | Enables Clerk proxy middleware |
 | `LOG_LEVEL` | `info` | Optional |
 
@@ -93,7 +93,18 @@ After deploy, add your Vercel URL (e.g. `https://orbit-xxx.vercel.app`) in Clerk
 
 If `/assets/*.js` requests return `index.html`, the page stays blank. The SPA rewrite in `vercel.json` excludes `/assets/*` and paths with file extensions (`.js`, `.css`, `.svg`, etc.). If you add files under a new public path, keep them out of the catch-all rewrite.
 
-**4. Quick checks**
+**5. Clerk proxy with test keys (`pk_test_`)**
+
+The app skips `proxyUrl` for `pk_test_` keys (Clerk dev instances do not support the production proxy). If `VITE_CLERK_PROXY_URL=/api/__clerk` is set on Vercel while using a test key, Clerk FAPI calls fail with `host_invalid` and the UI stays blank because `<Show>` renders nothing until auth loads.
+
+- For **test** deploys: remove `VITE_CLERK_PROXY_URL` from Vercel env (or leave it — the app ignores it for `pk_test_`)
+- For **production** (`pk_live_`): keep `VITE_CLERK_PROXY_URL=/api/__clerk` **and** add your Vercel URL in Clerk → **Domains**
+
+**6. Preview URL behind Vercel SSO**
+
+Branch preview URLs like `https://orbit-b2b-git-main-eldar999444.vercel.app` may redirect to Vercel login (Deployment Protection). Use the production alias (`https://orbit-b2b-six.vercel.app`) or disable protection under Project → Settings → Deployment Protection.
+
+**7. Quick checks**
 
 - Open DevTools → **Network**: confirm `/assets/index-*.js` returns `200` with `Content-Type: application/javascript`
 - Open **Console**: look for `Missing VITE_CLERK_PUBLISHABLE_KEY` or Clerk domain errors

@@ -1,5 +1,6 @@
+import type { ReactNode } from "react";
 import { Switch, Route, Redirect } from "wouter";
-import { Show } from "@clerk/react";
+import { ClerkFailed, ClerkLoaded, ClerkLoading, Show } from "@clerk/react";
 import { AppLayout } from "./components/layout";
 import Dashboard from "./pages/dashboard";
 import Projects from "./pages/projects";
@@ -46,15 +47,45 @@ function ProtectedApp() {
   );
 }
 
+function AuthShell({ children }: { children: ReactNode }) {
+  return (
+    <>
+      <ClerkLoading>
+        <div className="flex min-h-[100dvh] items-center justify-center bg-gradient-to-br from-slate-50 via-indigo-50/30 to-slate-100">
+          <p className="text-sm text-slate-500">Loading Orbit…</p>
+        </div>
+      </ClerkLoading>
+      <ClerkFailed>
+        <div className="flex min-h-[100dvh] items-center justify-center bg-gradient-to-br from-slate-50 via-indigo-50/30 to-slate-100 px-4">
+          <div className="max-w-md rounded-2xl border border-red-200 bg-white p-6 text-center shadow-sm">
+            <h1 className="text-lg font-semibold text-slate-900">
+              Authentication failed to load
+            </h1>
+            <p className="mt-2 text-sm text-slate-600">
+              For production (<code className="text-xs">pk_live_</code>) keys,
+              add this site URL in Clerk → Domains and keep{" "}
+              <code className="text-xs">VITE_CLERK_PROXY_URL=/api/__clerk</code>.
+              For test keys, remove the proxy env var on Vercel.
+            </p>
+          </div>
+        </div>
+      </ClerkFailed>
+      <ClerkLoaded>{children}</ClerkLoaded>
+    </>
+  );
+}
+
 export function Router() {
   return (
-    <Switch>
-      <Route path="/" component={HomeRedirect} />
-      {/* REQUIRED — /*? is the only wouter syntax matching both the bare URL
-          and Clerk OAuth sub-paths like /sign-in/sso-callback */}
-      <Route path="/sign-in/*?" component={SignInPage} />
-      <Route path="/sign-up/*?" component={SignUpPage} />
-      <Route component={ProtectedApp} />
-    </Switch>
+    <AuthShell>
+      <Switch>
+        <Route path="/" component={HomeRedirect} />
+        {/* REQUIRED — /*? is the only wouter syntax matching both the bare URL
+            and Clerk OAuth sub-paths like /sign-in/sso-callback */}
+        <Route path="/sign-in/*?" component={SignInPage} />
+        <Route path="/sign-up/*?" component={SignUpPage} />
+        <Route component={ProtectedApp} />
+      </Switch>
+    </AuthShell>
   );
 }
