@@ -1,16 +1,17 @@
 import { Link, useLocation } from "wouter";
 import { LayoutDashboard, Briefcase, CheckSquare, Users, LogOut } from "lucide-react";
 import { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
-import { Separator } from "@/components/ui/separator";
 import { useClerk, useUser } from "@clerk/react";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
 const NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/projects", label: "Projects", icon: Briefcase },
-  { href: "/tasks", label: "All Tasks", icon: CheckSquare },
-  { href: "/team", label: "Team", icon: Users },
-];
+  { href: "/dashboard", labelKey: "nav.dashboard", icon: LayoutDashboard, testId: "dashboard" },
+  { href: "/projects", labelKey: "nav.projects", icon: Briefcase, testId: "projects" },
+  { href: "/tasks", labelKey: "nav.tasks", icon: CheckSquare, testId: "all-tasks" },
+  { href: "/team", labelKey: "nav.team", icon: Users, testId: "team" },
+] as const;
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -18,16 +19,16 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   const { signOut } = useClerk();
   const { user } = useUser();
+  const { t } = useTranslation();
 
   return (
     <div className="flex min-h-screen w-full bg-background text-foreground">
-      {/* Sidebar */}
       <aside className="w-64 flex-shrink-0 border-r border-border bg-card flex flex-col hidden md:flex">
         <div className="h-14 flex items-center px-4 font-bold text-lg tracking-tight text-foreground border-b border-border gap-2">
           <div className="w-6 h-6 rounded bg-primary flex items-center justify-center text-primary-foreground">
             <div className="w-2 h-2 rounded-sm bg-white" />
           </div>
-          Orbit
+          {t("common.appName")}
         </div>
 
         <div className="flex-1 py-4 flex flex-col gap-1 px-3">
@@ -45,23 +46,23 @@ export function AppLayout({ children }: { children: ReactNode }) {
                       ? "bg-primary/10 text-primary"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground",
                   )}
-                  data-testid={`nav-${item.label.toLowerCase()}`}
+                  data-testid={`nav-${item.testId}`}
                 >
                   <Icon className="w-4 h-4" />
-                  {item.label}
+                  {t(item.labelKey)}
                 </div>
               </Link>
             );
           })}
         </div>
 
-        {/* User section */}
-        <div className="border-t border-border p-3">
+        <div className="border-t border-border p-3 space-y-3">
+          <LanguageSwitcher />
           <div className="flex items-center gap-3 px-2 py-2">
             {user?.imageUrl ? (
               <img
                 src={user.imageUrl}
-                alt={user.fullName ?? "User"}
+                alt={user.fullName ?? t("common.user")}
                 className="w-7 h-7 rounded-full object-cover flex-shrink-0"
               />
             ) : (
@@ -84,7 +85,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
             <button
               onClick={() => signOut({ redirectUrl: basePath || "/" })}
               className="flex-shrink-0 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-              title="Sign out"
+              title={t("common.signOut")}
             >
               <LogOut className="w-4 h-4" />
             </button>
@@ -92,21 +93,21 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
-      {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0">
-        {/* Mobile Header */}
-        <header className="h-14 flex md:hidden items-center justify-between px-4 border-b border-border bg-card">
-          <span className="font-bold text-lg">Orbit</span>
-          <button
-            onClick={() => signOut({ redirectUrl: basePath || "/" })}
-            className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-            title="Sign out"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
+        <header className="h-14 flex md:hidden items-center justify-between px-4 border-b border-border bg-card gap-3">
+          <span className="font-bold text-lg">{t("common.appName")}</span>
+          <div className="flex items-center gap-2">
+            <LanguageSwitcher compact />
+            <button
+              onClick={() => signOut({ redirectUrl: basePath || "/" })}
+              className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              title={t("common.signOut")}
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
         </header>
 
-        {/* Page Content */}
         <div className="flex-1 overflow-auto bg-background">
           <div className="p-6 md:p-8 max-w-[1400px] mx-auto w-full">
             {children}

@@ -77,6 +77,8 @@
   "dependencies": {
     "@clerk/react": "^6.12.5",
     "@clerk/themes": "^2.4.57",
+    "i18next": "^26.3.6",
+    "react-i18next": "^17.0.10",
     "xlsx": "^0.18.5"
   }
 }

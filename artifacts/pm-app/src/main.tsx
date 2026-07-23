@@ -2,6 +2,7 @@ import { createRoot } from 'react-dom/client';
 import { setBaseUrl } from '@workspace/api-client-react';
 
 import App from './App';
+import './i18n';
 
 import './index.css';
 

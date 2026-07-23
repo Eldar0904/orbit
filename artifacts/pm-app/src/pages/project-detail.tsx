@@ -13,6 +13,7 @@ import {
   TaskUpdate,
 } from "@workspace/api-client-react";
 import { useParams, Link } from "wouter";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -35,6 +36,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/project-constants";
 
 export default function ProjectDetail() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const projectId = parseInt(id, 10);
   const [isTaskCreateOpen, setIsTaskCreateOpen] = useState(false);
@@ -78,12 +80,12 @@ export default function ProjectDetail() {
   };
 
   const handleDeleteTask = (taskId: number) => {
-    if (!confirm("Are you sure you want to delete this task?")) return;
+    if (!confirm(t("projectDetail.deleteConfirm"))) return;
     deleteTask.mutate(
       { id: taskId },
       {
         onSuccess: () => {
-          toast({ title: "Task deleted" });
+          toast({ title: t("projectDetail.taskDeleted") });
           queryClient.invalidateQueries({ queryKey: getListTasksQueryKey({ projectId }) });
           queryClient.invalidateQueries({ queryKey: getGetProjectProgressQueryKey(projectId) });
           queryClient.invalidateQueries({ queryKey: getGetProjectQueryKey(projectId) });
@@ -95,27 +97,28 @@ export default function ProjectDetail() {
   const budget = project.budget ?? 0;
   const spent = project.budgetSpent ?? 0;
   const budgetLeft = budget > 0 ? budget - spent : null;
+  const statusLabel = project.status === "active" ? t("common.active") : t("common.archived");
 
   return (
     <div className="space-y-6">
       <div>
         <Link href="/projects" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors">
           <ArrowLeft className="w-4 h-4 mr-1" />
-          Back to Projects
+          {t("projectDetail.backToProjects")}
         </Link>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3 flex-wrap">
             <div className="w-4 h-4 rounded-sm" style={{ backgroundColor: project.color || "hsl(var(--primary))" }} />
             <h1 className="text-3xl font-bold tracking-tight">{project.name}</h1>
             <div className="text-xs font-mono px-2 py-1 bg-muted rounded text-muted-foreground border">
-              {project.status.toUpperCase()}
+              {statusLabel.toUpperCase()}
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <EditProjectDialog project={project} members={members ?? []} />
             <Button variant="outline" size="sm" onClick={() => setActiveTab("documents")}>
               <FileText className="w-4 h-4 mr-2" />
-              Documents
+              {t("common.documents")}
             </Button>
             <CreateTaskDialog
               projectId={projectId}
@@ -135,20 +138,19 @@ export default function ProjectDetail() {
         )}
       </div>
 
-      {/* Stat strip */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <StatPill
-          label="Progress"
+          label={t("common.progress")}
           value={isProgressLoading ? "…" : `${progress?.completionPercent ?? 0}%`}
           loading={isProgressLoading}
         />
-        <StatPill label="Tasks" value={String(progress?.total ?? tasks?.length ?? 0)} />
-        <StatPill label="Documents" value={String(documents?.length ?? 0)} />
-        <StatPill label="Budget left" value={budgetLeft != null ? formatCurrency(budgetLeft) : "—"} />
+        <StatPill label={t("common.tasks")} value={String(progress?.total ?? tasks?.length ?? 0)} />
+        <StatPill label={t("common.documents")} value={String(documents?.length ?? 0)} />
+        <StatPill label={t("projectDetail.budgetLeft")} value={budgetLeft != null ? formatCurrency(budgetLeft) : "—"} />
         <StatPill
-          label="Area / Rooms"
+          label={t("projectDetail.areaRooms")}
           value={project.area ? `${project.area} m²` : "—"}
-          sub={project.rooms ? `${project.rooms} rooms` : undefined}
+          sub={project.rooms ? t("common.rooms", { count: project.rooms }) : undefined}
         />
       </div>
 
@@ -156,21 +158,21 @@ export default function ProjectDetail() {
         <TabsList className="bg-muted/40 border border-border/50">
           <TabsTrigger value="tasks" className="gap-2">
             <CheckCircle2 className="w-3.5 h-3.5" />
-            Tasks
+            {t("common.tasks")}
             {tasks && <span className="font-mono text-xs">{tasks.length}</span>}
           </TabsTrigger>
           <TabsTrigger value="documents" className="gap-2">
             <FileText className="w-3.5 h-3.5" />
-            Documents
+            {t("common.documents")}
             {documents && <span className="font-mono text-xs">{documents.length}</span>}
           </TabsTrigger>
           <TabsTrigger value="procurement" className="gap-2">
             <PackageSearch className="w-3.5 h-3.5" />
-            Procurement
+            {t("common.procurement")}
           </TabsTrigger>
           <TabsTrigger value="overview" className="gap-2">
             <LayoutGrid className="w-3.5 h-3.5" />
-            Overview
+            {t("common.overview")}
           </TabsTrigger>
         </TabsList>
 
@@ -179,7 +181,7 @@ export default function ProjectDetail() {
             <Card className="border-border/50 shadow-sm">
               <CardContent className="p-4">
                 <div className="flex justify-between text-sm mb-2">
-                  <span className="text-muted-foreground">Overall completion</span>
+                  <span className="text-muted-foreground">{t("projectDetail.overallCompletion")}</span>
                   <span className="font-mono font-bold">{progress.completionPercent}%</span>
                 </div>
                 <Progress value={progress.completionPercent} className="h-2" />
@@ -194,11 +196,11 @@ export default function ProjectDetail() {
             <Card className="border-border/50 shadow-sm">
               <CardContent className="p-12 text-center flex flex-col items-center">
                 <CheckCircle2 className="w-12 h-12 text-muted-foreground/30 mb-4" />
-                <h4 className="text-lg font-medium">No tasks yet</h4>
-                <p className="text-sm text-muted-foreground mt-1 mb-6">Create the first task to get this project moving.</p>
+                <h4 className="text-lg font-medium">{t("projectDetail.noTasksYet")}</h4>
+                <p className="text-sm text-muted-foreground mt-1 mb-6">{t("projectDetail.noTasksHint")}</p>
                 <Button onClick={() => setIsTaskCreateOpen(true)} variant="outline">
                   <Plus className="w-4 h-4 mr-2" />
-                  Add Task
+                  {t("projectDetail.addTask")}
                 </Button>
               </CardContent>
             </Card>
@@ -260,6 +262,7 @@ function CreateTaskDialog({
   onOpenChange: (open: boolean) => void;
   members: { id: number; name: string }[];
 }) {
+  const { t } = useTranslation();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<"todo" | "in_progress" | "blocked" | "done">("todo");
@@ -289,7 +292,7 @@ function CreateTaskDialog({
       },
       {
         onSuccess: () => {
-          toast({ title: "Task created" });
+          toast({ title: t("projectDetail.taskCreated") });
           onOpenChange(false);
           queryClient.invalidateQueries({ queryKey: getListTasksQueryKey({ projectId }) });
           queryClient.invalidateQueries({ queryKey: getGetProjectProgressQueryKey(projectId) });
@@ -301,7 +304,7 @@ function CreateTaskDialog({
           setAssigneeId("unassigned");
           setDueDate("");
         },
-        onError: () => toast({ variant: "destructive", title: "Failed to create task" }),
+        onError: () => toast({ variant: "destructive", title: t("projectDetail.taskCreateFailed") }),
       },
     );
   };
@@ -311,55 +314,55 @@ function CreateTaskDialog({
       <DialogTrigger asChild>
         <Button size="sm">
           <Plus className="w-4 h-4 mr-2" />
-          Add Task
+          {t("projectDetail.addTask")}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Create new task</DialogTitle>
+            <DialogTitle>{t("projectDetail.createTask")}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="title">Task Title</Label>
-              <Input id="title" placeholder="e.g. Review floor plan" value={title} onChange={(e) => setTitle(e.target.value)} autoFocus />
+              <Label htmlFor="title">{t("projectDetail.taskTitle")}</Label>
+              <Input id="title" placeholder={t("projectDetail.taskTitlePlaceholder")} value={title} onChange={(e) => setTitle(e.target.value)} autoFocus />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description">{t("projectDetail.description")}</Label>
               <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Status</Label>
+                <Label>{t("projectDetail.status")}</Label>
                 <Select value={status} onValueChange={(val) => setStatus(val as typeof status)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="todo">To Do</SelectItem>
-                    <SelectItem value="in_progress">In Progress</SelectItem>
-                    <SelectItem value="blocked">Blocked</SelectItem>
-                    <SelectItem value="done">Done</SelectItem>
+                    <SelectItem value="todo">{t("status.todo")}</SelectItem>
+                    <SelectItem value="in_progress">{t("status.in_progress")}</SelectItem>
+                    <SelectItem value="blocked">{t("status.blocked")}</SelectItem>
+                    <SelectItem value="done">{t("status.done")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Priority</Label>
+                <Label>{t("projectDetail.priority")}</Label>
                 <Select value={priority} onValueChange={(val) => setPriority(val as typeof priority)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="low">Low</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="low">{t("priority.low")}</SelectItem>
+                    <SelectItem value="medium">{t("priority.medium")}</SelectItem>
+                    <SelectItem value="high">{t("priority.high")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Assignee</Label>
+                <Label>{t("projectDetail.assignee")}</Label>
                 <Select value={assigneeId} onValueChange={setAssigneeId}>
-                  <SelectTrigger><SelectValue placeholder="Select assignee" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={t("projectDetail.selectAssignee")} /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="unassigned">Unassigned</SelectItem>
+                    <SelectItem value="unassigned">{t("common.unassigned")}</SelectItem>
                     {members.map((m) => (
                       <SelectItem key={m.id} value={m.id.toString()}>{m.name}</SelectItem>
                     ))}
@@ -367,15 +370,15 @@ function CreateTaskDialog({
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Due Date</Label>
+                <Label>{t("projectDetail.dueDate")}</Label>
                 <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
               </div>
             </div>
           </div>
           <div className="flex justify-end gap-2 pt-2 border-t">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{t("common.cancel")}</Button>
             <Button type="submit" disabled={!title || createTask.isPending}>
-              {createTask.isPending ? "Saving..." : "Save Task"}
+              {createTask.isPending ? t("common.saving") : t("projectDetail.saveTask")}
             </Button>
           </div>
         </form>

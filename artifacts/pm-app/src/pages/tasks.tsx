@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useListTasks, useListProjects, useListMembers, useUpdateTask, getListTasksQueryKey, TaskUpdate } from "@workspace/api-client-react";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -14,15 +15,14 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useQueryClient } from "@tanstack/react-query";
 
 export default function Tasks() {
+  const { t } = useTranslation();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [projectFilter, setProjectFilter] = useState<string>("all");
 
   const { data: projects } = useListProjects();
-  
-  // We fetch all tasks and filter client-side for immediate responsiveness
   const { data: allTasks, isLoading } = useListTasks();
-  
+
   const updateTask = useUpdateTask();
   const queryClient = useQueryClient();
 
@@ -47,15 +47,15 @@ export default function Tasks() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">All Tasks</h1>
-        <p className="text-muted-foreground text-sm mt-1">Global view of all tasks across projects.</p>
+        <h1 className="text-2xl font-bold tracking-tight">{t("tasks.title")}</h1>
+        <p className="text-muted-foreground text-sm mt-1">{t("tasks.subtitle")}</p>
       </div>
 
       <Card className="border-border/50 shadow-sm p-4 flex flex-col md:flex-row gap-4 items-center bg-card">
         <div className="relative w-full md:flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search tasks..."
+            placeholder={t("tasks.searchPlaceholder")}
             className="pl-9"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -64,10 +64,10 @@ export default function Tasks() {
         <div className="flex w-full md:w-auto gap-4">
           <Select value={projectFilter} onValueChange={setProjectFilter}>
             <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="All Projects" />
+              <SelectValue placeholder={t("tasks.allProjects")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Projects</SelectItem>
+              <SelectItem value="all">{t("tasks.allProjects")}</SelectItem>
               {projects?.map(p => (
                 <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>
               ))}
@@ -75,13 +75,13 @@ export default function Tasks() {
           </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="All Status" />
+              <SelectValue placeholder={t("tasks.allStatus")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="todo">To Do</SelectItem>
-              <SelectItem value="in_progress">In Progress</SelectItem>
-              <SelectItem value="done">Done</SelectItem>
+              <SelectItem value="all">{t("tasks.allStatus")}</SelectItem>
+              <SelectItem value="todo">{t("status.todo")}</SelectItem>
+              <SelectItem value="in_progress">{t("status.in_progress")}</SelectItem>
+              <SelectItem value="done">{t("status.done")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -96,15 +96,14 @@ export default function Tasks() {
           </div>
         ) : filteredTasks && filteredTasks.length > 0 ? (
           <div className="divide-y divide-border">
-            {/* Table Header */}
             <div className="hidden md:grid grid-cols-12 gap-4 p-3 bg-muted/30 border-b border-border text-xs font-bold tracking-tight text-muted-foreground uppercase">
-              <div className="col-span-5">Task</div>
-              <div className="col-span-2">Project</div>
-              <div className="col-span-2">Status</div>
-              <div className="col-span-2">Assignee</div>
-              <div className="col-span-1 text-right">Priority</div>
+              <div className="col-span-5">{t("tasks.task")}</div>
+              <div className="col-span-2">{t("tasks.project")}</div>
+              <div className="col-span-2">{t("tasks.status")}</div>
+              <div className="col-span-2">{t("tasks.assignee")}</div>
+              <div className="col-span-1 text-right">{t("tasks.priority")}</div>
             </div>
-            
+
             {filteredTasks.map(task => (
               <div key={task.id} className="p-4 md:p-3 hover:bg-muted/20 transition-colors group grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
                 <div className="md:col-span-5 min-w-0 flex items-start gap-3">
@@ -122,19 +121,19 @@ export default function Tasks() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="md:col-span-2 text-sm text-muted-foreground truncate hidden md:block">
                   {task.project ? (
                     <Link href={`/projects/${task.project.id}`} className="hover:text-primary hover:underline transition-colors flex items-center gap-2 truncate">
-                      <div 
-                        className="w-2 h-2 rounded-full shrink-0" 
-                        style={{ backgroundColor: task.project.color }} 
+                      <div
+                        className="w-2 h-2 rounded-full shrink-0"
+                        style={{ backgroundColor: task.project.color }}
                       />
                       {task.project.name}
                     </Link>
                   ) : "-"}
                 </div>
-                
+
                 <div className="md:col-span-2 shrink-0">
                   <DropdownMenu>
                     <DropdownMenuTrigger className="focus:outline-none">
@@ -143,20 +142,20 @@ export default function Tasks() {
                       </div>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start">
-                      <DropdownMenuItem onClick={() => handleStatusChange(task.id, "todo")}>To Do</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleStatusChange(task.id, "in_progress")}>In Progress</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleStatusChange(task.id, "done")}>Done</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleStatusChange(task.id, "todo")}>{t("status.todo")}</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleStatusChange(task.id, "in_progress")}>{t("status.in_progress")}</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleStatusChange(task.id, "done")}>{t("status.done")}</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
-                
+
                 <div className="md:col-span-2 shrink-0 flex items-center gap-2">
                   <UserAvatar member={task.assignee} className="w-6 h-6" />
-                  <span className="text-xs truncate hidden md:block text-muted-foreground">{task.assignee?.name || "Unassigned"}</span>
+                  <span className="text-xs truncate hidden md:block text-muted-foreground">{task.assignee?.name || t("common.unassigned")}</span>
                 </div>
-                
+
                 <div className="md:col-span-1 shrink-0 md:text-right flex items-center md:justify-end gap-2 md:block">
-                  <span className="md:hidden text-xs text-muted-foreground uppercase font-bold">Priority:</span>
+                  <span className="md:hidden text-xs text-muted-foreground uppercase font-bold">{t("tasks.priority")}:</span>
                   <PriorityBadge priority={task.priority} />
                 </div>
               </div>
@@ -165,7 +164,7 @@ export default function Tasks() {
         ) : (
           <div className="p-16 text-center text-muted-foreground flex flex-col items-center">
             <CheckSquare className="w-12 h-12 mb-4 opacity-20" />
-            <p>No tasks match your filters.</p>
+            <p>{t("tasks.noMatch")}</p>
           </div>
         )}
       </Card>

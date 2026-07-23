@@ -6,6 +6,7 @@ import {
 } from "@workspace/api-client-react";
 import { useState } from "react";
 import { Link } from "wouter";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -28,6 +29,7 @@ function isProjectWithStats(p: unknown): p is ProjectWithStats {
 }
 
 export default function Projects() {
+  const { t } = useTranslation();
   const [search, setSearch] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
@@ -44,15 +46,15 @@ export default function Projects() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Projects</h1>
-          <p className="text-muted-foreground text-sm mt-1">Manage and track your workspace projects.</p>
+          <h1 className="text-2xl font-bold tracking-tight">{t("projects.title")}</h1>
+          <p className="text-muted-foreground text-sm mt-1">{t("projects.subtitle")}</p>
         </div>
 
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search projects..."
+              placeholder={t("projects.searchPlaceholder")}
               className="pl-9 bg-card border-border/60"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -77,14 +79,14 @@ export default function Projects() {
           <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
             <FolderClosed className="w-8 h-8 text-muted-foreground" />
           </div>
-          <h3 className="text-lg font-bold mb-2">No projects found</h3>
+          <h3 className="text-lg font-bold mb-2">{t("projects.noProjectsFound")}</h3>
           <p className="text-muted-foreground text-sm max-w-md mb-6">
-            {search ? "No projects match your search criteria." : "You haven't created any projects yet. Get started by creating your first project."}
+            {search ? t("projects.noSearchMatch") : t("projects.emptyState")}
           </p>
           {!search && (
             <Button onClick={() => setIsCreateOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />
-              Create Project
+              {t("projects.createProject")}
             </Button>
           )}
         </div>
@@ -94,6 +96,7 @@ export default function Projects() {
 }
 
 function ProjectCard({ project }: { project: ProjectWithStats }) {
+  const { t } = useTranslation();
   const stats = isProjectWithStats(project) ? project : null;
   const progress = stats?.progress;
   const roleBreakdown = stats?.roleBreakdown ?? [];
@@ -126,7 +129,7 @@ function ProjectCard({ project }: { project: ProjectWithStats }) {
               </div>
             </div>
             <div className="text-xs font-mono px-2 py-1 bg-muted rounded text-muted-foreground shrink-0">
-              {project.status === "active" ? "ACTIVE" : "ARCHIVED"}
+              {project.status === "active" ? t("common.active").toUpperCase() : t("common.archived").toUpperCase()}
             </div>
           </div>
         </CardHeader>
@@ -135,7 +138,7 @@ function ProjectCard({ project }: { project: ProjectWithStats }) {
           {progress !== undefined && (
             <div>
               <div className="flex justify-between text-xs mb-1.5">
-                <span className="text-muted-foreground">Progress</span>
+                <span className="text-muted-foreground">{t("common.progress")}</span>
                 <span className="font-mono font-medium">{progress.completionPercent}%</span>
               </div>
               <Progress value={progress.completionPercent} className="h-1.5" />
@@ -143,25 +146,25 @@ function ProjectCard({ project }: { project: ProjectWithStats }) {
           )}
 
           <div>
-            <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium mb-2">Stage</p>
+            <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium mb-2">{t("common.stage")}</p>
             <StageStepper stage={project.stage} compact />
           </div>
 
           <div className="grid grid-cols-2 gap-2 text-xs">
             <div className="bg-muted/40 rounded-md p-2 border border-border/40">
-              <p className="text-muted-foreground">Tasks</p>
+              <p className="text-muted-foreground">{t("common.tasks")}</p>
               <p className="font-mono font-bold text-sm">{progress?.total ?? 0}</p>
             </div>
             <div className="bg-muted/40 rounded-md p-2 border border-border/40">
-              <p className="text-muted-foreground">Done</p>
+              <p className="text-muted-foreground">{t("common.done")}</p>
               <p className="font-mono font-bold text-sm">{progress?.completionPercent ?? 0}%</p>
             </div>
             <div className="bg-muted/40 rounded-md p-2 border border-border/40">
-              <p className="text-muted-foreground">Budget</p>
+              <p className="text-muted-foreground">{t("common.budget")}</p>
               <p className="font-mono font-bold text-sm truncate">{formatCurrency(project.budget)}</p>
             </div>
             <div className="bg-muted/40 rounded-md p-2 border border-border/40">
-              <p className="text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" />Deadline</p>
+              <p className="text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" />{t("common.deadline")}</p>
               <p className="font-mono font-bold text-sm truncate">
                 {project.endDate ? format(new Date(project.endDate), "MMM d") : "—"}
               </p>
@@ -170,7 +173,7 @@ function ProjectCard({ project }: { project: ProjectWithStats }) {
 
           {roleBreakdown.length > 0 && (
             <div>
-              <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium mb-2">Team workload</p>
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium mb-2">{t("projects.teamWorkload")}</p>
               <div className="flex flex-wrap gap-2">
                 {roleBreakdown.slice(0, 4).map((r) => (
                   <div key={r.memberId} className="flex items-center gap-1.5 text-xs bg-slate-50 border border-slate-200 rounded-full pl-0.5 pr-2 py-0.5">
@@ -185,7 +188,7 @@ function ProjectCard({ project }: { project: ProjectWithStats }) {
 
           <div className="flex items-center justify-between mt-auto pt-2 border-t border-border/50">
             <span className="text-xs text-muted-foreground font-mono">
-              Updated {format(new Date(project.updatedAt), "MMM d, yyyy")}
+              {t("common.updated", { date: format(new Date(project.updatedAt), "MMM d, yyyy") })}
             </span>
             <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-colors text-slate-400">
               <ArrowRight className="w-4 h-4" />
@@ -198,6 +201,7 @@ function ProjectCard({ project }: { project: ProjectWithStats }) {
 }
 
 function CreateProjectDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+  const { t } = useTranslation();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [color, setColor] = useState("#4f46e5");
@@ -229,7 +233,7 @@ function CreateProjectDialog({ open, onOpenChange }: { open: boolean; onOpenChan
       },
       {
         onSuccess: () => {
-          toast({ title: "Project created successfully" });
+          toast({ title: t("projects.createdSuccess") });
           onOpenChange(false);
           queryClient.invalidateQueries({ queryKey: getListProjectsQueryKey({ withStats: true }) });
           setName("");
@@ -239,7 +243,7 @@ function CreateProjectDialog({ open, onOpenChange }: { open: boolean; onOpenChan
           setClient("");
           setStage("p1");
         },
-        onError: () => toast({ variant: "destructive", title: "Failed to create project" }),
+        onError: () => toast({ variant: "destructive", title: t("projects.createFailed") }),
       },
     );
   };
@@ -251,31 +255,31 @@ function CreateProjectDialog({ open, onOpenChange }: { open: boolean; onOpenChan
       <DialogTrigger asChild>
         <Button>
           <Plus className="w-4 h-4 mr-2" />
-          New Project
+          {t("projects.newProject")}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[480px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Create new project</DialogTitle>
+            <DialogTitle>{t("projects.createNewProject")}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Project Name</Label>
-              <Input id="name" placeholder="e.g. Riverside School Fitout" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+              <Label htmlFor="name">{t("projects.projectName")}</Label>
+              <Input id="name" placeholder={t("projects.projectNamePlaceholder")} value={name} onChange={(e) => setName(e.target.value)} autoFocus />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="type">Type</Label>
-                <Input id="type" placeholder="e.g. School" value={projectType} onChange={(e) => setProjectType(e.target.value)} />
+                <Label htmlFor="type">{t("projects.type")}</Label>
+                <Input id="type" placeholder={t("projects.typePlaceholder")} value={projectType} onChange={(e) => setProjectType(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label>Starting stage</Label>
+                <Label>{t("projects.startingStage")}</Label>
                 <Select value={stage} onValueChange={setStage}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {PROJECT_STAGES.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>{s.short} — {s.label}</SelectItem>
+                      <SelectItem key={s.id} value={s.id}>{s.short} — {t(`stages.${s.id}`)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -283,20 +287,20 @@ function CreateProjectDialog({ open, onOpenChange }: { open: boolean; onOpenChan
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="location">Location</Label>
+                <Label htmlFor="location">{t("projects.location")}</Label>
                 <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="client">Client</Label>
+                <Label htmlFor="client">{t("projects.client")}</Label>
                 <Input id="client" value={client} onChange={(e) => setClient(e.target.value)} />
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="description">Description (Optional)</Label>
-              <Textarea id="description" placeholder="Briefly describe what this project is about..." value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
+              <Label htmlFor="description">{t("projects.descriptionOptional")}</Label>
+              <Textarea id="description" placeholder={t("projects.descriptionPlaceholder")} value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
             </div>
             <div className="space-y-2">
-              <Label>Project Color</Label>
+              <Label>{t("projects.projectColor")}</Label>
               <div className="flex flex-wrap gap-2 pt-1">
                 {colors.map((c) => (
                   <button
@@ -311,9 +315,9 @@ function CreateProjectDialog({ open, onOpenChange }: { open: boolean; onOpenChan
             </div>
           </div>
           <div className="flex justify-end gap-2 pt-2 border-t">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{t("common.cancel")}</Button>
             <Button type="submit" disabled={!name || createProject.isPending}>
-              {createProject.isPending ? "Creating..." : "Create Project"}
+              {createProject.isPending ? t("common.creating") : t("projects.createProject")}
             </Button>
           </div>
         </form>

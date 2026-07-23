@@ -4,6 +4,7 @@ import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
 import { Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
 import { Router } from "./router";
@@ -122,6 +123,7 @@ function ClerkQueryClientCacheInvalidator() {
 
 function ClerkProviderWithRoutes() {
   const [, setLocation] = useLocation();
+  const { t } = useTranslation();
 
   return (
     <ClerkProvider
@@ -133,14 +135,14 @@ function ClerkProviderWithRoutes() {
       localization={{
         signIn: {
           start: {
-            title: "Welcome back to Orbit",
-            subtitle: "Sign in to your workspace",
+            title: t("auth.signInTitle"),
+            subtitle: t("auth.signInSubtitle"),
           },
         },
         signUp: {
           start: {
-            title: "Create your Orbit account",
-            subtitle: "Get your team up and running today",
+            title: t("auth.signUpTitle"),
+            subtitle: t("auth.signUpSubtitle"),
           },
         },
       }}

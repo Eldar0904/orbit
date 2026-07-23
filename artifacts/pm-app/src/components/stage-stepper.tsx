@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 import { PROJECT_STAGES, type ProjectStageId } from "@/lib/project-constants";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -11,6 +12,7 @@ export function StageStepper({
   compact?: boolean;
   className?: string;
 }) {
+  const { t } = useTranslation();
   const current = (stage ?? "p1") as ProjectStageId;
   const currentIndex = PROJECT_STAGES.findIndex((s) => s.id === current);
 
@@ -36,7 +38,7 @@ export function StageStepper({
                 </div>
               </TooltipTrigger>
               <TooltipContent side="top" className="text-xs">
-                {s.short}: {s.label}
+                {s.short}: {t(`stages.${s.id}`)}
               </TooltipContent>
             </Tooltip>
           );
