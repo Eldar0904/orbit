@@ -19,10 +19,11 @@ const queryClient = new QueryClient({
 
 // REQUIRED — copy verbatim. Resolves the key from window.location.hostname so
 // the same build serves multiple Clerk custom domains.
-const clerkPubKey = publishableKeyFromHost(
-  window.location.hostname,
-  import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
-);
+const clerkPubKey =
+  publishableKeyFromHost(
+    window.location.hostname,
+    import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
+  ) ?? import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
 // REQUIRED — copy verbatim. Empty in dev (Clerk hits dev FAPI directly),
 // auto-set in prod. Do NOT gate on import.meta.env.PROD.

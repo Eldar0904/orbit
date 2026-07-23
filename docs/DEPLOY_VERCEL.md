@@ -18,7 +18,7 @@ Orbit deploys as **one Vercel project**: static frontend + Express API as a serv
 3. Confirm settings (should match `vercel.json`):
    - **Framework Preset:** Other
    - **Root Directory:** `.` (repo root)
-   - **Build Command:** `pnpm --filter @workspace/pm-app run build`
+   - **Build Command:** `pnpm --filter @workspace/api-server run build && pnpm --filter @workspace/pm-app run build`
    - **Output Directory:** `artifacts/pm-app/dist/public`
    - **Install Command:** `pnpm install`
 
@@ -71,6 +71,33 @@ vercel --prod
 | Clerk sign-in fails | Add Vercel domain in Clerk; set `VITE_CLERK_PROXY_URL=/api/__clerk` |
 | Blank page after refresh | `vercel.json` SPA rewrite should serve `index.html` |
 | API works locally but not Vercel | Check all env vars are set for **Production** |
+
+### Blank white screen (app loads nothing)
+
+This usually means the React bundle threw before first paint. Check the browser **Console** on your Vercel URL.
+
+**1. `VITE_CLERK_PUBLISHABLE_KEY` missing at build time**
+
+Vite inlines `VITE_*` variables when the frontend is built. If this var is unset in Vercel during the build, the client bundle has no Clerk key and `App.tsx` throws `Missing VITE_CLERK_PUBLISHABLE_KEY`.
+
+- Vercel → Project → **Settings → Environment Variables**
+- Add `VITE_CLERK_PUBLISHABLE_KEY` = your `pk_test_...` or `pk_live_...` key
+- Enable it for **Production** (and Preview if you use preview deploys)
+- **Redeploy** after saving — changing env vars does not rebuild existing deployments
+
+**2. Clerk domain not allowed**
+
+After deploy, add your Vercel URL (e.g. `https://orbit-xxx.vercel.app`) in Clerk → **Domains**. Without this, sign-in can fail even when the app renders.
+
+**3. Static assets returning HTML**
+
+If `/assets/*.js` requests return `index.html`, the page stays blank. The SPA rewrite in `vercel.json` excludes `/assets/*` and paths with file extensions (`.js`, `.css`, `.svg`, etc.). If you add files under a new public path, keep them out of the catch-all rewrite.
+
+**4. Quick checks**
+
+- Open DevTools → **Network**: confirm `/assets/index-*.js` returns `200` with `Content-Type: application/javascript`
+- Open **Console**: look for `Missing VITE_CLERK_PUBLISHABLE_KEY` or Clerk domain errors
+- Hit `/api/healthz` — if API works but UI is blank, the issue is frontend/env, not the serverless function
 
 ## Split deployment (optional)
 
