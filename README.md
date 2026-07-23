@@ -95,6 +95,7 @@ pnpm --filter @workspace/db run push            # Push schema to Postgres (dev)
 ## Documentation
 
 - [LOCAL_DEV.md](./LOCAL_DEV.md) — local setup on Windows
+- [docs/DEPLOY_VERCEL.md](./docs/DEPLOY_VERCEL.md) — deploy to Vercel (frontend + API)
 - [docs/PROJECTS_SPEC.md](./docs/PROJECTS_SPEC.md) — projects section fields, tabs, and stages
 - [replit.md](./replit.md) — architecture notes and gotchas
 
