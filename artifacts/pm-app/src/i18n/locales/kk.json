@@ -6,13 +6,13 @@
     "team": "Команда"
   },
   "landing": {
-    "headline": "Жобалар — уақытында",
-    "subheadline": "Жабдықтау және құрылыс командаларына арналған жоба басқару жұмыс кеңістігі.",
+    "headline": "Нысандарды жабдықтауды",
+    "subheadline": "Білім беру мекемелеріне арналған құрал-жабдықтарды жеткізу, смета және монтажды бақылау",
     "signIn": "Кіру",
     "createAccount": "Тіркелгі жасау"
   },
   "common": {
-    "appName": "PINE B2B",
+    "appName": "PINE Orbit",
     "user": "Пайдаланушы",
     "signOut": "Шығу",
     "language": "Тіл",
@@ -23,7 +23,7 @@
     "search": "Іздеу",
     "create": "Жасау",
     "edit": "Өңдеу",
-    "loading": "PINE B2B жүктелуде…",
+    "loading": "PINE Orbit жүктелуде…",
     "noDescription": "Сипаттамасыз",
     "viewAll": "Барлығын көру",
     "open": "Ашу",
@@ -46,9 +46,9 @@
     "adding": "Қосылуда…"
   },
   "auth": {
-    "signInTitle": "PINE B2B-ке қайта оралуыңызбен",
+    "signInTitle": "PINE Orbit-ке қайта оралуыңызбен",
     "signInSubtitle": "Жұмыс кеңістігіңізге кіріңіз",
-    "signUpTitle": "PINE B2B тіркелгісін жасаңыз",
+    "signUpTitle": "PINE Orbit тіркелгісін жасаңыз",
     "signUpSubtitle": "Командаңызды бүгін іске қосыңыз",
     "authFailedTitle": "Аутентификацияны жүктеу сәтсіз аяқталды",
     "authFailedBody": "Production (pk_live_) кілттері үшін Clerk → Domains бөлімінде сайт URL-ін қосып, VITE_CLERK_PROXY_URL=/api/__clerk орнатыңыз. Тест кілттері үшін Vercel-де proxy айнымалысын алып тастаңыз."

@@ -6,13 +6,13 @@
     "team": "Team"
   },
   "landing": {
-    "headline": "Projects, delivered on time",
-    "subheadline": "The project management workspace built for fitout and construction teams.",
+    "headline": "Turnkey object fit-out",
+    "subheadline": "B2B team workspace",
     "signIn": "Sign in",
     "createAccount": "Create account"
   },
   "common": {
-    "appName": "PINE B2B",
+    "appName": "PINE Orbit",
     "user": "User",
     "signOut": "Sign out",
     "language": "Language",
@@ -23,7 +23,7 @@
     "search": "Search",
     "create": "Create",
     "edit": "Edit",
-    "loading": "Loading PINE B2B…",
+    "loading": "Loading PINE Orbit…",
     "noDescription": "No description",
     "viewAll": "View all",
     "open": "Open",
@@ -46,9 +46,9 @@
     "adding": "Adding…"
   },
   "auth": {
-    "signInTitle": "Welcome back to PINE B2B",
+    "signInTitle": "Welcome back to PINE Orbit",
     "signInSubtitle": "Sign in to your workspace",
-    "signUpTitle": "Create your PINE B2B account",
+    "signUpTitle": "Create your PINE Orbit account",
     "signUpSubtitle": "Get your team up and running today",
     "authFailedTitle": "Authentication failed to load",
     "authFailedBody": "For production (pk_live_) keys, add this site URL in Clerk → Domains and keep VITE_CLERK_PROXY_URL=/api/__clerk. For test keys, remove the proxy env var on Vercel."
