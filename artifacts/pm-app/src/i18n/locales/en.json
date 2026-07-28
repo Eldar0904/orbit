@@ -114,7 +114,20 @@
     "deleteConfirm": "Are you sure you want to delete this task?",
     "taskDeleted": "Task deleted",
     "taskCreated": "Task created",
-    "taskCreateFailed": "Failed to create task"
+    "taskCreateFailed": "Failed to create task",
+    "projectPassport": "Project Passport",
+    "stagePipeline": "Stage Pipeline",
+    "budgetUtilisation": "Budget Utilisation",
+    "managers": "Managers",
+    "notes": "Notes",
+    "kind": "Kind",
+    "schedule": "Schedule",
+    "floors": "Floors"
+  },
+  "kinds": {
+    "akr": "AKR",
+    "ep": "EP",
+    "no_plan": "No Plan"
   },
   "tasks": {
     "title": "All Tasks",

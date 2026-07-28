@@ -114,7 +114,20 @@
     "deleteConfirm": "Бұл тапсырманы жоюға сенімдісіз бе?",
     "taskDeleted": "Тапсырма жойылды",
     "taskCreated": "Тапсырма жасалды",
-    "taskCreateFailed": "Тапсырманы жасау сәтсіз аяқталды"
+    "taskCreateFailed": "Тапсырманы жасау сәтсіз аяқталды",
+    "projectPassport": "Жоба паспорты",
+    "stagePipeline": "Кезеңдер",
+    "budgetUtilisation": "Бюджетті пайдалану",
+    "managers": "Менеджерлер",
+    "notes": "Ескертулер",
+    "kind": "Түрі",
+    "schedule": "Кесте",
+    "floors": "Қабаттар"
+  },
+  "kinds": {
+    "akr": "АКР",
+    "ep": "ЭП",
+    "no_plan": "Жоспарсыз"
   },
   "tasks": {
     "title": "Барлық тапсырмалар",

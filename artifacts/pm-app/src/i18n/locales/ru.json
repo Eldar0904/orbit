@@ -114,7 +114,20 @@
     "deleteConfirm": "Вы уверены, что хотите удалить эту задачу?",
     "taskDeleted": "Задача удалена",
     "taskCreated": "Задача создана",
-    "taskCreateFailed": "Не удалось создать задачу"
+    "taskCreateFailed": "Не удалось создать задачу",
+    "projectPassport": "Паспорт проекта",
+    "stagePipeline": "Этапы проекта",
+    "budgetUtilisation": "Использование бюджета",
+    "managers": "Руководители",
+    "notes": "Примечания",
+    "kind": "Вид",
+    "schedule": "График",
+    "floors": "Этажи"
+  },
+  "kinds": {
+    "akr": "АКР",
+    "ep": "ЭП",
+    "no_plan": "Без плана"
   },
   "tasks": {
     "title": "Все задачи",

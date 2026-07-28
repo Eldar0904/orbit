@@ -216,7 +216,7 @@ export default function ProjectDetail() {
         </TabsContent>
 
         <TabsContent value="overview" className="mt-4">
-          <OverviewTab project={project} progress={progress} documentCount={documents?.length ?? 0} />
+          <OverviewTab project={project} />
         </TabsContent>
       </Tabs>
     </div>
