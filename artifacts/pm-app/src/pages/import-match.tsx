@@ -110,14 +110,35 @@ export default function ImportMatchPage() {
     }
     setLoading(true);
     try {
+      const header = (names: string[]) => {
+        const keys = rows.length ? Object.keys(rows[0]) : [];
+        return keys.find((key) => names.some((name) => key.toLowerCase().includes(name))) ?? null;
+      };
+      const nameKey = header(["itemname", "goods", "required", "description", "name", "item"]);
+      const codeKey = header(["itemcode", "code", "sku", "article"]);
+      const quantityKey = header(["quantity", "qty", "amount"]);
+      const unitKey = header(["unit", "uom"]);
+      const normalizedRows = rows
+        .map((row) => ({
+          itemCode: codeKey ? String(row[codeKey] ?? "").trim() || null : null,
+          itemName: nameKey ? String(row[nameKey] ?? "").trim() : "",
+          quantity: quantityKey ? Number.parseFloat(String(row[quantityKey] ?? "").replace(",", ".")) || null : null,
+          description: null,
+          unit: unitKey ? String(row[unitKey] ?? "").trim() || null : null,
+        }))
+        .filter((row) => row.itemName);
+      if (!normalizedRows.length) throw new Error("No goods names found. Use a column such as Goods required or Item name.");
       const response = await fetch("/api/standalone-match", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sourceIds, items: rows }),
+        body: JSON.stringify({ sourceIds, items: normalizedRows }),
       });
       const data = await readApiResponse(response);
       if (!response.ok) throw new Error(typeof data.error === "string" ? data.error : "Matching failed");
       setResults(data.results as Result[]);
+      if (!Array.isArray(data.results) || data.results.length === 0) {
+        throw new Error("No candidates returned. Confirm the selected catalogue contains active products.");
+      }
     } catch (error) {
       toast({ variant: "destructive", title: error instanceof Error ? error.message : "Matching failed" });
     } finally {
