@@ -160,6 +160,26 @@ export const matchResultsTable = pgTable("match_results", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const standaloneListsTable = pgTable("standalone_lists", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  sourceFilename: text("source_filename"),
+  itemCount: integer("item_count").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const standaloneListItemsTable = pgTable("standalone_list_items", {
+  id: serial("id").primaryKey(),
+  listId: integer("list_id").notNull().references(() => standaloneListsTable.id, { onDelete: "cascade" }),
+  itemCode: text("item_code"),
+  itemName: text("item_name").notNull(),
+  description: text("description"),
+  quantity: real("quantity"),
+  unit: text("unit"),
+  sortOrder: integer("sort_order").notNull().default(0),
+});
+
 export const matchFeedbackTable = pgTable("match_feedback", {
   id: serial("id").primaryKey(),
   projectId: integer("project_id")

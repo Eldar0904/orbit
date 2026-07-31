@@ -206,6 +206,24 @@ export function useSelectMatch(projectId: number) {
   });
 }
 
+export interface StandaloneList { id: number; name: string; sourceFilename: string | null; itemCount: number; }
+
+export function useStandaloneLists() {
+  return useQuery({ queryKey: ["kb", "standalone-lists"], queryFn: () => apiFetch<StandaloneList[]>("/standalone-lists") });
+}
+
+export function useSaveStandaloneList() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { name: string; sourceFilename?: string; items: { itemCode?: string | null; itemName: string; description?: string | null; quantity?: number | null; unit?: string | null }[] }) => apiFetch("/standalone-lists", { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["kb", "standalone-lists"] }),
+  });
+}
+
+export async function getStandaloneListItems(listId: number) {
+  return apiFetch<{ itemCode: string | null; itemName: string; description: string | null; quantity: number | null; unit: string | null }[]>(`/standalone-lists/${listId}/items`);
+}
+
 export function useRemoveCatalogSource() {
   const qc = useQueryClient();
   return useMutation({

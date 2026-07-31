@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { useCatalogSources, useCreateCatalogSource, useRemoveCatalogSource } from "@/lib/kb-api";
+import { useCatalogSources, useCreateCatalogSource, useRemoveCatalogSource, useStandaloneLists, useSaveStandaloneList, getStandaloneListItems } from "@/lib/kb-api";
 import { useQueryClient } from "@tanstack/react-query";
 
 type Result = {
@@ -32,6 +32,8 @@ export default function ImportMatchPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { data: sources } = useCatalogSources();
+  const { data: savedLists } = useStandaloneLists();
+  const saveList = useSaveStandaloneList();
   const createSource = useCreateCatalogSource();
   const removeSource = useRemoveCatalogSource();
   const [sourceIds, setSourceIds] = useState<number[]>([]);
@@ -43,6 +45,7 @@ export default function ImportMatchPage() {
   const [importProgress, setImportProgress] = useState<number | null>(null);
   const [matchProgress, setMatchProgress] = useState<number | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [selectedListId, setSelectedListId] = useState<number | null>(null);
   const catalogRef = useRef<HTMLInputElement>(null);
 
   const uploadCatalog = async (file: File) => {
@@ -104,10 +107,13 @@ export default function ImportMatchPage() {
     try {
       const workbook = read(await file.arrayBuffer(), { type: "array" });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      setRows(utils.sheet_to_json(sheet, { defval: "" }) as Record<string, unknown>[]);
+      const importedRows = utils.sheet_to_json(sheet, { defval: "" }) as Record<string, unknown>[];
+      setRows(importedRows);
       setFileName(file.name);
       setResults([]);
       setDecisions({});
+      const normalized = importedRows.map((row) => ({ itemName: String(row[Object.keys(row).find((key) => /goods|required|name|item|description|наименование|товар|позиция/i.test(key)) ?? ""] ?? "").trim() })).filter((item) => item.itemName);
+      if (normalized.length) await saveList.mutateAsync({ name: file.name.replace(/\.[^.]+$/, ""), sourceFilename: file.name, items: normalized });
       setMatchProgress(null);
     } catch (error) {
       toast({ variant: "destructive", title: error instanceof Error ? error.message : "Could not read file" });
@@ -203,6 +209,7 @@ export default function ImportMatchPage() {
         <Button variant="outline" onClick={() => catalogRef.current?.click()} disabled={createSource.isPending || importProgress !== null && importProgress < 100}><Upload className="w-4 h-4 mr-2" />Upload catalogue</Button>
         {importProgress !== null && <div className="w-full max-w-md space-y-1"><div className="flex justify-between text-xs text-muted-foreground"><span>{importProgress < 100 ? "Importing catalogue…" : "Catalogue import complete"}</span><span>{importProgress}%</span></div><div className="h-2 overflow-hidden rounded-full bg-muted"><div className="h-full bg-primary transition-all" style={{ width: `${importProgress}%` }} /></div></div>}
         <div className="flex items-center gap-2"><Badge>Step 2</Badge><h2 className="font-semibold">Upload goods list</h2></div>
+        {(savedLists ?? []).length > 0 && <select className="h-9 rounded-md border bg-background px-3 text-sm" value={selectedListId ?? ""} onChange={async (event) => { const id = Number(event.target.value); setSelectedListId(id || null); if (id) { const items = await getStandaloneListItems(id); setRows(items); setFileName(savedLists?.find((list) => list.id === id)?.sourceFilename ?? "Saved goods list"); } }}><option value="">Choose a saved goods list</option>{savedLists?.map((list) => <option key={list.id} value={list.id}>{list.name} ({list.itemCount})</option>)}</select>}
         <div className="flex gap-3 items-center flex-wrap">
           <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) void upload(file); event.target.value = ""; }} />
           <Button variant="outline" onClick={() => fileRef.current?.click()}><Upload className="w-4 h-4 mr-2" />Upload destination list</Button>

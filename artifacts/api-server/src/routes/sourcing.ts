@@ -11,6 +11,8 @@ import {
   matchRunsTable,
   matchResultsTable,
   matchFeedbackTable,
+  standaloneListsTable,
+  standaloneListItemsTable,
   commercialOffersTable,
   commercialOfferLinesTable,
 } from "@workspace/db";
@@ -21,6 +23,26 @@ import { matchSpecItemsToCatalog, statusFromScore } from "../lib/multi-matcher.j
 import { buildOfferLines, buildOfferCsv } from "../lib/offer-export.js";
 
 const router: IRouter = Router();
+
+router.get("/standalone-lists", async (_req, res): Promise<void> => {
+  const lists = await db.select().from(standaloneListsTable).orderBy(desc(standaloneListsTable.updatedAt));
+  res.json(lists);
+});
+
+router.get("/standalone-lists/:id/items", async (req, res): Promise<void> => {
+  const listId = parseInt(req.params.id, 10);
+  if (Number.isNaN(listId)) { res.status(400).json({ error: "Invalid list id" }); return; }
+  const items = await db.select().from(standaloneListItemsTable).where(eq(standaloneListItemsTable.listId, listId)).orderBy(standaloneListItemsTable.sortOrder);
+  res.json(items);
+});
+
+router.post("/standalone-lists", async (req, res): Promise<void> => {
+  const parsed = z.object({ name: z.string().min(1), sourceFilename: z.string().optional(), items: z.array(z.object({ itemCode: z.string().nullable().optional(), itemName: z.string().min(1), description: z.string().nullable().optional(), quantity: z.number().nullable().optional(), unit: z.string().nullable().optional() })).min(1) }).safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+  const [list] = await db.insert(standaloneListsTable).values({ name: parsed.data.name, sourceFilename: parsed.data.sourceFilename ?? null, itemCount: parsed.data.items.length }).returning();
+  await db.insert(standaloneListItemsTable).values(parsed.data.items.map((item, index) => ({ listId: list.id, ...item, sortOrder: index })));
+  res.status(201).json({ list, items: parsed.data.items });
+});
 
 async function resolveProjectId(rawId: string): Promise<number | null> {
   const id = parseInt(rawId, 10);
