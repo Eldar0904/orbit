@@ -124,10 +124,10 @@ export default function ImportMatchPage() {
         const keys = rows.length ? Object.keys(rows[0]) : [];
         return keys.find((key) => names.some((name) => key.toLowerCase().includes(name))) ?? null;
       };
-      const nameKey = header(["itemname", "goods", "required", "description", "name", "item"]);
-      const codeKey = header(["itemcode", "code", "sku", "article"]);
-      const quantityKey = header(["quantity", "qty", "amount"]);
-      const unitKey = header(["unit", "uom"]);
+      const nameKey = header(["itemname", "goods", "required", "description", "name", "item", "наименование", "название", "товар", "позиция", "описание", "наименование товара", "потребность"]);
+      const codeKey = header(["itemcode", "code", "sku", "article", "код", "артикул", "шифр"]);
+      const quantityKey = header(["quantity", "qty", "amount", "количество", "кол-во", "объем"]);
+      const unitKey = header(["unit", "uom", "единица", "ед.", "измерения"]);
       const normalizedRows = rows
         .map((row) => ({
           itemCode: codeKey ? String(row[codeKey] ?? "").trim() || null : null,
