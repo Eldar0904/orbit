@@ -3,6 +3,7 @@
     "dashboard": "Dashboard",
     "projects": "Projects",
     "tasks": "All Tasks",
+    "importMatch": "Import & Match",
     "catalogs": "Catalogs",
     "team": "Team"
   },

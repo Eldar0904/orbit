@@ -401,6 +401,53 @@ router.patch("/projects/:id/match-results/select", async (req, res): Promise<voi
   res.json(updated);
 });
 
+const StandaloneMatchBody = z.object({
+  sourceIds: z.array(z.number().int().positive()).min(1),
+  items: z.array(z.record(z.string(), z.unknown())).min(1),
+});
+
+router.post("/standalone-match", async (req, res): Promise<void> => {
+  const parsed = StandaloneMatchBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  const specItems = parseSpecRows(parsed.data.items).map((item, index) => ({
+    ...item,
+    id: index + 1,
+  }));
+  if (!specItems.length) {
+    res.status(400).json({ error: "No specification items found in the uploaded file." });
+    return;
+  }
+  const products = await db
+    .select({
+      id: catalogProductsTable.id,
+      sourceId: catalogProductsTable.sourceId,
+      code: catalogProductsTable.code,
+      name: catalogProductsTable.name,
+      brand: catalogProductsTable.brand,
+      model: catalogProductsTable.model,
+      unit: catalogProductsTable.unit,
+      price: catalogProductsTable.price,
+    })
+    .from(catalogProductsTable)
+    .where(and(inArray(catalogProductsTable.sourceId, parsed.data.sourceIds), eq(catalogProductsTable.isActive, true)));
+  if (!products.length) {
+    res.status(400).json({ error: "Selected catalogs contain no active products." });
+    return;
+  }
+  const matches = matchSpecItemsToCatalog(specItems, products);
+  res.json({
+    items: specItems,
+    results: specItems.flatMap((item) => (matches.get(item.id) ?? []).map((candidate) => ({
+      itemId: item.id,
+      itemName: item.itemName,
+      ...candidate,
+    }))),
+  });
+});
+
 router.patch("/projects/:id/match-results/review", async (req, res): Promise<void> => {
   const projectId = await resolveProjectId(req.params.id);
   if (projectId === null) {
