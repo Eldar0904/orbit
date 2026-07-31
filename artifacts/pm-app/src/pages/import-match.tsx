@@ -52,7 +52,9 @@ export default function ImportMatchPage() {
       const unitKey = find("unit", "uom");
       const items = raw.map((row) => ({ name: String(row[nameKey] ?? "").trim(), code: String(row[codeKey] ?? "").trim() || null, unit: String(row[unitKey] ?? "").trim() || null, price: Number.parseFloat(String(row[priceKey] ?? "").replace(/[^\d.,]/g, "").replace(",", ".")) || null })).filter((item) => item.name);
       if (!items.length) throw new Error("No catalogue products found in this file.");
-      const source = await createSource.mutateAsync({ name: file.name.replace(/\.[^.]+$/, "") });
+      const sourceName = file.name.replace(/\.[^.]+$/, "");
+      const source = sources?.find((candidate) => candidate.name === sourceName)
+        ?? await createSource.mutateAsync({ name: sourceName });
       const importResponse = await fetch(`/api/kb/sources/${source.id}/import`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
