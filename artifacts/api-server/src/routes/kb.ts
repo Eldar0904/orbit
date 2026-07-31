@@ -67,6 +67,37 @@ async function upsertProducts(
     await db
       .delete(catalogProductsTable)
       .where(eq(catalogProductsTable.sourceId, sourceId));
+
+    // Replacement is the standalone upload path. Bulk insert keeps this
+    // serverless request well below Vercel's 30-second function timeout.
+    if (items.length > 0) {
+      await db.insert(catalogProductsTable).values(
+        items.map((item) => ({
+          sourceId,
+          versionId,
+          code: item.code ?? null,
+          name: item.name,
+          brand: item.brand ?? null,
+          model: item.model ?? null,
+          description: item.description ?? null,
+          technicalSpecs: item.technicalSpecs ?? null,
+          unit: item.unit ?? null,
+          price: item.price ?? null,
+          categoryCode: item.categoryCode ?? null,
+          categoryName: item.categoryName ?? null,
+          normalizedText: buildProductNormalizedText(item),
+        })),
+      );
+      const [{ total }] = await db
+        .select({ total: sql<number>`count(*)::int` })
+        .from(catalogProductsTable)
+        .where(and(eq(catalogProductsTable.sourceId, sourceId), eq(catalogProductsTable.isActive, true)));
+      await db
+        .update(catalogSourcesTable)
+        .set({ productCount: total, updatedAt: new Date() })
+        .where(eq(catalogSourcesTable.id, sourceId));
+      return items.length;
+    }
   }
 
   let count = 0;
