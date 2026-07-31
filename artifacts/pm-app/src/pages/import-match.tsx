@@ -58,13 +58,21 @@ export default function ImportMatchPage() {
       const importResponse = await fetch(`/api/kb/sources/${source.id}/import`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items, mode: "upsert" }),
+        body: JSON.stringify({ items, mode: "replace" }),
       });
       const importData = await importResponse.json().catch(() => ({}));
       if (!importResponse.ok) throw new Error(importData.error ?? "Catalogue import failed");
       setSourceIds((current) => [...new Set([...current, source.id])]);
       toast({ title: `Catalogue imported: ${items.length} products` });
-    } catch (error) { toast({ variant: "destructive", title: error instanceof Error ? error.message : "Catalogue import failed" }); }
+    } catch (error) {
+      // Never leave a failed upload paired with an older/partial catalogue.
+      setRows([]);
+      setFileName("");
+      setSourceIds([]);
+      setResults([]);
+      setDecisions({});
+      toast({ variant: "destructive", title: error instanceof Error ? error.message : "Catalogue import failed" });
+    }
   };
 
   const upload = async (file: File) => {
