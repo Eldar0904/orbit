@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { useCatalogSources, useCreateCatalogSource, useImportCatalog } from "@/lib/kb-api";
+import { useCatalogSources, useCreateCatalogSource } from "@/lib/kb-api";
 
 type Result = {
   itemId: number;
@@ -22,8 +22,6 @@ export default function ImportMatchPage() {
   const { toast } = useToast();
   const { data: sources } = useCatalogSources();
   const createSource = useCreateCatalogSource();
-  const [catalogSourceId, setCatalogSourceId] = useState<number | null>(null);
-  const importCatalog = useImportCatalog(catalogSourceId ?? 0);
   const [sourceIds, setSourceIds] = useState<number[]>([]);
   const [rows, setRows] = useState<Record<string, unknown>[]>([]);
   const [fileName, setFileName] = useState("");
@@ -46,8 +44,13 @@ export default function ImportMatchPage() {
       const items = raw.map((row) => ({ name: String(row[nameKey] ?? "").trim(), code: String(row[codeKey] ?? "").trim() || null, unit: String(row[unitKey] ?? "").trim() || null, price: Number.parseFloat(String(row[priceKey] ?? "").replace(/[^\d.,]/g, "").replace(",", ".")) || null })).filter((item) => item.name);
       if (!items.length) throw new Error("No catalogue products found in this file.");
       const source = await createSource.mutateAsync({ name: file.name.replace(/\.[^.]+$/, "") });
-      setCatalogSourceId(source.id);
-      await importCatalog.mutateAsync(items);
+      const importResponse = await fetch(`/api/kb/sources/${source.id}/import`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items, mode: "upsert" }),
+      });
+      const importData = await importResponse.json().catch(() => ({}));
+      if (!importResponse.ok) throw new Error(importData.error ?? "Catalogue import failed");
       setSourceIds((current) => [...new Set([...current, source.id])]);
       toast({ title: `Catalogue imported: ${items.length} products` });
     } catch (error) { toast({ variant: "destructive", title: error instanceof Error ? error.message : "Catalogue import failed" }); }
@@ -124,7 +127,7 @@ export default function ImportMatchPage() {
       <Card><CardContent className="p-5 space-y-4">
         <div className="flex items-center gap-2"><Badge>Step 1</Badge><h2 className="font-semibold">Upload catalogue</h2></div>
         <input ref={catalogRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadCatalog(file); event.target.value = ""; }} />
-        <Button variant="outline" onClick={() => catalogRef.current?.click()} disabled={createSource.isPending || importCatalog.isPending}><Upload className="w-4 h-4 mr-2" />Upload catalogue</Button>
+        <Button variant="outline" onClick={() => catalogRef.current?.click()} disabled={createSource.isPending}><Upload className="w-4 h-4 mr-2" />Upload catalogue</Button>
         <div className="flex items-center gap-2"><Badge>Step 2</Badge><h2 className="font-semibold">Upload goods list</h2></div>
         <div className="flex gap-3 items-center flex-wrap">
           <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) void upload(file); event.target.value = ""; }} />
