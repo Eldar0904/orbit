@@ -106,5 +106,5 @@ export function parseSpecLines(lines: string[]): ParsedSpecRow[] {
 
 export type CatalogProductMatch = Pick<
   CatalogProduct,
-  "id" | "sourceId" | "code" | "name" | "brand" | "model" | "unit" | "price"
+  "id" | "sourceId" | "code" | "name" | "brand" | "model" | "description" | "technicalSpecs" | "unit" | "price"
 >;

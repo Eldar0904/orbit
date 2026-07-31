@@ -281,6 +281,8 @@ router.post("/projects/:id/match-run", async (req, res): Promise<void> => {
       name: catalogProductsTable.name,
       brand: catalogProductsTable.brand,
       model: catalogProductsTable.model,
+      description: catalogProductsTable.description,
+      technicalSpecs: catalogProductsTable.technicalSpecs,
       unit: catalogProductsTable.unit,
       price: catalogProductsTable.price,
     })
@@ -450,6 +452,8 @@ router.post("/standalone-match", async (req, res): Promise<void> => {
       name: catalogProductsTable.name,
       brand: catalogProductsTable.brand,
       model: catalogProductsTable.model,
+      description: catalogProductsTable.description,
+      technicalSpecs: catalogProductsTable.technicalSpecs,
       unit: catalogProductsTable.unit,
       price: catalogProductsTable.price,
     })
