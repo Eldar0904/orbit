@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Download, ExternalLink, Play, RefreshCw, Upload, X, Check } from "lucide-react";
+import { Download, ExternalLink, Play, RefreshCw, Upload, X, Check, Trash2 } from "lucide-react";
 import { read, utils, write } from "xlsx";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { useCatalogSources, useCreateCatalogSource } from "@/lib/kb-api";
+import { useCatalogSources, useCreateCatalogSource, useRemoveCatalogSource } from "@/lib/kb-api";
 import { useQueryClient } from "@tanstack/react-query";
 
 type Result = {
@@ -33,6 +33,7 @@ export default function ImportMatchPage() {
   const queryClient = useQueryClient();
   const { data: sources } = useCatalogSources();
   const createSource = useCreateCatalogSource();
+  const removeSource = useRemoveCatalogSource();
   const [sourceIds, setSourceIds] = useState<number[]>([]);
   const [rows, setRows] = useState<Record<string, unknown>[]>([]);
   const [fileName, setFileName] = useState("");
@@ -211,7 +212,7 @@ export default function ImportMatchPage() {
         <div className="flex items-center gap-2"><Badge>Step 3</Badge><h2 className="font-semibold">Select catalogue and match</h2></div><div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {(sources ?? []).map((source) => <label key={source.id} className="flex items-center gap-2 rounded border p-3 cursor-pointer">
             <Checkbox checked={sourceIds.includes(source.id)} onCheckedChange={(checked) => setSourceIds((current) => checked ? [...new Set([...current, source.id])] : current.filter((id) => id !== source.id))} />
-            <span className="text-sm flex-1">{source.name}</span><span className="text-xs text-muted-foreground">{source.productCount}</span>
+            <span className="text-sm flex-1">{source.name}</span><span className="text-xs text-muted-foreground">{source.productCount}</span><Button type="button" size="icon" variant="ghost" className="h-7 w-7 text-destructive" title="Remove catalogue" onClick={(event) => { event.preventDefault(); event.stopPropagation(); if (window.confirm(`Remove catalogue ${source.name}?`)) removeSource.mutate(source.id); }}><Trash2 className="w-3.5 h-3.5" /></Button>
           </label>)}
         </div>
         <Button onClick={run} disabled={loading || !rows.length}><Play className="w-4 h-4 mr-2" />{loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : "Run matching"}</Button>

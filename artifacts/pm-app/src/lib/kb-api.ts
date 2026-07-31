@@ -206,6 +206,14 @@ export function useSelectMatch(projectId: number) {
   });
 }
 
+export function useRemoveCatalogSource() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (sourceId: number) => apiFetch(`/kb/sources/${sourceId}`, { method: "DELETE" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["kb", "sources"] }),
+  });
+}
+
 export function useReviewMatch(projectId: number) {
   const qc = useQueryClient();
   return useMutation({

@@ -12,9 +12,10 @@ import {
   useImportCatalog,
   useSuppliers,
   useCreateSupplier,
+  useRemoveCatalogSource,
 } from "@/lib/kb-api";
 import { useToast } from "@/hooks/use-toast";
-import { Database, Upload, Plus, Package } from "lucide-react";
+import { Database, Upload, Plus, Package, Trash2 } from "lucide-react";
 
 function parseCatalogFromBuffer(buffer: ArrayBuffer) {
   const wb = xlsxRead(buffer, { type: "array" });
@@ -57,6 +58,7 @@ export default function CatalogsPage() {
   const { data: suppliers } = useSuppliers();
   const createSource = useCreateCatalogSource();
   const createSupplier = useCreateSupplier();
+  const removeSource = useRemoveCatalogSource();
   const [newSourceName, setNewSourceName] = useState("");
   const [newSupplierName, setNewSupplierName] = useState("");
   const [importSourceId, setImportSourceId] = useState<number | null>(null);
@@ -154,9 +156,7 @@ export default function CatalogsPage() {
                         <p className="text-xs text-muted-foreground">{s.kind}</p>
                       </div>
                     </div>
-                    <Badge variant="secondary" className="font-mono shrink-0">
-                      {s.productCount}
-                    </Badge>
+                    <div className="flex items-center gap-2 shrink-0"><Badge variant="secondary" className="font-mono">{s.productCount}</Badge><Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" title="Remove catalogue" onClick={(event) => { event.stopPropagation(); if (window.confirm(`Remove catalogue ${s.name}?`)) removeSource.mutate(s.id); }}><Trash2 className="w-3.5 h-3.5" /></Button></div>
                   </li>
                 ))}
               </ul>

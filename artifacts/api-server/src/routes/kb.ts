@@ -270,6 +270,24 @@ router.patch("/kb/sources/:id", async (req, res): Promise<void> => {
   res.json(row);
 });
 
+router.delete("/kb/sources/:id", async (req, res): Promise<void> => {
+  const sourceId = parseInt(req.params.id, 10);
+  if (Number.isNaN(sourceId)) {
+    res.status(400).json({ error: "Invalid source id" });
+    return;
+  }
+  const [archived] = await db
+    .update(catalogSourcesTable)
+    .set({ isArchived: true, isEnabled: false, updatedAt: new Date() })
+    .where(eq(catalogSourcesTable.id, sourceId))
+    .returning();
+  if (!archived) {
+    res.status(404).json({ error: "Source not found" });
+    return;
+  }
+  res.json({ archived: true, sourceId });
+});
+
 router.post("/kb/sources/:id/import", async (req, res): Promise<void> => {
   const sourceId = parseInt(req.params.id, 10);
   const parsed = ImportBody.safeParse(req.body);
