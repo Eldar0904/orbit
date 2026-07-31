@@ -8,6 +8,7 @@ import Projects from "./pages/projects";
 import ProjectDetail from "./pages/project-detail";
 import Tasks from "./pages/tasks";
 import Team from "./pages/team";
+import Catalogs from "./pages/catalogs";
 import NotFound from "./pages/not-found";
 import SignInPage from "./pages/sign-in";
 import SignUpPage from "./pages/sign-up";
@@ -36,6 +37,7 @@ function ProtectedApp() {
             <Route path="/projects" component={Projects} />
             <Route path="/projects/:id" component={ProjectDetail} />
             <Route path="/tasks" component={Tasks} />
+            <Route path="/catalogs" component={Catalogs} />
             <Route path="/team" component={Team} />
             <Route component={NotFound} />
           </Switch>

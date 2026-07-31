@@ -1,10 +1,10 @@
 export const PROJECT_STAGES = [
   { id: "p1", label: "Type Definition", short: "P1" },
-  { id: "p2", label: "Item List", short: "P2" },
+  { id: "p2", label: "Item List Formation", short: "P2" },
   { id: "p3", label: "Spec & Estimate", short: "P3" },
   { id: "p4", label: "Delivery & Install", short: "P4" },
   { id: "p5", label: "Financial Close", short: "P5" },
-  { id: "p6", label: "Post-Service", short: "P6" },
+  { id: "p6", label: "Subscriptions & Post-Service", short: "P6" },
 ] as const;
 
 export type ProjectStageId = (typeof PROJECT_STAGES)[number]["id"];

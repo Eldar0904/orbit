@@ -5,3 +5,4 @@ export * from "./tasks";
 export * from "./activity";
 export * from "./catalogs";
 export * from "./documents";
+export * from "./knowledge-base";

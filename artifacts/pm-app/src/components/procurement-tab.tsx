@@ -1,517 +1,475 @@
-import { useState, useRef, useCallback } from "react";
-import { read as xlsxRead, utils as xlsxUtils } from "xlsx";
-import {
-  useGetProjectCatalog,
-  useUploadProjectCatalog,
-  useDeleteProjectCatalog,
-  useMatchProjectItems,
-  getGetProjectCatalogQueryKey,
-  type CatalogItem,
-  type MatchResult,
-} from "@workspace/api-client-react";
-import { useQueryClient } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 import {
-  Upload,
-  FileSpreadsheet,
-  Trash2,
-  RefreshCw,
+  useCatalogSources,
+  useProjectSpecItems,
+  useSaveSpecItems,
+  useProjectCatalogLinks,
+  useSaveCatalogLinks,
+  useRunMatch,
+  useMatchResults,
+  useSelectMatch,
+  useReviewMatch,
+  useExportOffer,
+  useSupplierSearch,
+  type MatchResultRow,
+  type SpecItem,
+  parseExcelToRows,
+} from "@/lib/kb-api";
+import {
   Play,
+  RefreshCw,
+  Download,
   CheckCircle2,
   AlertCircle,
   CircleDashed,
-  Download,
+  Search,
+  Clock,
+  Upload,
+  Check,
+  X,
 } from "lucide-react";
+import { Link } from "wouter";
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function parseSpreadsheet(buffer: ArrayBuffer): { rows: string[]; error?: string } {
-  try {
-    const wb = xlsxRead(buffer, { type: "array" });
-    const ws = wb.Sheets[wb.SheetNames[0]];
-    const raw: unknown[][] = xlsxUtils.sheet_to_json(ws, { header: 1, defval: "" });
-    const rows: string[] = [];
-    for (const row of raw) {
-      const first = String(row[0] ?? "").trim();
-      if (first) rows.push(first);
-    }
-    return { rows };
-  } catch {
-    return { rows: [], error: "Could not parse file. Use CSV or Excel (.xlsx, .xls)." };
-  }
-}
-
-function parseCatalogSpreadsheet(buffer: ArrayBuffer): {
-  items: CatalogItem[];
-  error?: string;
-} {
-  try {
-    const wb = xlsxRead(buffer, { type: "array" });
-    const ws = wb.Sheets[wb.SheetNames[0]];
-    const raw: Record<string, unknown>[] = xlsxUtils.sheet_to_json(ws, { defval: "" });
-    if (raw.length === 0) {
-      // Fall back to headerless — treat first column as name
-      const rows: unknown[][] = xlsxUtils.sheet_to_json(ws, { header: 1, defval: "" });
-      const items: CatalogItem[] = rows
-        .map((r) => String(r[0] ?? "").trim())
-        .filter(Boolean)
-        .map((name) => ({ name }));
-      return { items };
-    }
-
-    // Try to find columns by common header names
-    const headers = Object.keys(raw[0]);
-    const findCol = (...candidates: string[]) =>
-      headers.find((h) =>
-        candidates.some((c) => h.toLowerCase().includes(c.toLowerCase()))
-      ) ?? null;
-
-    const nameCol = findCol("name", "наименование", "название", "товар", "позиция", "item", "description", "описание") ?? headers[0];
-    const codeCol = findCol("code", "код", "артикул", "art");
-    const unitCol = findCol("unit", "ед", "единица", "uom");
-    const priceCol = findCol("price", "цена", "стоимость", "cost");
-
-    const items = raw
-      .map((row): CatalogItem | null => {
-        const name = String(row[nameCol] ?? "").trim();
-        if (!name) return null;
-        return {
-          name,
-          code: codeCol ? String(row[codeCol] ?? "").trim() || null : null,
-          unit: unitCol ? String(row[unitCol] ?? "").trim() || null : null,
-          price: priceCol ? parseFloat(String(row[priceCol] ?? "")) || null : null,
-        };
-      })
-      .filter((x): x is CatalogItem => x !== null);
-
-    return { items };
-  } catch {
-    return { items: [], error: "Could not parse file. Use CSV or Excel (.xlsx, .xls)." };
-  }
-}
-
-function downloadCsv(results: MatchResult[], filename: string) {
-  const header = ["#", "Spec Item", "Best Match", "Score %", "Status", "Unit", "Price"];
-  const rows = results.map((r, i) => [
-    i + 1,
-    `"${r.input.replace(/"/g, '""')}"`,
-    r.matched ? `"${r.matched.replace(/"/g, '""')}"` : "",
-    r.score,
-    r.status,
-    r.catalogItem?.unit ?? "",
-    r.catalogItem?.price ?? "",
-  ]);
-  const csv = [header, ...rows].map((r) => r.join(",")).join("\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-// ─── Status badge ─────────────────────────────────────────────────────────────
-
-function MatchBadge({ status }: { status: MatchResult["status"] }) {
+function MatchStatusBadge({ score }: { score: number }) {
+  const { t } = useTranslation();
+  const status = score >= 0.55 ? "matched" : score >= 0.3 ? "partial" : "unmatched";
   if (status === "matched")
     return (
-      <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-50 gap-1">
-        <CheckCircle2 className="w-3 h-3" /> Matched
+      <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 gap-1">
+        <CheckCircle2 className="w-3 h-3" /> {t("sourcing.matchItems.statusMatched")}
       </Badge>
     );
   if (status === "partial")
     return (
-      <Badge className="bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-50 gap-1">
-        <AlertCircle className="w-3 h-3" /> Partial
+      <Badge className="bg-amber-50 text-amber-700 border-amber-200 gap-1">
+        <AlertCircle className="w-3 h-3" /> {t("sourcing.matchItems.statusPartial")}
       </Badge>
     );
   return (
-    <Badge className="bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-50 gap-1">
-      <CircleDashed className="w-3 h-3" /> No match
+    <Badge className="bg-slate-50 text-slate-500 border-slate-200 gap-1">
+      <CircleDashed className="w-3 h-3" /> {t("sourcing.matchItems.statusNoMatch")}
     </Badge>
   );
 }
 
-// ─── Drop zone ────────────────────────────────────────────────────────────────
-
-function DropZone({
-  label,
-  accept,
-  onFile,
-  compact = false,
-}: {
-  label: string;
-  accept: string;
-  onFile: (file: File) => void;
-  compact?: boolean;
-}) {
-  const [dragging, setDragging] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      setDragging(false);
-      const file = e.dataTransfer.files[0];
-      if (file) onFile(file);
-    },
-    [onFile]
-  );
-
+function UpcomingPhaseCard({ title, description, comingSoon }: { title: string; description: string; comingSoon: string }) {
   return (
-    <div
-      className={`border-2 border-dashed rounded-lg transition-colors cursor-pointer select-none
-        ${dragging ? "border-primary bg-primary/5" : "border-border hover:border-primary/50 hover:bg-muted/30"}
-        ${compact ? "p-4" : "p-8"}`}
-      onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-      onDragLeave={() => setDragging(false)}
-      onDrop={handleDrop}
-      onClick={() => inputRef.current?.click()}
-    >
-      <input
-        ref={inputRef}
-        type="file"
-        accept={accept}
-        className="hidden"
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = ""; }}
-      />
-      <div className={`flex flex-col items-center text-center gap-2 ${compact ? "" : "gap-3"}`}>
-        <Upload className={`text-muted-foreground/50 ${compact ? "w-5 h-5" : "w-8 h-8"}`} />
-        <span className={`text-muted-foreground ${compact ? "text-xs" : "text-sm"}`}>{label}</span>
-      </div>
-    </div>
+    <Card className="border-border/50 shadow-sm border-dashed bg-muted/20">
+      <CardContent className="p-5 flex items-start gap-4">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+          <Clock className="w-4 h-4" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap mb-1">
+            <h3 className="font-bold text-sm tracking-tight">{title}</h3>
+            <Badge variant="secondary" className="text-[10px] uppercase tracking-wide">{comingSoon}</Badge>
+          </div>
+          <p className="text-sm text-muted-foreground">{description}</p>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
-
 export function ProcurementTab({ projectId }: { projectId: number }) {
-  const queryClient = useQueryClient();
+  const { t } = useTranslation();
   const { toast } = useToast();
-
-  // Catalog state
-  const {
-    data: catalog,
-    isLoading: isCatalogLoading,
-    error: catalogError,
-  } = useGetProjectCatalog(projectId, {
-    query: { retry: false, queryKey: getGetProjectCatalogQueryKey(projectId) },
-  });
-
-  const uploadCatalog = useUploadProjectCatalog();
-  const deleteCatalog = useDeleteProjectCatalog();
-  const matchItems = useMatchProjectItems();
-
-  // Spec / results state
   const [specText, setSpecText] = useState("");
-  const [results, setResults] = useState<MatchResult[] | null>(null);
-  const [isMatching, setIsMatching] = useState(false);
+  const [marginPercent, setMarginPercent] = useState("0");
+  const [selectedSources, setSelectedSources] = useState<number[]>([]);
+  const [supplierQuery, setSupplierQuery] = useState("");
 
-  const invalidateCatalog = () =>
-    queryClient.invalidateQueries({ queryKey: getGetProjectCatalogQueryKey(projectId) });
+  const { data: sources } = useCatalogSources();
+  const { data: specData } = useProjectSpecItems(projectId);
+  const { data: links } = useProjectCatalogLinks(projectId);
+  const { data: matchData } = useMatchResults(projectId);
 
-  // ── Catalog upload ──────────────────────────────────────────────────────────
+  const saveSpec = useSaveSpecItems(projectId);
+  const saveLinks = useSaveCatalogLinks(projectId);
+  const runMatch = useRunMatch(projectId);
+  const selectMatch = useSelectMatch(projectId);
+  const reviewMatch = useReviewMatch(projectId);
+  const exportOffer = useExportOffer(projectId);
+  const supplierSearch = useSupplierSearch();
 
-  const handleCatalogFile = async (file: File) => {
-    const buffer = await file.arrayBuffer();
-    const { items, error } = parseCatalogSpreadsheet(buffer);
-    if (error || items.length === 0) {
-      toast({ variant: "destructive", title: error ?? "No items found in file" });
+  const linkedIds = links?.map((l) => l.sourceId) ?? selectedSources;
+
+  const handleSaveSpec = () => {
+    const lines = specText.split("\n").map((l) => l.trim()).filter(Boolean);
+    if (lines.length === 0) {
+      toast({ variant: "destructive", title: t("sourcing.matchItems.enterOneItem") });
       return;
     }
-    uploadCatalog.mutate(
-      { id: projectId, data: { filename: file.name, items } },
+    saveSpec.mutate(
+      { lines },
       {
-        onSuccess: () => {
-          toast({ title: `Catalog loaded — ${items.length} items` });
-          invalidateCatalog();
-          setResults(null);
-        },
-        onError: () => toast({ variant: "destructive", title: "Failed to save catalog" }),
-      }
+        onSuccess: () => toast({ title: t("sourcing.matchItems.itemsSaved", { count: lines.length }) }),
+        onError: (e) => toast({ variant: "destructive", title: e.message }),
+      },
     );
   };
 
-  const handleDeleteCatalog = () => {
-    if (!confirm("Remove the catalog for this project?")) return;
-    deleteCatalog.mutate(
-      { id: projectId },
-      {
-        onSuccess: () => {
-          toast({ title: "Catalog removed" });
-          invalidateCatalog();
-          setResults(null);
+  const handleSpecUpload = async (file: File) => {
+    try {
+      const rows = await parseExcelToRows(await file.arrayBuffer());
+      saveSpec.mutate(
+        { rows },
+        {
+          onSuccess: () =>
+            toast({ title: t("sourcing.matchItems.itemsSaved", { count: rows.length }) }),
+          onError: (e) => toast({ variant: "destructive", title: e.message }),
         },
-        onError: () => toast({ variant: "destructive", title: "Failed to remove catalog" }),
-      }
+      );
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: error instanceof Error ? error.message : "Could not read spreadsheet",
+      });
+    }
+  };
+
+  const handleSaveLinks = () => {
+    const ids = selectedSources.length ? selectedSources : linkedIds;
+    saveLinks.mutate(ids, {
+      onSuccess: () => toast({ title: t("catalogs.linksSaved") }),
+      onError: (e) => toast({ variant: "destructive", title: e.message }),
+    });
+  };
+
+  const handleRunMatch = () => {
+    runMatch.mutate(undefined, {
+      onSuccess: () => toast({ title: t("sourcing.matchItems.matchComplete") }),
+      onError: (e) => toast({ variant: "destructive", title: e.message }),
+    });
+  };
+
+  const handleExport = () => {
+    const margin = parseFloat(marginPercent) || 0;
+    exportOffer.mutate(margin, {
+      onSuccess: async (data) => {
+        const { utils, write } = await import("xlsx");
+        const sheet = utils.json_to_sheet(
+          data.lines.map((line) => ({
+            "#": line.lineNumber,
+            "Specification item": line.itemName,
+            "Matched product": line.matchedName,
+            Quantity: line.quantity,
+            Unit: line.unit,
+            "Unit price": line.unitPrice,
+            Total: line.lineTotal,
+          })),
+        );
+        const workbook = utils.book_new();
+        utils.book_append_sheet(workbook, sheet, "Commercial offer");
+        const bytes = write(workbook, { type: "array", bookType: "xlsx" });
+        const blob = new Blob([bytes], {
+          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = data.filename.replace(/\.csv$/i, ".xlsx");
+        a.click();
+        URL.revokeObjectURL(url);
+        toast({ title: t("sourcing.buildOffer.exported") });
+      },
+      onError: (e) => toast({ variant: "destructive", title: e.message }),
+    });
+  };
+
+  const handleSupplierSearch = () => {
+    const items = supplierQuery.split("\n").map((l) => l.trim()).filter(Boolean).map((itemName) => ({ itemName }));
+    if (!items.length) return;
+    supplierSearch.mutate(
+      { items: items.slice(0, 10), createCatalogSource: true },
+      {
+        onSuccess: (data) => toast({ title: t("sourcing.findSuppliers.found", { count: data.hits.length }) }),
+        onError: (e) => toast({ variant: "destructive", title: e.message }),
+      },
     );
   };
 
-  // ── Spec file upload ────────────────────────────────────────────────────────
+  const specItems = matchData?.specItems ?? specData?.items ?? [];
+  const results = matchData?.results ?? [];
 
-  const handleSpecFile = async (file: File) => {
-    const buffer = await file.arrayBuffer();
-    const { rows, error } = parseSpreadsheet(buffer);
-    if (error || rows.length === 0) {
-      toast({ variant: "destructive", title: error ?? "No items found in file" });
-      return;
-    }
-    setSpecText(rows.join("\n"));
-    toast({ title: `${rows.length} items loaded from ${file.name}` });
-  };
-
-  // ── Match ───────────────────────────────────────────────────────────────────
-
-  const handleMatch = () => {
-    const items = specText
-      .split("\n")
-      .map((l) => l.trim())
-      .filter(Boolean);
-
-    if (items.length === 0) {
-      toast({ variant: "destructive", title: "Enter at least one item to match" });
-      return;
-    }
-
-    setIsMatching(true);
-    matchItems.mutate(
-      { id: projectId, data: { items } },
-      {
-        onSuccess: (data) => {
-          setResults(data.results);
-          setIsMatching(false);
-        },
-        onError: () => {
-          toast({ variant: "destructive", title: "Matching failed — upload a catalog first" });
-          setIsMatching(false);
-        },
-      }
-    );
-  };
-
-  // ── Stats ────────────────────────────────────────────────────────────────────
-
-  const stats = results
-    ? {
-        matched: results.filter((r) => r.status === "matched").length,
-        partial: results.filter((r) => r.status === "partial").length,
-        unmatched: results.filter((r) => r.status === "unmatched").length,
-      }
-    : null;
-
-  // ─── Render ──────────────────────────────────────────────────────────────────
+  const groupedResults = specItems.map((spec) => ({
+    spec,
+    candidates: results.filter((r) => r.specItemId === spec.id).sort((a, b) => a.rank - b.rank),
+    selected: results.find((r) => r.specItemId === spec.id && r.isSelected),
+  }));
 
   return (
     <div className="space-y-5">
+      <p className="text-sm text-muted-foreground">
+        {t("sourcing.subtitle")}{" "}
+        <Link href="/catalogs" className="text-primary underline-offset-2 hover:underline">
+          {t("catalogs.title")}
+        </Link>
+      </p>
 
-      {/* ── Step 1: Catalog ── */}
+      {/* Spec list */}
       <Card className="border-border/50 shadow-sm">
-        <CardContent className="p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-sm tracking-tight uppercase text-muted-foreground">
-              Step 1 — Catalog
-            </h3>
-            {catalog && (
-              <span className="text-xs text-muted-foreground font-mono">
-                {catalog.itemCount} items
-              </span>
-            )}
-          </div>
-
-          {isCatalogLoading ? (
-            <Skeleton className="h-12 w-full" />
-          ) : catalog ? (
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-emerald-50 border border-emerald-200">
-              <FileSpreadsheet className="w-5 h-5 text-emerald-600 shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-emerald-800 truncate">{catalog.filename}</p>
-                <p className="text-xs text-emerald-600">
-                  {catalog.itemCount} items · uploaded{" "}
-                  {new Date(catalog.updatedAt).toLocaleDateString()}
-                </p>
-              </div>
-              <div className="flex gap-2 shrink-0">
-                <label className="cursor-pointer">
-                  <input
-                    type="file"
-                    accept=".csv,.xlsx,.xls"
-                    className="hidden"
-                    onChange={(e) => { const f = e.target.files?.[0]; if (f) handleCatalogFile(f); e.target.value = ""; }}
-                  />
-                  <Button variant="outline" size="sm" asChild>
-                    <span>
-                      <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
-                      Replace
-                    </span>
-                  </Button>
-                </label>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-destructive hover:text-destructive"
-                  onClick={handleDeleteCatalog}
-                  disabled={deleteCatalog.isPending}
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div>
-              <DropZone
-                label="Drop a CSV or Excel file with your product catalog. First column = item name."
-                accept=".csv,.xlsx,.xls"
-                onFile={handleCatalogFile}
-              />
-              {uploadCatalog.isPending && (
-                <p className="text-xs text-muted-foreground mt-2 text-center">Uploading…</p>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* ── Step 2: Spec items ── */}
-      <Card className="border-border/50 shadow-sm">
-        <CardContent className="p-5">
-          <h3 className="font-bold text-sm tracking-tight uppercase text-muted-foreground mb-4">
-            Step 2 — Spec Items
-          </h3>
-
-          <Textarea
-            placeholder={"Paste items one per line, e.g.:\nSchool desks 2-seat × 120\nClassroom chairs × 240\nInteractive whiteboard 75\" × 15"}
-            value={specText}
-            onChange={(e) => setSpecText(e.target.value)}
-            rows={6}
-            className="font-mono text-sm resize-y mb-3"
-          />
-
-          <div className="flex items-center justify-between gap-3">
-            <DropZone
-              label="or upload CSV / Excel"
-              accept=".csv,.xlsx,.xls"
-              onFile={handleSpecFile}
-              compact
-            />
-            <Button
-              onClick={handleMatch}
-              disabled={isMatching || !catalog || !specText.trim()}
-              className="shrink-0"
-            >
-              {isMatching ? (
-                <>
-                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                  Matching…
-                </>
-              ) : (
-                <>
-                  <Play className="w-4 h-4 mr-2" />
-                  Run Match
-                </>
-              )}
-            </Button>
-          </div>
-          {!catalog && (
-            <p className="text-xs text-muted-foreground mt-2">
-              ↑ Upload a catalog in Step 1 before running.
+        <CardContent className="p-5 space-y-3">
+          <h3 className="font-bold text-sm uppercase text-muted-foreground">{t("sourcing.matchItems.specItems")}</h3>
+          {specData?.list && (
+            <p className="text-xs text-muted-foreground font-mono">
+              {t("sourcing.matchItems.itemsCount", { count: specData.list.itemCount })}
             </p>
           )}
+          <Textarea
+            placeholder={t("sourcing.matchItems.specPlaceholder")}
+            value={specText}
+            onChange={(e) => setSpecText(e.target.value)}
+            rows={5}
+            className="font-mono text-sm"
+          />
+          <Button size="sm" onClick={handleSaveSpec} disabled={saveSpec.isPending}>
+            {t("sourcing.matchItems.saveSpec")}
+          </Button>
+          <Label className="inline-flex ml-2">
+            <Input
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              className="hidden"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) void handleSpecUpload(file);
+                event.target.value = "";
+              }}
+            />
+            <Button size="sm" variant="outline" asChild>
+              <span><Upload className="w-4 h-4 mr-2" />Upload Excel</span>
+            </Button>
+          </Label>
         </CardContent>
       </Card>
 
-      {/* ── Step 3: Results ── */}
-      {results && stats && (
-        <Card className="border-border/50 shadow-sm overflow-hidden">
-          <div className="bg-muted/30 px-5 py-3 border-b border-border flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <h3 className="font-bold text-sm tracking-tight uppercase text-muted-foreground">
-                Results
-              </h3>
-              <div className="flex items-center gap-3 text-xs font-mono">
-                <span className="text-emerald-600 font-semibold">{stats.matched} matched</span>
-                <span className="text-amber-600">{stats.partial} partial</span>
-                <span className="text-slate-400">{stats.unmatched} unmatched</span>
-              </div>
+      {/* Catalog selection */}
+      <Card className="border-border/50 shadow-sm">
+        <CardContent className="p-5 space-y-3">
+          <h3 className="font-bold text-sm uppercase text-muted-foreground">{t("catalogs.projectCatalogs")}</h3>
+          {!sources?.length ? (
+            <p className="text-sm text-muted-foreground">
+              {t("catalogs.noSources")} —{" "}
+              <Link href="/catalogs" className="text-primary underline">{t("catalogs.title")}</Link>
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {sources.map((s) => {
+                const checked = (selectedSources.length ? selectedSources : linkedIds).includes(s.id);
+                return (
+                  <div key={s.id} className="flex items-center gap-2">
+                    <Checkbox
+                      id={`src-${s.id}`}
+                      checked={checked}
+                      onCheckedChange={(v) => {
+                        setSelectedSources((prev) => {
+                          const base = prev.length ? prev : [...linkedIds];
+                          return v ? [...new Set([...base, s.id])] : base.filter((id) => id !== s.id);
+                        });
+                      }}
+                    />
+                    <Label htmlFor={`src-${s.id}`} className="text-sm flex-1 cursor-pointer">
+                      {s.name} <span className="text-muted-foreground font-mono text-xs">({s.productCount})</span>
+                    </Label>
+                  </div>
+                );
+              })}
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                downloadCsv(results, `match-results-project-${projectId}.csv`)
-              }
-            >
-              <Download className="w-3.5 h-3.5 mr-1.5" />
-              Export CSV
+          )}
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={handleSaveLinks} disabled={saveLinks.isPending}>
+              {t("catalogs.saveLinks")}
+            </Button>
+            <Button size="sm" onClick={handleRunMatch} disabled={runMatch.isPending}>
+              {runMatch.isPending ? (
+                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Play className="w-4 h-4 mr-2" />
+              )}
+              {t("sourcing.matchItems.runMatch")}
             </Button>
           </div>
+        </CardContent>
+      </Card>
 
+      {/* Match results */}
+      {groupedResults.length > 0 && matchData?.run && (
+        <Card className="border-border/50 shadow-sm overflow-hidden">
+          <div className="bg-muted/30 px-5 py-3 border-b border-border">
+            <h3 className="font-bold text-sm uppercase text-muted-foreground">{t("sourcing.matchItems.results")}</h3>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border bg-muted/20 text-left text-xs text-muted-foreground uppercase tracking-wide">
-                  <th className="px-4 py-2 w-8 font-mono">#</th>
-                  <th className="px-4 py-2">Spec Item</th>
-                  <th className="px-4 py-2">Best Match</th>
-                  <th className="px-4 py-2 w-20 text-center">Score</th>
-                  <th className="px-4 py-2 w-28">Status</th>
-                  <th className="px-4 py-2 w-16 text-right">Unit</th>
-                  <th className="px-4 py-2 w-24 text-right">Price</th>
+                <tr className="border-b bg-muted/20 text-xs text-muted-foreground uppercase">
+                  <th className="px-4 py-2 text-left">{t("sourcing.matchItems.colSpecItem")}</th>
+                  <th className="px-4 py-2 text-left">{t("sourcing.matchItems.colBestMatch")}</th>
+                  <th className="px-4 py-2 w-20">{t("sourcing.matchItems.colScore")}</th>
+                  <th className="px-4 py-2">{t("sourcing.matchItems.colStatus")}</th>
+                  <th className="px-4 py-2">{t("sourcing.matchItems.select")}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
-                {results.map((r, i) => (
-                  <tr
-                    key={i}
-                    className="hover:bg-muted/20 transition-colors"
-                  >
-                    <td className="px-4 py-3 text-muted-foreground font-mono text-xs">{i + 1}</td>
-                    <td className="px-4 py-3 font-medium max-w-xs">
-                      <span className="line-clamp-2">{r.input}</span>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground max-w-xs">
-                      {r.matched ? (
-                        <span className="line-clamp-2">{r.matched}</span>
-                      ) : (
-                        <span className="text-slate-300 italic">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <span
-                        className={`font-mono font-semibold text-xs ${
-                          r.status === "matched"
-                            ? "text-emerald-600"
-                            : r.status === "partial"
-                            ? "text-amber-600"
-                            : "text-slate-400"
-                        }`}
-                      >
-                        {r.score}%
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <MatchBadge status={r.status} />
-                    </td>
-                    <td className="px-4 py-3 text-right text-xs text-muted-foreground font-mono">
-                      {r.catalogItem?.unit ?? ""}
-                    </td>
-                    <td className="px-4 py-3 text-right text-xs text-muted-foreground font-mono">
-                      {r.catalogItem?.price != null
-                        ? r.catalogItem.price.toLocaleString()
-                        : ""}
-                    </td>
-                  </tr>
+              <tbody className="divide-y">
+                {groupedResults.map(({ spec, candidates, selected }) => (
+                  <SpecResultRow
+                    key={spec.id}
+                    spec={spec}
+                    candidates={candidates}
+                    selected={selected}
+                    onSelect={(id) => selectMatch.mutate(id)}
+                    onReview={(resultId, action) => reviewMatch.mutate({ resultId, action })}
+                  />
                 ))}
               </tbody>
             </table>
           </div>
         </Card>
       )}
+
+      {/* Commercial offer export */}
+      {matchData?.run && (
+        <Card className="border-border/50 shadow-sm">
+          <CardContent className="p-5 space-y-3">
+            <h3 className="font-bold text-sm uppercase text-muted-foreground">{t("sourcing.buildOffer.title")}</h3>
+            <p className="text-sm text-muted-foreground">{t("sourcing.buildOffer.description")}</p>
+            <div className="flex items-end gap-3 flex-wrap">
+              <div className="space-y-1">
+                <Label className="text-xs">{t("sourcing.buildOffer.margin")}</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  className="w-24"
+                  value={marginPercent}
+                  onChange={(e) => setMarginPercent(e.target.value)}
+                />
+              </div>
+              <Button onClick={handleExport} disabled={exportOffer.isPending}>
+                <Download className="w-4 h-4 mr-2" />
+                {t("sourcing.buildOffer.export")}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Supplier search */}
+      <Card className="border-border/50 shadow-sm">
+        <CardContent className="p-5 space-y-3">
+          <h3 className="font-bold text-sm uppercase text-muted-foreground">{t("sourcing.findSuppliers.title")}</h3>
+          <p className="text-sm text-muted-foreground">{t("sourcing.findSuppliers.description")}</p>
+          <Textarea
+            placeholder={t("sourcing.findSuppliers.placeholder")}
+            value={supplierQuery}
+            onChange={(e) => setSupplierQuery(e.target.value)}
+            rows={3}
+            className="font-mono text-sm"
+          />
+          <Button size="sm" onClick={handleSupplierSearch} disabled={supplierSearch.isPending}>
+            <Search className="w-4 h-4 mr-2" />
+            {supplierSearch.isPending ? t("sourcing.findSuppliers.searching") : t("sourcing.findSuppliers.search")}
+          </Button>
+          {supplierSearch.data?.hits && supplierSearch.data.hits.length > 0 && (
+            <ul className="space-y-2 pt-2">
+              {supplierSearch.data.hits.map((hit, i) => (
+                <li key={i} className="text-sm p-2 rounded border border-border">
+                  <p className="font-medium">{hit.itemName}</p>
+                  <p className="text-muted-foreground">{hit.supplierName} — {hit.productName}</p>
+                  {hit.notes && <p className="text-xs text-muted-foreground mt-1">{hit.notes}</p>}
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+
+      <UpcomingPhaseCard
+        title={t("sourcing.procurementPhase.title")}
+        description={t("sourcing.procurementPhase.description")}
+        comingSoon={t("sourcing.procurementPhase.comingSoon")}
+      />
     </div>
+  );
+}
+
+function SpecResultRow({
+  spec,
+  candidates,
+  selected,
+  onSelect,
+  onReview,
+}: {
+  spec: SpecItem;
+  candidates: MatchResultRow[];
+  selected?: MatchResultRow;
+  onSelect: (id: number) => void;
+  onReview: (id: number, action: "confirm" | "reject") => void;
+}) {
+  const best = selected ?? candidates[0];
+  const score = best?.confidenceScore ?? 0;
+
+  return (
+    <tr className="hover:bg-muted/20">
+      <td className="px-4 py-3 font-medium max-w-xs">
+        <span className="line-clamp-2">{spec.itemName}</span>
+      </td>
+      <td className="px-4 py-3 text-muted-foreground max-w-xs">
+        {best?.matchedName ?? "—"}
+      </td>
+      <td className="px-4 py-3 font-mono text-xs text-center">{Math.round(score * 100)}%</td>
+      <td className="px-4 py-3">
+        <MatchStatusBadge score={score} />
+        {best?.reviewStatus !== "pending" && (
+          <p className="mt-1 text-[10px] uppercase text-muted-foreground">{best?.reviewStatus}</p>
+        )}
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex flex-col gap-1">
+          {candidates.slice(0, 3).map((c) => (
+            <label key={c.id} className="flex items-center gap-1 text-xs cursor-pointer">
+              <input
+                type="radio"
+                name={`spec-${spec.id}`}
+                checked={c.isSelected}
+                onChange={() => onSelect(c.id)}
+              />
+              <span className="truncate max-w-[120px]">{c.matchedName ?? "—"}</span>
+            </label>
+          ))}
+          {best && (
+            <div className="flex gap-1 mt-1">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-7 px-2"
+                onClick={() => onReview(best.id, "confirm")}
+              >
+                <Check className="w-3 h-3 mr-1" />Confirm
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2 text-destructive"
+                onClick={() => onReview(best.id, "reject")}
+              >
+                <X className="w-3 h-3 mr-1" />Reject
+              </Button>
+            </div>
+          )}
+        </div>
+      </td>
+    </tr>
   );
 }

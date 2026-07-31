@@ -1,14 +1,15 @@
 # Orbit
 
-Project management workspace for fitout and construction teams. Track projects through staged delivery, assign tasks, manage team workload, register documents, and match procurement catalogs.
+Project management workspace for fitout and construction teams. Track projects through staged delivery (P1–P6), assign tasks, manage team workload, register documents, and run the sourcing workflow (catalog matching → suppliers → commercial offer → procurement).
 
-Originally exported from [Replit](https://replit.com); now developed locally and hosted on GitHub.
+Originally exported from [Replit](https://replit.com); evolved from the **B2B Fitout Dashboard** prototype. See [docs/B2B_REFERENCE.md](./docs/B2B_REFERENCE.md) for phase definitions, AI roadmap, and architecture mapping.
 
 ## Features
 
 - **Dashboard** — project and task stats, completion rate, recent activity feed
 - **Projects** — rich project cards with progress, P1–P6 stage stepper, budget and deadline stats
-- **Project detail** — Tasks (kanban), Documents, Procurement (catalog matching), Overview (project passport)
+- **Catalogs** — workspace knowledge base: import catalogs, manage suppliers, growing product library
+- **Project detail** — Tasks (kanban), Documents, Sourcing & Offer (spec matching, AI suppliers, КП export), Overview (project passport)
 - **All Tasks** — cross-project task list with filters
 - **Team** — add members, view workload by status
 - **Auth** — sign-in / sign-up via [Clerk](https://clerk.com)
@@ -77,7 +78,8 @@ SaaS-Task-Manager/
 │   ├── api-zod/         # Generated Zod validators
 │   └── db/              # Drizzle schema + migrations
 ├── docs/
-│   └── PROJECTS_SPEC.md # Projects section UX spec
+│   ├── PROJECTS_SPEC.md # Projects section UX spec
+│   └── B2B_REFERENCE.md # B2B prototype phases, roadmap, architecture
 ├── .env.example
 ├── LOCAL_DEV.md
 └── replit.md            # Replit deployment notes
@@ -97,6 +99,7 @@ pnpm --filter @workspace/db run push            # Push schema to Postgres (dev)
 - [LOCAL_DEV.md](./LOCAL_DEV.md) — local setup on Windows
 - [docs/DEPLOY_VERCEL.md](./docs/DEPLOY_VERCEL.md) — deploy to Vercel (frontend + API)
 - [docs/PROJECTS_SPEC.md](./docs/PROJECTS_SPEC.md) — projects section fields, tabs, and stages
+- [docs/B2B_REFERENCE.md](./docs/B2B_REFERENCE.md) — B2B prototype phases, AI roadmap, and Orbit mapping
 - [replit.md](./replit.md) — architecture notes and gotchas
 
 ## License

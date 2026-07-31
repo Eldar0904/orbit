@@ -125,6 +125,14 @@ function jaccard(a: Set<string>, b: Set<string>): number {
   return union === 0 ? 0 : intersection / union;
 }
 
+export function jaccardSets(a: Set<string>, b: Set<string>): number {
+  return jaccard(a, b);
+}
+
+export function tokenizeForMatch(raw: string): Set<string> {
+  return tokenize(raw);
+}
+
 function similarity(a: string, b: string): number {
   return jaccard(tokenize(a), tokenize(b));
 }

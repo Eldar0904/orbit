@@ -3,6 +3,7 @@
     "dashboard": "Dashboard",
     "projects": "Projects",
     "tasks": "All Tasks",
+    "catalogs": "Catalogs",
     "team": "Team"
   },
   "landing": {
@@ -38,6 +39,7 @@
     "deadline": "Deadline",
     "documents": "Documents",
     "procurement": "Procurement",
+    "sourcingOffer": "Sourcing & Offer",
     "overview": "Overview",
     "unassigned": "Unassigned",
     "rooms": "{{count}} rooms",
@@ -177,14 +179,111 @@
   },
   "stages": {
     "p1": "Type Definition",
-    "p2": "Item List",
-    "p3": "Spec & Estimate",
+    "p2": "Item List Formation",
+    "p3": "Technical Spec & Estimate",
     "p4": "Delivery & Install",
     "p5": "Financial Close",
-    "p6": "Post-Service"
+    "p6": "Subscriptions & Post-Service"
   },
   "notFound": {
     "title": "404 Page Not Found",
     "body": "Did you forget to add the page to the router?"
+  },
+  "sourcing": {
+    "subtitle": "Match furniture, equipment, and other spec items against supplier catalogs, source vendors, and build your commercial offer — before procurement begins.",
+    "workflow": {
+      "matchItems": "Match items",
+      "findSuppliers": "Find suppliers",
+      "buildOffer": "Commercial offer",
+      "procurement": "Procurement"
+    },
+    "matchItems": {
+      "title": "Match items",
+      "description": "Upload your product catalogs and match them against the project spec list.",
+      "catalog": "Product catalog",
+      "catalogHint": "Drop a CSV or Excel file with your product catalog. First column = item name.",
+      "itemsCount": "{{count}} items",
+      "uploaded": "uploaded {{date}}",
+      "replace": "Replace",
+      "removeConfirm": "Remove the catalog for this project?",
+      "catalogLoaded": "Catalog loaded — {{count}} items",
+      "catalogRemoved": "Catalog removed",
+      "catalogSaveFailed": "Failed to save catalog",
+      "catalogRemoveFailed": "Failed to remove catalog",
+      "noItemsInFile": "No items found in file",
+      "parseError": "Could not parse file. Use CSV or Excel (.xlsx, .xls).",
+      "specItems": "Spec list",
+      "specPlaceholder": "Paste items one per line, e.g.:\nSchool desks 2-seat × 120\nClassroom chairs × 240\nInteractive whiteboard 75\" × 15",
+      "specUploadHint": "or upload CSV / Excel",
+      "runMatch": "Run match",
+      "matching": "Matching…",
+      "uploadCatalogFirst": "Upload a catalog before running a match.",
+      "enterOneItem": "Enter at least one item to match",
+      "matchFailed": "Matching failed — upload a catalog first",
+      "itemsLoadedFrom": "{{count}} items loaded from {{filename}}",
+      "results": "Results",
+      "matched": "{{count}} matched",
+      "partial": "{{count}} partial",
+      "unmatched": "{{count}} unmatched",
+      "exportCsv": "Export CSV",
+      "colSpecItem": "Spec item",
+      "colBestMatch": "Best match",
+      "colScore": "Score",
+      "colStatus": "Status",
+      "colUnit": "Unit",
+      "colPrice": "Price",
+      "statusMatched": "Matched",
+      "statusPartial": "Partial",
+      "statusNoMatch": "No match",
+      "itemsSaved": "{{count}} spec items saved",
+      "saveSpec": "Save spec list",
+      "matchComplete": "Matching complete",
+      "itemsCount": "{{count}} items",
+      "select": "Select match"
+    },
+    "findSuppliers": {
+      "title": "Find suppliers",
+      "description": "Compare vendor quotes and shortlist suppliers for matched items.",
+      "comingSoon": "Coming soon",
+      "placeholder": "Paste unmatched items one per line to search with AI",
+      "search": "Search suppliers with AI",
+      "searching": "Searching…",
+      "found": "{{count}} supplier hits"
+    },
+    "buildOffer": {
+      "title": "Commercial offer",
+      "description": "Assemble pricing, margins, and terms into a client-ready commercial proposal.",
+      "comingSoon": "Coming soon",
+      "margin": "Margin %",
+      "export": "Export offer (CSV)",
+      "exported": "Commercial offer exported"
+    },
+    "procurementPhase": {
+      "title": "Procurement",
+      "description": "Place orders, track deliveries, and manage purchase documents after the offer is approved.",
+      "comingSoon": "Coming soon"
+    }
+  },
+  "catalogs": {
+    "title": "Catalogs",
+    "subtitle": "Workspace knowledge base — import supplier and government catalogs, growing with each file upload and AI search.",
+    "sources": "Catalog sources",
+    "import": "Import catalog",
+    "importHint": "Select a source, then upload CSV or Excel. Items are upserted by product code when present.",
+    "uploadCatalog": "Upload file",
+    "newSourcePlaceholder": "New catalog name, e.g. Government smeta 2026",
+    "newSupplierPlaceholder": "Supplier name",
+    "noSources": "No catalogs yet. Create a source and import your first file.",
+    "noSuppliers": "No suppliers registered yet.",
+    "selectSourceFirst": "Select a catalog source first",
+    "noItemsInFile": "No items found in file",
+    "imported": "{{count}} items imported",
+    "importTarget": "Importing to",
+    "sourceCreated": "Catalog source created",
+    "supplierCreated": "Supplier added",
+    "suppliers": "Suppliers",
+    "projectCatalogs": "Catalogs for matching",
+    "saveLinks": "Save catalog selection",
+    "linksSaved": "Catalog selection saved"
   }
 }
