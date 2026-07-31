@@ -40,6 +40,7 @@ export default function ImportMatchPage() {
   const [decisions, setDecisions] = useState<Record<number, "confirmed" | "rejected">>({});
   const [loading, setLoading] = useState(false);
   const [importProgress, setImportProgress] = useState<number | null>(null);
+  const [matchProgress, setMatchProgress] = useState<number | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const catalogRef = useRef<HTMLInputElement>(null);
 
@@ -92,6 +93,7 @@ export default function ImportMatchPage() {
       setSourceIds([]);
       setResults([]);
       setDecisions({});
+      setMatchProgress(null);
       setImportProgress(null);
       toast({ variant: "destructive", title: error instanceof Error ? error.message : "Catalogue import failed" });
     }
@@ -105,6 +107,7 @@ export default function ImportMatchPage() {
       setFileName(file.name);
       setResults([]);
       setDecisions({});
+      setMatchProgress(null);
     } catch (error) {
       toast({ variant: "destructive", title: error instanceof Error ? error.message : "Could not read file" });
     }
@@ -135,15 +138,22 @@ export default function ImportMatchPage() {
         }))
         .filter((row) => row.itemName);
       if (!normalizedRows.length) throw new Error("No goods names found. Use a column such as Goods required or Item name.");
-      const response = await fetch("/api/standalone-match", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sourceIds, items: normalizedRows }),
-      });
-      const data = await readApiResponse(response);
-      if (!response.ok) throw new Error(typeof data.error === "string" ? data.error : "Matching failed");
-      setResults(data.results as Result[]);
-      if (!Array.isArray(data.results) || data.results.length === 0) {
+      const batchSize = 25;
+      const allResults: Result[] = [];
+      setMatchProgress(0);
+      for (let offset = 0; offset < normalizedRows.length; offset += batchSize) {
+        const response = await fetch("/api/standalone-match", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sourceIds, items: normalizedRows.slice(offset, offset + batchSize) }),
+        });
+        const data = await readApiResponse(response);
+        if (!response.ok) throw new Error(typeof data.error === "string" ? data.error : `Matching batch ${Math.floor(offset / batchSize) + 1} failed`);
+        if (Array.isArray(data.results)) allResults.push(...(data.results as Result[]));
+        setMatchProgress(Math.min(100, Math.round(((offset + normalizedRows.slice(offset, offset + batchSize).length) / normalizedRows.length) * 100)));
+      }
+      setResults(allResults);
+      if (allResults.length === 0) {
         throw new Error("No candidates returned. Confirm the selected catalogue contains active products.");
       }
     } catch (error) {
@@ -205,6 +215,7 @@ export default function ImportMatchPage() {
           </label>)}
         </div>
         <Button onClick={run} disabled={loading || !rows.length}><Play className="w-4 h-4 mr-2" />{loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : "Run matching"}</Button>
+        {matchProgress !== null && <div className="w-full max-w-md space-y-1"><div className="flex justify-between text-xs text-muted-foreground"><span>{matchProgress < 100 ? "Matching goods…" : "Matching complete"}</span><span>{matchProgress}%</span></div><div className="h-2 overflow-hidden rounded-full bg-muted"><div className="h-full bg-primary transition-all" style={{ width: `${matchProgress}%` }} /></div></div>}
       </CardContent></Card>
       {grouped.length > 0 && <Card><CardContent className="p-0 overflow-x-auto"><div className="p-4 border-b flex items-center justify-between"><div><h2 className="font-semibold">Review candidates</h2><p className="text-xs text-muted-foreground">Top-three candidates are shown for every destination item.</p></div><Button size="sm" variant="outline" onClick={exportReview}><Download className="w-4 h-4 mr-2" />Export XLSX</Button></div><table className="w-full text-sm"><thead><tr className="border-b bg-muted/30"><th className="p-3 text-left">Destination item</th><th className="p-3 text-left">Candidates</th><th className="p-3">Review</th></tr></thead><tbody className="divide-y">{grouped.map((best) => { const candidates = results.filter((result) => result.itemId === best.itemId).sort((a, b) => a.rank - b.rank); return <tr key={best.itemId} className="align-top"><td className="p-3 font-medium max-w-xs">{best.itemName}</td><td className="p-3 space-y-2">{candidates.map((candidate) => <div key={candidate.rank} className="flex gap-2 items-start"><Badge variant={candidate.rank === 1 ? "default" : "outline"}>{candidate.rank}</Badge><div><p>{candidate.product.name} <span className="text-xs text-muted-foreground">{Math.round(candidate.confidenceScore * 100)}%</span></p><p className="text-xs text-muted-foreground">{candidate.explanation}</p></div></div>)}</td><td className="p-3"><div className="flex gap-1">{decisions[best.itemId] === "confirmed" ? <Badge className="bg-emerald-600"><Check className="w-3 h-3 mr-1" />Confirmed</Badge> : <Button size="sm" variant="outline" onClick={() => setDecisions((current) => ({ ...current, [best.itemId]: "confirmed" }))}><Check className="w-3 h-3 mr-1" />Confirm</Button>}{decisions[best.itemId] === "rejected" ? <Badge variant="destructive"><X className="w-3 h-3 mr-1" />Rejected</Badge> : <Button size="sm" variant="ghost" onClick={() => setDecisions((current) => ({ ...current, [best.itemId]: "rejected" }))}><X className="w-3 h-3 mr-1" />Reject</Button>}</div></td></tr>; })}</tbody></table></CardContent></Card>}
     </div>
