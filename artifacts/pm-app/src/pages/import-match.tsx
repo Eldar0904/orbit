@@ -18,6 +18,15 @@ type Result = {
   product: { name: string; code: string | null; price: number | null; unit?: string | null };
 };
 
+async function readApiResponse(response: Response): Promise<Record<string, unknown>> {
+  const text = await response.text();
+  try {
+    return (JSON.parse(text) ?? {}) as Record<string, unknown>;
+  } catch {
+    throw new Error(`API returned ${response.status} ${response.statusText}. Restart or redeploy the API server.`);
+  }
+}
+
 export default function ImportMatchPage() {
   const { toast } = useToast();
   const { data: sources } = useCatalogSources();
@@ -81,8 +90,8 @@ export default function ImportMatchPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sourceIds, items: rows }),
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error ?? "Matching failed");
+      const data = await readApiResponse(response);
+      if (!response.ok) throw new Error(typeof data.error === "string" ? data.error : "Matching failed");
       setResults(data.results as Result[]);
     } catch (error) {
       toast({ variant: "destructive", title: error instanceof Error ? error.message : "Matching failed" });

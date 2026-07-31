@@ -52,4 +52,11 @@ app.use(
 
 app.use("/api", router);
 
+// Keep API failures JSON-shaped. Without this, Vercel/Express may return an
+// HTML error page and the frontend reports the misleading `Unexpected token <`.
+app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  const message = error instanceof Error ? error.message : "Internal server error";
+  res.status(500).json({ error: message });
+});
+
 export default app;
