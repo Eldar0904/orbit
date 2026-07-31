@@ -16,7 +16,7 @@ type Result = {
   rank: number;
   confidenceScore: number;
   explanation: string;
-  product: { name: string; code: string | null; price: number | null; unit?: string | null };
+  product: { name: string; code: string | null; description?: string | null; technicalSpecs?: string | null; price: number | null; unit?: string | null };
 };
 
 async function readApiResponse(response: Response): Promise<Record<string, unknown>> {
@@ -135,10 +135,17 @@ export default function ImportMatchPage() {
       const codeKey = header(["itemcode", "code", "sku", "article", "код", "артикул", "шифр"]);
       const quantityKey = header(["quantity", "qty", "amount", "количество", "кол-во", "объем"]);
       const unitKey = header(["unit", "uom", "единица", "ед.", "измерения"]);
+      const fallbackNameKey = nameKey ?? Object.keys(rows[0] ?? {}).map((key) => ({
+        key,
+        score: rows.reduce((total, row) => {
+          const value = String(row[key] ?? "").trim();
+          return total + (value.length >= 8 && !/^\d[\d\s.,-]*$/.test(value) ? value.length : 0);
+        }, 0),
+      })).sort((a, b) => b.score - a.score)[0]?.key ?? null;
       const normalizedRows = rows
         .map((row) => ({
           itemCode: codeKey ? String(row[codeKey] ?? "").trim() || null : null,
-          itemName: nameKey ? String(row[nameKey] ?? "").trim() : "",
+          itemName: fallbackNameKey ? String(row[fallbackNameKey] ?? "").trim() : "",
           quantity: quantityKey ? Number.parseFloat(String(row[quantityKey] ?? "").replace(",", ".")) || null : null,
           description: null,
           unit: unitKey ? String(row[unitKey] ?? "").trim() || null : null,
