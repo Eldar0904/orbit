@@ -37,8 +37,10 @@ app.use(
 app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 
 app.use(cors({ credentials: true, origin: true }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Spreadsheet rows are sent as JSON by the browser. Keep enough headroom for
+// realistic catalogues while still bounding request memory usage.
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // Resolve publishable key from the incoming request host
 app.use(
