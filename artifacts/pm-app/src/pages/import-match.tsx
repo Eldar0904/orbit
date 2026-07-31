@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useCatalogSources, useCreateCatalogSource } from "@/lib/kb-api";
+import { useQueryClient } from "@tanstack/react-query";
 
 type Result = {
   itemId: number;
@@ -29,6 +30,7 @@ async function readApiResponse(response: Response): Promise<Record<string, unkno
 
 export default function ImportMatchPage() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { data: sources } = useCatalogSources();
   const createSource = useCreateCatalogSource();
   const [sourceIds, setSourceIds] = useState<number[]>([]);
@@ -72,6 +74,7 @@ export default function ImportMatchPage() {
         if (!importResponse.ok) throw new Error(typeof importData.error === "string" ? importData.error : "Catalogue import failed");
         setImportProgress(Math.min(100, Math.round(((offset + items.slice(offset, offset + batchSize).length) / items.length) * 100)));
       }
+      await queryClient.invalidateQueries({ queryKey: ["kb", "sources"] });
       setSourceIds((current) => [...new Set([...current, source.id])]);
       setImportProgress(100);
       toast({ title: `Catalogue imported: ${items.length} products` });

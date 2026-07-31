@@ -72,7 +72,7 @@ export function parseSpecRows(raw: Record<string, unknown>[]): ParsedSpecRow[] {
   if (raw.length === 0) return [];
   const headers = Object.keys(raw[0]);
   const nameCol =
-    findCol(headers, "name", "item", "наименование", "название", "позиция", "item name") ?? headers[0];
+    findCol(headers, "name", "item", "goods", "required", "description", "наименование", "название", "позиция", "item name") ?? headers[0];
   const codeCol = findCol(headers, "code", "item code", "код", "артикул");
   const descCol = findCol(headers, "description", "описание");
   const qtyCol = findCol(headers, "qty", "quantity", "кол", "количество");
