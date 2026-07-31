@@ -19,12 +19,11 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ProcurementTab } from "@/components/procurement-tab";
 import { DocumentsTab } from "@/components/documents-tab";
 import { OverviewTab } from "@/components/overview-tab";
 import { TasksKanban } from "@/components/tasks-kanban";
 import { EditProjectDialog } from "@/components/edit-project-dialog";
-import { ArrowLeft, Plus, CheckCircle2, ListChecks, FileText, LayoutGrid } from "lucide-react";
+import { ArrowLeft, Plus, CheckCircle2, FileText, LayoutGrid } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -166,10 +165,6 @@ export default function ProjectDetail() {
             {t("common.documents")}
             {documents && <span className="font-mono text-xs">{documents.length}</span>}
           </TabsTrigger>
-          <TabsTrigger value="procurement" className="gap-2">
-            <ListChecks className="w-3.5 h-3.5" />
-            {t("common.sourcingOffer")}
-          </TabsTrigger>
           <TabsTrigger value="overview" className="gap-2">
             <LayoutGrid className="w-3.5 h-3.5" />
             {t("common.overview")}
@@ -209,10 +204,6 @@ export default function ProjectDetail() {
 
         <TabsContent value="documents" className="mt-4">
           <DocumentsTab projectId={projectId} />
-        </TabsContent>
-
-        <TabsContent value="procurement" className="mt-4">
-          <ProcurementTab projectId={projectId} />
         </TabsContent>
 
         <TabsContent value="overview" className="mt-4">

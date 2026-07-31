@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { useCatalogSources } from "@/lib/kb-api";
+import { useCatalogSources, useCreateCatalogSource, useImportCatalog } from "@/lib/kb-api";
 
 type Result = {
   itemId: number;
@@ -21,6 +21,9 @@ type Result = {
 export default function ImportMatchPage() {
   const { toast } = useToast();
   const { data: sources } = useCatalogSources();
+  const createSource = useCreateCatalogSource();
+  const [catalogSourceId, setCatalogSourceId] = useState<number | null>(null);
+  const importCatalog = useImportCatalog(catalogSourceId ?? 0);
   const [sourceIds, setSourceIds] = useState<number[]>([]);
   const [rows, setRows] = useState<Record<string, unknown>[]>([]);
   const [fileName, setFileName] = useState("");
@@ -28,6 +31,27 @@ export default function ImportMatchPage() {
   const [decisions, setDecisions] = useState<Record<number, "confirmed" | "rejected">>({});
   const [loading, setLoading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const catalogRef = useRef<HTMLInputElement>(null);
+
+  const uploadCatalog = async (file: File) => {
+    try {
+      const workbook = read(await file.arrayBuffer(), { type: "array" });
+      const raw = utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets[workbook.SheetNames[0]], { defval: "" });
+      const headers = raw.length ? Object.keys(raw[0]) : [];
+      const find = (...names: string[]) => headers.find((header) => names.some((name) => header.toLowerCase().includes(name))) ?? headers[0];
+      const nameKey = find("name", "item", "product", "description");
+      const codeKey = find("code", "sku", "article");
+      const priceKey = find("price", "cost");
+      const unitKey = find("unit", "uom");
+      const items = raw.map((row) => ({ name: String(row[nameKey] ?? "").trim(), code: String(row[codeKey] ?? "").trim() || null, unit: String(row[unitKey] ?? "").trim() || null, price: Number.parseFloat(String(row[priceKey] ?? "").replace(/[^\d.,]/g, "").replace(",", ".")) || null })).filter((item) => item.name);
+      if (!items.length) throw new Error("No catalogue products found in this file.");
+      const source = await createSource.mutateAsync({ name: file.name.replace(/\.[^.]+$/, "") });
+      setCatalogSourceId(source.id);
+      await importCatalog.mutateAsync(items);
+      setSourceIds((current) => [...new Set([...current, source.id])]);
+      toast({ title: `Catalogue imported: ${items.length} products` });
+    } catch (error) { toast({ variant: "destructive", title: error instanceof Error ? error.message : "Catalogue import failed" }); }
+  };
 
   const upload = async (file: File) => {
     try {
@@ -98,13 +122,17 @@ export default function ImportMatchPage() {
         <Button variant="outline" asChild><Link href="/catalogs"><ExternalLink className="w-4 h-4 mr-2" />Manage catalogs</Link></Button>
       </div>
       <Card><CardContent className="p-5 space-y-4">
+        <div className="flex items-center gap-2"><Badge>Step 1</Badge><h2 className="font-semibold">Upload catalogue</h2></div>
+        <input ref={catalogRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadCatalog(file); event.target.value = ""; }} />
+        <Button variant="outline" onClick={() => catalogRef.current?.click()} disabled={createSource.isPending || importCatalog.isPending}><Upload className="w-4 h-4 mr-2" />Upload catalogue</Button>
+        <div className="flex items-center gap-2"><Badge>Step 2</Badge><h2 className="font-semibold">Upload goods list</h2></div>
         <div className="flex gap-3 items-center flex-wrap">
           <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) void upload(file); event.target.value = ""; }} />
           <Button variant="outline" onClick={() => fileRef.current?.click()}><Upload className="w-4 h-4 mr-2" />Upload destination list</Button>
           {fileName && <Badge variant="secondary">{fileName} · {rows.length} rows</Badge>}
         </div>
         <p className="text-xs text-muted-foreground">Columns are mapped automatically. You can upload a specification, destination list, or plain item-name spreadsheet.</p>
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="flex items-center gap-2"><Badge>Step 3</Badge><h2 className="font-semibold">Select catalogue and match</h2></div><div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {(sources ?? []).map((source) => <label key={source.id} className="flex items-center gap-2 rounded border p-3 cursor-pointer">
             <Checkbox checked={sourceIds.includes(source.id)} onCheckedChange={(checked) => setSourceIds((current) => checked ? [...new Set([...current, source.id])] : current.filter((id) => id !== source.id))} />
             <span className="text-sm flex-1">{source.name}</span><span className="text-xs text-muted-foreground">{source.productCount}</span>
