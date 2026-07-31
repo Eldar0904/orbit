@@ -59,7 +59,9 @@ export default function ImportMatchPage() {
       const source = sources?.find((candidate) => candidate.name === sourceName)
         ?? await createSource.mutateAsync({ name: sourceName });
       // Keep each request below serverless proxy/body limits for large catalogues.
-      const batchSize = 250;
+      // Small batches are intentional: Vercel functions have a hard execution
+      // timeout, and Supabase connection latency can vary between invocations.
+      const batchSize = 25;
       setImportProgress(0);
       for (let offset = 0; offset < items.length; offset += batchSize) {
         const importResponse = await fetch(`/api/kb/sources/${source.id}/import`, {
@@ -70,8 +72,13 @@ export default function ImportMatchPage() {
             mode: offset === 0 ? "replace" : "upsert",
           }),
         });
-        const importData = await importResponse.json().catch(() => ({}));
-        if (!importResponse.ok) throw new Error(typeof importData.error === "string" ? importData.error : "Catalogue import failed");
+        const importText = await importResponse.text();
+        let importData: Record<string, unknown> = {};
+        try { importData = JSON.parse(importText) as Record<string, unknown>; } catch { /* Vercel may return an HTML timeout page. */ }
+        if (!importResponse.ok) {
+          const detail = typeof importData.error === "string" ? importData.error : `${importResponse.status} ${importResponse.statusText}`;
+          throw new Error(`Catalogue batch ${Math.floor(offset / batchSize) + 1} failed: ${detail}`);
+        }
         setImportProgress(Math.min(100, Math.round(((offset + items.slice(offset, offset + batchSize).length) / items.length) * 100)));
       }
       await queryClient.invalidateQueries({ queryKey: ["kb", "sources"] });
