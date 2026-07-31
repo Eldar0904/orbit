@@ -39,7 +39,7 @@ const SpecItemsBody = z.object({
       categoryCode: z.string().nullable().optional(),
       categoryName: z.string().nullable().optional(),
     }),
-  ),
+  ).optional().default([]),
   lines: z.array(z.string()).optional(),
   rows: z.array(z.record(z.string(), z.unknown())).optional(),
 });
