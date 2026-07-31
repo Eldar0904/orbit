@@ -37,6 +37,7 @@ export default function ImportMatchPage() {
   const [results, setResults] = useState<Result[]>([]);
   const [decisions, setDecisions] = useState<Record<number, "confirmed" | "rejected">>({});
   const [loading, setLoading] = useState(false);
+  const [importProgress, setImportProgress] = useState<number | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const catalogRef = useRef<HTMLInputElement>(null);
 
@@ -55,14 +56,24 @@ export default function ImportMatchPage() {
       const sourceName = file.name.replace(/\.[^.]+$/, "");
       const source = sources?.find((candidate) => candidate.name === sourceName)
         ?? await createSource.mutateAsync({ name: sourceName });
-      const importResponse = await fetch(`/api/kb/sources/${source.id}/import`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items, mode: "replace" }),
-      });
-      const importData = await importResponse.json().catch(() => ({}));
-      if (!importResponse.ok) throw new Error(importData.error ?? "Catalogue import failed");
+      // Keep each request below serverless proxy/body limits for large catalogues.
+      const batchSize = 250;
+      setImportProgress(0);
+      for (let offset = 0; offset < items.length; offset += batchSize) {
+        const importResponse = await fetch(`/api/kb/sources/${source.id}/import`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            items: items.slice(offset, offset + batchSize),
+            mode: offset === 0 ? "replace" : "upsert",
+          }),
+        });
+        const importData = await importResponse.json().catch(() => ({}));
+        if (!importResponse.ok) throw new Error(typeof importData.error === "string" ? importData.error : "Catalogue import failed");
+        setImportProgress(Math.min(100, Math.round(((offset + items.slice(offset, offset + batchSize).length) / items.length) * 100)));
+      }
       setSourceIds((current) => [...new Set([...current, source.id])]);
+      setImportProgress(100);
       toast({ title: `Catalogue imported: ${items.length} products` });
     } catch (error) {
       // Never leave a failed upload paired with an older/partial catalogue.
@@ -71,6 +82,7 @@ export default function ImportMatchPage() {
       setSourceIds([]);
       setResults([]);
       setDecisions({});
+      setImportProgress(null);
       toast({ variant: "destructive", title: error instanceof Error ? error.message : "Catalogue import failed" });
     }
   };
@@ -146,7 +158,8 @@ export default function ImportMatchPage() {
       <Card><CardContent className="p-5 space-y-4">
         <div className="flex items-center gap-2"><Badge>Step 1</Badge><h2 className="font-semibold">Upload catalogue</h2></div>
         <input ref={catalogRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadCatalog(file); event.target.value = ""; }} />
-        <Button variant="outline" onClick={() => catalogRef.current?.click()} disabled={createSource.isPending}><Upload className="w-4 h-4 mr-2" />Upload catalogue</Button>
+        <Button variant="outline" onClick={() => catalogRef.current?.click()} disabled={createSource.isPending || importProgress !== null && importProgress < 100}><Upload className="w-4 h-4 mr-2" />Upload catalogue</Button>
+        {importProgress !== null && <div className="w-full max-w-md space-y-1"><div className="flex justify-between text-xs text-muted-foreground"><span>{importProgress < 100 ? "Importing catalogue…" : "Catalogue import complete"}</span><span>{importProgress}%</span></div><div className="h-2 overflow-hidden rounded-full bg-muted"><div className="h-full bg-primary transition-all" style={{ width: `${importProgress}%` }} /></div></div>}
         <div className="flex items-center gap-2"><Badge>Step 2</Badge><h2 className="font-semibold">Upload goods list</h2></div>
         <div className="flex gap-3 items-center flex-wrap">
           <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) void upload(file); event.target.value = ""; }} />
