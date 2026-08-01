@@ -112,7 +112,7 @@ export default function ImportMatchPage() {
       setFileName(file.name);
       setResults([]);
       setDecisions({});
-      const normalized = importedRows.map((row) => ({ itemName: String(row[Object.keys(row).find((key) => /goods|required|name|item|description|наименование|товар|позиция/i.test(key)) ?? ""] ?? "").trim() })).filter((item) => item.itemName);
+      const normalized = importedRows.map((row) => ({ itemName: String(row[Object.keys(row).find((key) => /goods|required|name|item|product|наименование|название|товар|товары|позиция|описание|номенклатура|продукт|продукция|материал|оборудование|мебель|предмет|изделие|перечень/i.test(key)) ?? Object.keys(row).find((key) => { const vals = importedRows.slice(0, 10).map((r) => String(r[key] ?? "").trim()); return vals.filter((v) => v.length >= 6 && !/^\d[\d\s.,-]*$/.test(v)).length >= 5; }) ?? ""] ?? "").trim() })).filter((item) => item.itemName);
       if (normalized.length) await saveList.mutateAsync({ name: file.name.replace(/\.[^.]+$/, ""), sourceFilename: file.name, items: normalized });
       setMatchProgress(null);
     } catch (error) {
@@ -131,7 +131,7 @@ export default function ImportMatchPage() {
         const keys = rows.length ? Object.keys(rows[0]) : [];
         return keys.find((key) => names.some((name) => key.toLowerCase().includes(name))) ?? null;
       };
-      const nameKey = header(["itemname", "goods", "required", "description", "name", "item", "наименование", "название", "товар", "позиция", "описание", "наименование товара", "потребность"]);
+      const nameKey = header(["itemname", "goods", "required", "name", "item", "product", "наименование", "название", "товар", "товары", "позиция", "описание", "наименование товара", "потребность", "номенклатура", "продукт", "продукция", "материал", "оборудование", "мебель", "предмет", "изделие", "перечень"]);
       const codeKey = header(["itemcode", "code", "sku", "article", "код", "артикул", "шифр"]);
       const quantityKey = header(["quantity", "qty", "amount", "количество", "кол-во", "объем"]);
       const unitKey = header(["unit", "uom", "единица", "ед.", "измерения"]);
