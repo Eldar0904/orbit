@@ -255,10 +255,10 @@ export default function ImportMatchPage() {
     }
     setLoading(true);
     setResults([]);
+    setMatchProgress(0);
     try {
       const batchSize = 25;
       const allResults: MatchCandidate[] = [];
-      setMatchProgress(0);
 
       for (let offset = 0; offset < goodsItems.length; offset += batchSize) {
         const batch = goodsItems.slice(offset, offset + batchSize);
@@ -268,7 +268,11 @@ export default function ImportMatchPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ sourceIds: [sourceId], items: rows }),
         });
-        if (!resp.ok) throw new Error(`Match failed: ${resp.statusText}`);
+        if (!resp.ok) {
+          let errMsg = resp.statusText || "Unknown error";
+          try { const errBody = await resp.json(); errMsg = errBody.error || errMsg; } catch {}
+          throw new Error(`Ошибка подбора: ${errMsg}`);
+        }
         const data = await resp.json();
         if (data.results) allResults.push(...data.results);
         setMatchProgress(Math.round(((offset + batch.length) / goodsItems.length) * 100));
@@ -277,6 +281,7 @@ export default function ImportMatchPage() {
       setMatchProgress(100);
       toast({ title: `Подбор завершён: ${allResults.length} совпадений` });
     } catch (error) {
+      setMatchProgress(null);
       toast({ variant: "destructive", title: error instanceof Error ? error.message : "Matching failed" });
     } finally {
       setLoading(false);
@@ -534,7 +539,7 @@ export default function ImportMatchPage() {
             </div>
           )}
 
-          {matchProgress !== null && matchProgress < 100 && (
+          {matchProgress !== null && matchProgress >= 0 && matchProgress < 100 && (
             <div className="mt-3">
               <div className="flex items-center gap-2 text-sm text-blue-700">
                 <div className="w-full bg-blue-200 rounded-full h-2">
