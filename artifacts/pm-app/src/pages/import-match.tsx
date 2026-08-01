@@ -1,197 +1,281 @@
-import { useRef, useState } from "react";
-import { Download, ExternalLink, Play, RefreshCw, Upload, X, Check, Trash2 } from "lucide-react";
+import { useRef, useState, useMemo } from "react";
+import { Download, Play, Upload, X, Check, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { read, utils, write } from "xlsx";
-import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { useCatalogSources, useCreateCatalogSource, useRemoveCatalogSource, useStandaloneLists, useSaveStandaloneList, getStandaloneListItems } from "@/lib/kb-api";
+import { useCatalogSources, useCreateCatalogSource, useRemoveCatalogSource } from "@/lib/kb-api";
 import { useQueryClient } from "@tanstack/react-query";
 
-type Result = {
+// ─── Types ──────────────────────────────────────────────────────────────────
+
+type GoodsPreview = {
+  headers: string[];
+  detectedNameCol: string;
+  sampleRows: Record<string, unknown>[];
+  allRows: Record<string, unknown>[];
+  fileName: string;
+};
+
+type CatalogProduct = {
+  id: number;
+  name: string;
+  code: string | null;
+  description: string | null;
+  technicalSpecs: string | null;
+  unit: string | null;
+  price: number | null;
+};
+
+type MatchCandidate = {
   itemId: number;
   itemName: string;
   rank: number;
   confidenceScore: number;
   explanation: string;
-  product: { name: string; code: string | null; description?: string | null; technicalSpecs?: string | null; price: number | null; unit?: string | null };
+  product: CatalogProduct;
 };
 
-async function readApiResponse(response: Response): Promise<Record<string, unknown>> {
-  const text = await response.text();
-  try {
-    return (JSON.parse(text) ?? {}) as Record<string, unknown>;
-  } catch {
-    throw new Error(`API returned ${response.status} ${response.statusText}. Restart or redeploy the API server.`);
+// ─── Smart column heuristic ─────────────────────────────────────────────────
+
+function detectNameColumn(rows: Record<string, unknown>[]): string | null {
+  if (!rows.length) return null;
+  const keys = Object.keys(rows[0]);
+
+  // Try known headers first
+  const knownPatterns = /^(наименование|название|товар|товары|позиция|номенклатура|продукт|продукция|материал|оборудование|мебель|предмет|изделие|name|item|product|goods)/i;
+  const found = keys.find((k) => knownPatterns.test(k.trim()));
+  if (found) return found;
+
+  // Fallback: score columns by content
+  const sample = rows.slice(0, 50);
+  let bestKey = keys[0];
+  let bestScore = -1;
+  for (const key of keys) {
+    let score = 0;
+    for (const row of sample) {
+      const val = String(row[key] ?? "").trim();
+      if (!val || val.length < 4) continue;
+      if (/^\d[\d\s.,\-/]*$/.test(val)) continue;
+      const len = val.length;
+      const lenScore = len >= 6 && len <= 150 ? len : len > 150 ? 40 : 0;
+      const hasCyrillic = /[\u0400-\u04FF]/.test(val) ? 1.3 : 1.0;
+      score += lenScore * hasCyrillic;
+    }
+    const uniqueRatio = new Set(sample.map((r) => String(r[key] ?? "").trim())).size / Math.max(sample.length, 1);
+    score *= Math.min(uniqueRatio * 1.5, 1.0);
+    if (score > bestScore) { bestScore = score; bestKey = key; }
   }
+  return bestKey;
 }
+
+// ─── Page ───────────────────────────────────────────────────────────────────
+
+const PAGE_SIZE = 20;
 
 export default function ImportMatchPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { data: sources } = useCatalogSources();
-  const { data: savedLists } = useStandaloneLists();
-  const saveList = useSaveStandaloneList();
   const createSource = useCreateCatalogSource();
-  const removeSource = useRemoveCatalogSource();
-  const [sourceIds, setSourceIds] = useState<number[]>([]);
-  const [rows, setRows] = useState<Record<string, unknown>[]>([]);
-  const [fileName, setFileName] = useState("");
-  const [results, setResults] = useState<Result[]>([]);
+
+  // Catalogue state
+  const [catalogProducts, setCatalogProducts] = useState<CatalogProduct[]>([]);
+  const [catalogName, setCatalogName] = useState("");
+  const [catalogSearch, setCatalogSearch] = useState("");
+  const [catalogPage, setCatalogPage] = useState(0);
+  const [sourceId, setSourceId] = useState<number | null>(null);
+  const [importProgress, setImportProgress] = useState<number | null>(null);
+
+  // Goods list state
+  const [goodsItems, setGoodsItems] = useState<{ itemName: string; itemCode: string | null }[]>([]);
+  const [goodsFileName, setGoodsFileName] = useState("");
+  const [goodsPreview, setGoodsPreview] = useState<GoodsPreview | null>(null);
+  const [selectedNameCol, setSelectedNameCol] = useState<string>("");
+
+  // Match results
+  const [results, setResults] = useState<MatchCandidate[]>([]);
   const [decisions, setDecisions] = useState<Record<number, "confirmed" | "rejected">>({});
   const [loading, setLoading] = useState(false);
-  const [importProgress, setImportProgress] = useState<number | null>(null);
   const [matchProgress, setMatchProgress] = useState<number | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [selectedListId, setSelectedListId] = useState<number | null>(null);
+
+  // Refs
   const catalogRef = useRef<HTMLInputElement>(null);
+  const goodsRef = useRef<HTMLInputElement>(null);
+
+  // ─── Filtered catalogue ─────────────────────────────────────────────────
+
+  const filteredCatalog = useMemo(() => {
+    if (!catalogSearch.trim()) return catalogProducts;
+    const q = catalogSearch.toLowerCase();
+    return catalogProducts.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        (p.code ?? "").toLowerCase().includes(q) ||
+        (p.description ?? "").toLowerCase().includes(q),
+    );
+  }, [catalogProducts, catalogSearch]);
+
+  const totalPages = Math.ceil(filteredCatalog.length / PAGE_SIZE);
+  const pagedCatalog = filteredCatalog.slice(catalogPage * PAGE_SIZE, (catalogPage + 1) * PAGE_SIZE);
+
+  // ─── Upload catalogue ───────────────────────────────────────────────────
 
   const uploadCatalog = async (file: File) => {
     try {
       const workbook = read(await file.arrayBuffer(), { type: "array" });
       const raw = utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets[workbook.SheetNames[0]], { defval: "" });
-      const headers = raw.length ? Object.keys(raw[0]) : [];
-      const find = (...names: string[]) => headers.find((header) => names.some((name) => header.toLowerCase().includes(name))) ?? headers[0];
-      const nameKey = find("name", "item", "product", "description");
-      const codeKey = find("code", "sku", "article");
-      const priceKey = find("price", "cost");
-      const unitKey = find("unit", "uom");
-      const items = raw.map((row) => ({ name: String(row[nameKey] ?? "").trim(), code: String(row[codeKey] ?? "").trim() || null, unit: String(row[unitKey] ?? "").trim() || null, price: Number.parseFloat(String(row[priceKey] ?? "").replace(/[^\d.,]/g, "").replace(",", ".")) || null })).filter((item) => item.name);
-      if (!items.length) throw new Error("No catalogue products found in this file.");
+      if (!raw.length) throw new Error("Empty file");
+
+      const headers = Object.keys(raw[0]);
+      const find = (...names: string[]) => headers.find((h) => names.some((n) => h.toLowerCase().includes(n.toLowerCase())));
+
+      const nameKey = find("наименование", "название", "name", "item", "product", "товар") ?? headers[1] ?? headers[0];
+      const codeKey = find("код", "code", "артикул", "sku", "шифр");
+      const descKey = find("описание", "description", "характеристик", "specification", "техн");
+      const unitKey = find("единица", "unit", "ед.", "uom");
+      const priceKey = find("сметная", "цена", "price", "cost", "стоимость");
+
+      const items = raw.map((row, idx) => ({
+        id: idx + 1,
+        name: String(row[nameKey] ?? "").trim(),
+        code: codeKey ? String(row[codeKey] ?? "").trim() || null : null,
+        description: descKey ? String(row[descKey] ?? "").trim() || null : null,
+        technicalSpecs: null as string | null,
+        unit: unitKey ? String(row[unitKey] ?? "").trim() || null : null,
+        price: priceKey ? Number.parseFloat(String(row[priceKey] ?? "").replace(/[^\d.,]/g, "").replace(",", ".")) || null : null,
+      })).filter((item) => item.name);
+
+      if (!items.length) throw new Error("No products found in this file.");
+
+      setCatalogProducts(items);
+      setCatalogName(file.name.replace(/\.[^.]+$/, ""));
+      setCatalogPage(0);
+      setCatalogSearch("");
+
+      // Also persist to backend for matching
       const sourceName = file.name.replace(/\.[^.]+$/, "");
-      const source = sources?.find((candidate) => candidate.name === sourceName)
+      const source = sources?.find((s) => s.name === sourceName)
         ?? await createSource.mutateAsync({ name: sourceName });
-      // Keep each request below serverless proxy/body limits for large catalogues.
-      // Small batches are intentional: Vercel functions have a hard execution
-      // timeout, and Supabase connection latency can vary between invocations.
-      const batchSize = 25;
+      setSourceId(source.id);
+
+      const batchSize = 50;
       setImportProgress(0);
       for (let offset = 0; offset < items.length; offset += batchSize) {
-        const importResponse = await fetch(`/api/kb/sources/${source.id}/import`, {
+        const batch = items.slice(offset, offset + batchSize).map((item) => ({
+          name: item.name,
+          code: item.code,
+          description: item.description,
+          unit: item.unit,
+          price: item.price,
+        }));
+        const resp = await fetch(`/api/kb/sources/${source.id}/import`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            items: items.slice(offset, offset + batchSize),
-            mode: offset === 0 ? "replace" : "upsert",
-          }),
+          body: JSON.stringify({ items: batch, mode: offset === 0 ? "replace" : "upsert" }),
         });
-        const importText = await importResponse.text();
-        let importData: Record<string, unknown> = {};
-        try { importData = JSON.parse(importText) as Record<string, unknown>; } catch { /* Vercel may return an HTML timeout page. */ }
-        if (!importResponse.ok) {
-          const detail = typeof importData.error === "string" ? importData.error : `${importResponse.status} ${importResponse.statusText}`;
-          throw new Error(`Catalogue batch ${Math.floor(offset / batchSize) + 1} failed: ${detail}`);
+        if (!resp.ok) {
+          const err = await resp.text();
+          throw new Error(`Import batch failed: ${err}`);
         }
-        setImportProgress(Math.min(100, Math.round(((offset + items.slice(offset, offset + batchSize).length) / items.length) * 100)));
+        setImportProgress(Math.round(((offset + batch.length) / items.length) * 100));
       }
-      await queryClient.invalidateQueries({ queryKey: ["kb", "sources"] });
-      setSourceIds((current) => [...new Set([...current, source.id])]);
       setImportProgress(100);
-      toast({ title: `Catalogue imported: ${items.length} products` });
+      await queryClient.invalidateQueries({ queryKey: ["kb", "sources"] });
+      toast({ title: `Каталог загружен: ${items.length} позиций` });
     } catch (error) {
-      // Never leave a failed upload paired with an older/partial catalogue.
-      setRows([]);
-      setFileName("");
-      setSourceIds([]);
-      setResults([]);
-      setDecisions({});
-      setMatchProgress(null);
-      setImportProgress(null);
-      toast({ variant: "destructive", title: error instanceof Error ? error.message : "Catalogue import failed" });
+      toast({ variant: "destructive", title: error instanceof Error ? error.message : "Import failed" });
     }
   };
 
-  const upload = async (file: File) => {
-    try {
-      const workbook = read(await file.arrayBuffer(), { type: "array" });
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const importedRows = utils.sheet_to_json(sheet, { defval: "" }) as Record<string, unknown>[];
-      setRows(importedRows);
-      setFileName(file.name);
-      setResults([]);
-      setDecisions({});
-      const normalized = importedRows.map((row) => ({ itemName: String(row[Object.keys(row).find((key) => /goods|required|name|item|product|наименование|название|товар|товары|позиция|описание|номенклатура|продукт|продукция|материал|оборудование|мебель|предмет|изделие|перечень/i.test(key)) ?? Object.keys(row).find((key) => { const vals = importedRows.slice(0, 10).map((r) => String(r[key] ?? "").trim()); return vals.filter((v) => v.length >= 6 && !/^\d[\d\s.,-]*$/.test(v)).length >= 5; }) ?? ""] ?? "").trim() })).filter((item) => item.itemName);
-      if (normalized.length) await saveList.mutateAsync({ name: file.name.replace(/\.[^.]+$/, ""), sourceFilename: file.name, items: normalized });
-      setMatchProgress(null);
-    } catch (error) {
-      toast({ variant: "destructive", title: error instanceof Error ? error.message : "Could not read file" });
-    }
+  // ─── Upload goods list ──────────────────────────────────────────────────
+
+  const uploadGoodsList = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const workbook = read(e.target?.result, { type: "array" });
+        const raw = utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets[workbook.SheetNames[0]], { defval: "" });
+        if (!raw.length) throw new Error("Empty file");
+
+        const headers = Object.keys(raw[0]);
+        const detectedNameCol = detectNameColumn(raw) ?? headers[0];
+
+        // Show preview for column confirmation
+        setGoodsPreview({
+          headers,
+          detectedNameCol,
+          sampleRows: raw.slice(0, 5),
+          allRows: raw,
+          fileName: file.name,
+        });
+        setSelectedNameCol(detectedNameCol);
+      } catch (error) {
+        toast({ variant: "destructive", title: error instanceof Error ? error.message : "Cannot read file" });
+      }
+    };
+    reader.readAsArrayBuffer(file);
   };
 
-  const run = async () => {
-    if (!rows.length || !sourceIds.length) {
-      toast({ variant: "destructive", title: "Upload a destination list and select at least one catalog." });
+  // ─── Confirm column selection ───────────────────────────────────────────
+
+  const confirmColumnSelection = () => {
+    if (!goodsPreview || !selectedNameCol) return;
+    const { allRows, fileName } = goodsPreview;
+    const codeKey = goodsPreview.headers.find((h) => /код|code|артикул|sku|шифр/i.test(h));
+
+    const items = allRows
+      .map((row) => ({
+        itemName: String(row[selectedNameCol] ?? "").trim(),
+        itemCode: codeKey ? String(row[codeKey] ?? "").trim() || null : null,
+      }))
+      .filter((item) => item.itemName.length >= 3);
+
+    if (!items.length) {
+      toast({ variant: "destructive", title: "Нет данных в выбранной колонке" });
+      return;
+    }
+
+    setGoodsItems(items);
+    setGoodsFileName(fileName);
+    setGoodsPreview(null);
+    setResults([]);
+    setDecisions({});
+    toast({ title: `Список загружен: ${items.length} позиций` });
+  };
+
+  // ─── Run matching ───────────────────────────────────────────────────────
+
+  const runMatching = async () => {
+    if (!goodsItems.length || !sourceId) {
+      toast({ variant: "destructive", title: "Загрузите каталог и список товаров" });
       return;
     }
     setLoading(true);
+    setResults([]);
     try {
-      const header = (names: string[]) => {
-        const keys = rows.length ? Object.keys(rows[0]) : [];
-        return keys.find((key) => names.some((name) => key.toLowerCase().includes(name))) ?? null;
-      };
-      const nameKey = header(["itemname", "goods", "required", "name", "item", "product", "наименование", "название", "товар", "товары", "позиция", "описание", "наименование товара", "потребность", "номенклатура", "продукт", "продукция", "материал", "оборудование", "мебель", "предмет", "изделие", "перечень"]);
-      const codeKey = header(["itemcode", "code", "sku", "article", "код", "артикул", "шифр"]);
-      const quantityKey = header(["quantity", "qty", "amount", "количество", "кол-во", "объем"]);
-      const unitKey = header(["unit", "uom", "единица", "ед.", "измерения"]);
-      // Smart heuristic: score each column to find the one most likely containing
-      // product names. Works regardless of header language.
-      const fallbackNameKey = nameKey ?? (() => {
-        const keys = Object.keys(rows[0] ?? {});
-        const sample = rows.slice(0, 50); // sample first 50 rows
-        const scored = keys.map((key) => {
-          let score = 0;
-          for (const row of sample) {
-            const val = String(row[key] ?? "").trim();
-            if (!val) continue;
-            // Skip pure numbers, dates, short codes
-            if (/^\d[\d\s.,\-/]*$/.test(val)) continue;
-            if (val.length < 4) continue;
-            // Penalize very long values (likely descriptions/addresses, not names)
-            const len = val.length;
-            const lenScore = len >= 6 && len <= 150 ? len : len > 150 ? 40 : 0;
-            // Bonus: contains Cyrillic (likely product text)
-            const hasCyrillic = /[\u0400-\u04FF]/.test(val) ? 1.3 : 1.0;
-            // Bonus: looks like a product name (contains typical words)
-            const hasProductWord = /стол|стул|шкаф|доск|полк|парт|ламп|стенд|оборуд|набор|комплект|панел|кресл|table|chair|shelf|desk|lamp/i.test(val) ? 1.5 : 1.0;
-            // Penalty: looks like a unit or code column (most vals are very short)
-            score += lenScore * hasCyrillic * hasProductWord;
-          }
-          // Penalty: if >70% of values are identical, it's probably a category, not names
-          const uniqueRatio = new Set(sample.map((r) => String(r[key] ?? "").trim())).size / sample.length;
-          return { key, score: score * Math.min(uniqueRatio * 1.5, 1.0) };
-        });
-        return scored.sort((a, b) => b.score - a.score)[0]?.key ?? null;
-      })();
-      const normalizedRows = rows
-        .map((row) => ({
-          itemCode: codeKey ? String(row[codeKey] ?? "").trim() || null : null,
-          itemName: fallbackNameKey ? String(row[fallbackNameKey] ?? "").trim() : "",
-          quantity: quantityKey ? Number.parseFloat(String(row[quantityKey] ?? "").replace(",", ".")) || null : null,
-          description: null,
-          unit: unitKey ? String(row[unitKey] ?? "").trim() || null : null,
-        }))
-        .filter((row) => row.itemName);
-      if (!normalizedRows.length) throw new Error("No goods names found. Use a column such as Goods required or Item name.");
       const batchSize = 25;
-      const allResults: Result[] = [];
+      const allResults: MatchCandidate[] = [];
       setMatchProgress(0);
-      for (let offset = 0; offset < normalizedRows.length; offset += batchSize) {
-        const response = await fetch("/api/standalone-match", {
+
+      for (let offset = 0; offset < goodsItems.length; offset += batchSize) {
+        const batch = goodsItems.slice(offset, offset + batchSize);
+        const rows = batch.map((item) => ({ "itemName": item.itemName, "itemCode": item.itemCode }));
+        const resp = await fetch("/api/standalone-match", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sourceIds, items: normalizedRows.slice(offset, offset + batchSize) }),
+          body: JSON.stringify({ sourceIds: [sourceId], items: rows }),
         });
-        const data = await readApiResponse(response);
-        if (!response.ok) throw new Error(typeof data.error === "string" ? data.error : `Matching batch ${Math.floor(offset / batchSize) + 1} failed`);
-        if (Array.isArray(data.results)) allResults.push(...(data.results as Result[]));
-        setMatchProgress(Math.min(100, Math.round(((offset + normalizedRows.slice(offset, offset + batchSize).length) / normalizedRows.length) * 100)));
+        if (!resp.ok) throw new Error(`Match failed: ${resp.statusText}`);
+        const data = await resp.json();
+        if (data.results) allResults.push(...data.results);
+        setMatchProgress(Math.round(((offset + batch.length) / goodsItems.length) * 100));
       }
       setResults(allResults);
-      if (allResults.length === 0) {
-        throw new Error("No candidates returned. Confirm the selected catalogue contains active products.");
-      }
+      setMatchProgress(100);
+      toast({ title: `Подбор завершён: ${allResults.length} совпадений` });
     } catch (error) {
       toast({ variant: "destructive", title: error instanceof Error ? error.message : "Matching failed" });
     } finally {
@@ -199,62 +283,368 @@ export default function ImportMatchPage() {
     }
   };
 
-  const exportReview = () => {
-    const sheet = utils.json_to_sheet(results.filter((result) => decisions[result.itemId] !== "rejected").map((result) => ({
-      "Destination item": result.itemName,
-      "Catalog product": result.product.name,
-      Code: result.product.code ?? "",
-      Confidence: Math.round(result.confidenceScore * 100) / 100,
-      Status: decisions[result.itemId] ?? "pending",
-      Explanation: result.explanation,
-      Price: result.product.price ?? "",
-      Unit: result.product.unit ?? "",
-    })));
+  // ─── Export ─────────────────────────────────────────────────────────────
+
+  const exportResults = () => {
+    const exportRows = results
+      .filter((r) => decisions[r.itemId] !== "rejected")
+      .map((r) => ({
+        "Позиция из списка": r.itemName,
+        "Ранг": r.rank,
+        "Совпадение %": Math.round(r.confidenceScore * 100),
+        "Код (Казниса)": r.product.code ?? "",
+        "Наименование (каталог)": r.product.name,
+        "Тех. описание": r.product.technicalSpecs ?? r.product.description ?? "",
+        "Цена, тенге": r.product.price ?? "",
+        "Ед. изм.": r.product.unit ?? "",
+        "Статус": decisions[r.itemId] ?? "pending",
+      }));
+    const sheet = utils.json_to_sheet(exportRows);
     const workbook = utils.book_new();
-    utils.book_append_sheet(workbook, sheet, "Reviewed matches");
-    const bytes = write(workbook, { type: "array", bookType: "xlsx" });
-    const url = URL.createObjectURL(new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = "goodsprogram-matches.xlsx";
-    anchor.click();
+    utils.book_append_sheet(workbook, sheet, "Подбор товаров");
+    const buf = write(workbook, { type: "array", bookType: "xlsx" });
+    const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `подбор_${goodsFileName.replace(/\.[^.]+$/, "")}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    a.click();
     URL.revokeObjectURL(url);
   };
 
-  const grouped = Array.from(new Map(results.map((result) => [result.itemId, result])).values());
+  // ─── Grouped results ────────────────────────────────────────────────────
+
+  const grouped = useMemo(() => {
+    const map = new Map<number, MatchCandidate[]>();
+    for (const r of results) {
+      if (!map.has(r.itemId)) map.set(r.itemId, []);
+      map.get(r.itemId)!.push(r);
+    }
+    return Array.from(map.entries()).map(([itemId, candidates]) => ({
+      itemId,
+      itemName: candidates[0].itemName,
+      candidates: candidates.sort((a, b) => a.rank - b.rank),
+    }));
+  }, [results]);
+
+  // ─── Render ─────────────────────────────────────────────────────────────
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Import &amp; Match</h1>
-          <p className="text-muted-foreground mt-2">GoodsProgram workspace for destination lists, catalog matching, review, and export—independent of projects.</p>
-        </div>
-        <Button variant="outline" asChild><Link href="/catalogs"><ExternalLink className="w-4 h-4 mr-2" />Manage catalogs</Link></Button>
-      </div>
-      <Card><CardContent className="p-5 space-y-4">
-        <div className="flex items-center gap-2"><Badge>Step 1</Badge><h2 className="font-semibold">Upload catalogue</h2></div>
-        <input ref={catalogRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadCatalog(file); event.target.value = ""; }} />
-        <Button variant="outline" onClick={() => catalogRef.current?.click()} disabled={createSource.isPending || importProgress !== null && importProgress < 100}><Upload className="w-4 h-4 mr-2" />Upload catalogue</Button>
-        {importProgress !== null && <div className="w-full max-w-md space-y-1"><div className="flex justify-between text-xs text-muted-foreground"><span>{importProgress < 100 ? "Importing catalogue…" : "Catalogue import complete"}</span><span>{importProgress}%</span></div><div className="h-2 overflow-hidden rounded-full bg-muted"><div className="h-full bg-primary transition-all" style={{ width: `${importProgress}%` }} /></div></div>}
-        <div className="flex items-center gap-2"><Badge>Step 2</Badge><h2 className="font-semibold">Upload goods list</h2></div>
-        {(savedLists ?? []).length > 0 && <select className="h-9 rounded-md border bg-background px-3 text-sm" value={selectedListId ?? ""} onChange={async (event) => { const id = Number(event.target.value); setSelectedListId(id || null); if (id) { const items = await getStandaloneListItems(id); setRows(items); setFileName(savedLists?.find((list) => list.id === id)?.sourceFilename ?? "Saved goods list"); } }}><option value="">Choose a saved goods list</option>{savedLists?.map((list) => <option key={list.id} value={list.id}>{list.name} ({list.itemCount})</option>)}</select>}
-        <div className="flex gap-3 items-center flex-wrap">
-          <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) void upload(file); event.target.value = ""; }} />
-          <Button variant="outline" onClick={() => fileRef.current?.click()}><Upload className="w-4 h-4 mr-2" />Upload destination list</Button>
-          {fileName && <Badge variant="secondary">{fileName} · {rows.length} rows</Badge>}
-        </div>
-        <p className="text-xs text-muted-foreground">Columns are mapped automatically. You can upload a specification, destination list, or plain item-name spreadsheet.</p>
-        <div className="flex items-center gap-2"><Badge>Step 3</Badge><h2 className="font-semibold">Select catalogue and match</h2></div><div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {(sources ?? []).map((source) => <label key={source.id} className="flex items-center gap-2 rounded border p-3 cursor-pointer">
-            <Checkbox checked={sourceIds.includes(source.id)} onCheckedChange={(checked) => setSourceIds((current) => checked ? [...new Set([...current, source.id])] : current.filter((id) => id !== source.id))} />
-            <span className="text-sm flex-1">{source.name}</span><span className="text-xs text-muted-foreground">{source.productCount}</span><Button type="button" size="icon" variant="ghost" className="h-7 w-7 text-destructive" title="Remove catalogue" onClick={(event) => { event.preventDefault(); event.stopPropagation(); if (window.confirm(`Remove catalogue ${source.name}?`)) removeSource.mutate(source.id); }}><Trash2 className="w-3.5 h-3.5" /></Button>
-          </label>)}
-        </div>
-        <Button onClick={run} disabled={loading || !rows.length}><Play className="w-4 h-4 mr-2" />{loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : "Run matching"}</Button>
-        {matchProgress !== null && <div className="w-full max-w-md space-y-1"><div className="flex justify-between text-xs text-muted-foreground"><span>{matchProgress < 100 ? "Matching goods…" : "Matching complete"}</span><span>{matchProgress}%</span></div><div className="h-2 overflow-hidden rounded-full bg-muted"><div className="h-full bg-primary transition-all" style={{ width: `${matchProgress}%` }} /></div></div>}
-      </CardContent></Card>
-      {grouped.length > 0 && <Card><CardContent className="p-0 overflow-x-auto"><div className="p-4 border-b flex items-center justify-between"><div><h2 className="font-semibold">Review candidates</h2><p className="text-xs text-muted-foreground">Top-three candidates are shown for every destination item.</p></div><Button size="sm" variant="outline" onClick={exportReview}><Download className="w-4 h-4 mr-2" />Export XLSX</Button></div><table className="w-full text-sm"><thead><tr className="border-b bg-muted/30"><th className="p-3 text-left">Destination item</th><th className="p-3 text-left">Candidates</th><th className="p-3">Review</th></tr></thead><tbody className="divide-y">{grouped.map((best) => { const candidates = results.filter((result) => result.itemId === best.itemId).sort((a, b) => a.rank - b.rank); return <tr key={best.itemId} className="align-top"><td className="p-3 font-medium max-w-xs">{best.itemName}</td><td className="p-3 space-y-2">{candidates.map((candidate) => <div key={candidate.rank} className="flex gap-2 items-start"><Badge variant={candidate.rank === 1 ? "default" : "outline"}>{candidate.rank}</Badge><div><p>{candidate.product.name} <span className="text-xs text-muted-foreground">{Math.round(candidate.confidenceScore * 100)}%</span></p><p className="text-xs text-muted-foreground">{candidate.explanation}</p></div></div>)}</td><td className="p-3"><div className="flex gap-1">{decisions[best.itemId] === "confirmed" ? <Badge className="bg-emerald-600"><Check className="w-3 h-3 mr-1" />Confirmed</Badge> : <Button size="sm" variant="outline" onClick={() => setDecisions((current) => ({ ...current, [best.itemId]: "confirmed" }))}><Check className="w-3 h-3 mr-1" />Confirm</Button>}{decisions[best.itemId] === "rejected" ? <Badge variant="destructive"><X className="w-3 h-3 mr-1" />Rejected</Badge> : <Button size="sm" variant="ghost" onClick={() => setDecisions((current) => ({ ...current, [best.itemId]: "rejected" }))}><X className="w-3 h-3 mr-1" />Reject</Button>}</div></td></tr>; })}</tbody></table></CardContent></Card>}
+    <div className="space-y-6 p-6 max-w-7xl mx-auto">
+      <h1 className="text-2xl font-bold">Подбор товаров</h1>
+
+      {/* ── SECTION 1: Catalogue ─────────────────────────────────────────── */}
+      <Card>
+        <CardContent className="p-0">
+          <div className="p-4 border-b flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <h2 className="font-semibold text-lg">
+                {catalogName ? `📚 ${catalogName}` : "📚 Каталог КазНИИСА"}
+              </h2>
+              {catalogProducts.length > 0 && (
+                <Badge variant="secondary">{catalogProducts.length} позиций</Badge>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {catalogProducts.length > 0 && (
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Поиск по каталогу..."
+                    className="pl-9 w-64"
+                    value={catalogSearch}
+                    onChange={(e) => { setCatalogSearch(e.target.value); setCatalogPage(0); }}
+                  />
+                </div>
+              )}
+              <Button size="sm" onClick={() => catalogRef.current?.click()}>
+                <Upload className="w-4 h-4 mr-2" />
+                {catalogProducts.length ? "Заменить" : "Загрузить каталог"}
+              </Button>
+              <input ref={catalogRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => { if (e.target.files?.[0]) uploadCatalog(e.target.files[0]); e.target.value = ""; }} />
+            </div>
+          </div>
+
+          {importProgress !== null && importProgress < 100 && (
+            <div className="px-4 py-2 bg-blue-50 border-b">
+              <div className="flex items-center gap-2 text-sm text-blue-700">
+                <div className="w-full bg-blue-200 rounded-full h-2">
+                  <div className="bg-blue-600 h-2 rounded-full transition-all" style={{ width: `${importProgress}%` }} />
+                </div>
+                <span className="shrink-0">{importProgress}%</span>
+              </div>
+            </div>
+          )}
+
+          {catalogProducts.length === 0 ? (
+            <div className="p-12 text-center text-muted-foreground">
+              <p className="text-lg mb-2">Загрузите каталог КазНИИСА (.xlsx)</p>
+              <p className="text-sm">Файл с колонками: Код, Наименование, Описание, Единица, Цена</p>
+            </div>
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-muted/30">
+                      <th className="p-3 text-left w-40 font-medium">Код</th>
+                      <th className="p-3 text-left font-medium">Наименование</th>
+                      <th className="p-3 text-left font-medium max-w-xs">Описание</th>
+                      <th className="p-3 text-left w-16 font-medium">Ед.</th>
+                      <th className="p-3 text-right w-32 font-medium">Цена, ₸</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {pagedCatalog.map((p) => (
+                      <tr key={p.id} className="hover:bg-muted/20">
+                        <td className="p-3 font-mono text-xs text-muted-foreground">{p.code ?? "—"}</td>
+                        <td className="p-3 font-medium">{p.name}</td>
+                        <td className="p-3 text-xs text-muted-foreground max-w-xs truncate">{p.description ?? "—"}</td>
+                        <td className="p-3 text-center">{p.unit ?? "—"}</td>
+                        <td className="p-3 text-right font-medium">{p.price ? p.price.toLocaleString("ru-KZ") : "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {totalPages > 1 && (
+                <div className="p-3 border-t flex items-center justify-between text-sm text-muted-foreground">
+                  <span>Показано {catalogPage * PAGE_SIZE + 1}–{Math.min((catalogPage + 1) * PAGE_SIZE, filteredCatalog.length)} из {filteredCatalog.length}</span>
+                  <div className="flex gap-1">
+                    <Button size="sm" variant="ghost" disabled={catalogPage === 0} onClick={() => setCatalogPage((p) => p - 1)}>
+                      <ChevronLeft className="w-4 h-4" />
+                    </Button>
+                    <Button size="sm" variant="ghost" disabled={catalogPage >= totalPages - 1} onClick={() => setCatalogPage((p) => p + 1)}>
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ── SECTION 2: Goods list upload ─────────────────────────────────── */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <h2 className="font-semibold text-lg">📋 Список товаров для подбора</h2>
+              {goodsItems.length > 0 && (
+                <>
+                  <Badge variant="secondary">{goodsItems.length} позиций</Badge>
+                  <span className="text-sm text-muted-foreground">{goodsFileName}</span>
+                </>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" onClick={() => goodsRef.current?.click()}>
+                <Upload className="w-4 h-4 mr-2" />
+                {goodsItems.length ? "Заменить список" : "Загрузить список"}
+              </Button>
+              <input ref={goodsRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => { if (e.target.files?.[0]) uploadGoodsList(e.target.files[0]); e.target.value = ""; }} />
+              {goodsItems.length > 0 && catalogProducts.length > 0 && (
+                <Button onClick={runMatching} disabled={loading}>
+                  <Play className="w-4 h-4 mr-2" />
+                  {loading ? "Подбор..." : "Запустить подбор"}
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {goodsItems.length === 0 && (
+            <div
+              className="mt-4 border-2 border-dashed rounded-lg p-8 text-center text-muted-foreground cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors"
+              onClick={() => goodsRef.current?.click()}
+              onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add("border-primary", "bg-primary/5"); }}
+              onDragLeave={(e) => { e.currentTarget.classList.remove("border-primary", "bg-primary/5"); }}
+              onDrop={(e) => { e.preventDefault(); e.currentTarget.classList.remove("border-primary", "bg-primary/5"); if (e.dataTransfer.files[0]) uploadGoodsList(e.dataTransfer.files[0]); }}
+            >
+              <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
+              <p className="text-lg mb-1">Перетащите файл сюда</p>
+              <p className="text-sm">или нажмите чтобы выбрать (.xlsx, .xls, .csv)</p>
+            </div>
+          )}
+
+          {/* Column selection preview */}
+          {goodsPreview && (
+            <div className="mt-4 border rounded-lg p-4 bg-amber-50/50 border-amber-200">
+              <h3 className="font-semibold mb-2">Подтвердите колонку с названиями товаров</h3>
+              <p className="text-sm text-muted-foreground mb-3">
+                Выберите колонку, которая содержит наименования товаров для подбора:
+              </p>
+
+              {/* Column selector */}
+              <div className="flex items-center gap-2 mb-4">
+                <select
+                  className="border rounded-md px-3 py-2 text-sm bg-white"
+                  value={selectedNameCol}
+                  onChange={(e) => setSelectedNameCol(e.target.value)}
+                >
+                  {goodsPreview.headers.map((h) => (
+                    <option key={h} value={h}>
+                      {h} {h === goodsPreview.detectedNameCol ? " ← (авто)" : ""}
+                    </option>
+                  ))}
+                </select>
+                <Button size="sm" onClick={confirmColumnSelection}>
+                  <Check className="w-4 h-4 mr-1" />Подтвердить
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setGoodsPreview(null)}>
+                  <X className="w-4 h-4 mr-1" />Отмена
+                </Button>
+              </div>
+
+              {/* Sample data preview */}
+              <div className="overflow-x-auto rounded border bg-white">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="bg-muted/30">
+                      {goodsPreview.headers.map((h) => (
+                        <th
+                          key={h}
+                          className={`p-2 text-left whitespace-nowrap ${h === selectedNameCol ? "bg-primary/10 font-bold text-primary" : ""}`}
+                        >
+                          {h}
+                          {h === selectedNameCol && " ✓"}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {goodsPreview.sampleRows.map((row, idx) => (
+                      <tr key={idx}>
+                        {goodsPreview.headers.map((h) => (
+                          <td
+                            key={h}
+                            className={`p-2 max-w-48 truncate ${h === selectedNameCol ? "bg-primary/5 font-medium" : ""}`}
+                          >
+                            {String(row[h] ?? "").slice(0, 60)}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Показаны первые 5 строк. Выделенная колонка будет использована для подбора.
+              </p>
+            </div>
+          )}
+
+          {matchProgress !== null && matchProgress < 100 && (
+            <div className="mt-3">
+              <div className="flex items-center gap-2 text-sm text-blue-700">
+                <div className="w-full bg-blue-200 rounded-full h-2">
+                  <div className="bg-blue-600 h-2 rounded-full transition-all" style={{ width: `${matchProgress}%` }} />
+                </div>
+                <span className="shrink-0">{matchProgress}%</span>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ── SECTION 3: Match results ─────────────────────────────────────── */}
+      {grouped.length > 0 && (
+        <Card>
+          <CardContent className="p-0">
+            <div className="p-4 border-b flex items-center justify-between">
+              <div>
+                <h2 className="font-semibold text-lg">🎯 Результаты подбора</h2>
+                <p className="text-sm text-muted-foreground">
+                  3 лучших совпадения из каталога для каждой позиции
+                </p>
+              </div>
+              <Button size="sm" variant="outline" onClick={exportResults}>
+                <Download className="w-4 h-4 mr-2" />
+                Скачать XLSX
+              </Button>
+            </div>
+
+            <div className="divide-y">
+              {grouped.map(({ itemId, itemName, candidates }) => (
+                <div key={itemId} className="p-4 hover:bg-muted/10">
+                  {/* Item header */}
+                  <div className="flex items-start justify-between gap-4 mb-3">
+                    <h3 className="font-semibold text-base">{itemName}</h3>
+                    <div className="flex gap-1 shrink-0">
+                      {decisions[itemId] === "confirmed" ? (
+                        <Badge className="bg-emerald-600">
+                          <Check className="w-3 h-3 mr-1" />Подтверждено
+                        </Badge>
+                      ) : (
+                        <Button size="sm" variant="outline" onClick={() => setDecisions((d) => ({ ...d, [itemId]: "confirmed" }))}>
+                          <Check className="w-3 h-3 mr-1" />Подтвердить
+                        </Button>
+                      )}
+                      {decisions[itemId] === "rejected" ? (
+                        <Badge variant="destructive">
+                          <X className="w-3 h-3 mr-1" />Отклонено
+                        </Badge>
+                      ) : (
+                        <Button size="sm" variant="ghost" onClick={() => setDecisions((d) => ({ ...d, [itemId]: "rejected" }))}>
+                          <X className="w-3 h-3 mr-1" />Отклонить
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 3 match cards */}
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    {candidates.map((c) => (
+                      <div
+                        key={c.rank}
+                        className={`rounded-lg border p-3 space-y-2 ${
+                          c.rank === 1
+                            ? "border-emerald-300 bg-emerald-50/50"
+                            : c.rank === 2
+                            ? "border-blue-200 bg-blue-50/30"
+                            : "border-muted bg-muted/10"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <Badge
+                            variant={c.rank === 1 ? "default" : "outline"}
+                            className={c.rank === 1 ? "bg-emerald-600" : ""}
+                          >
+                            {c.rank === 1 ? "🥇" : c.rank === 2 ? "🥈" : "🥉"} {Math.round(c.confidenceScore * 100)}%
+                          </Badge>
+                        </div>
+                        <p className="font-medium text-sm leading-snug">{c.product.name}</p>
+                        {c.product.code && (
+                          <p className="text-xs font-mono text-muted-foreground">
+                            Код: {c.product.code}
+                          </p>
+                        )}
+                        {c.product.price != null && (
+                          <p className="text-sm font-bold text-emerald-700">
+                            {c.product.price.toLocaleString("ru-KZ")} ₸
+                            {c.product.unit ? ` / ${c.product.unit}` : ""}
+                          </p>
+                        )}
+                        {(c.product.description || c.product.technicalSpecs) && (
+                          <p className="text-xs text-muted-foreground line-clamp-3">
+                            {c.product.technicalSpecs || c.product.description}
+                          </p>
+                        )}
+                        <p className="text-xs text-muted-foreground/60 italic">{c.explanation}</p>
+                      </div>
+                    ))}
+                    {candidates.length === 0 && (
+                      <p className="text-sm text-muted-foreground col-span-3 italic py-4 text-center">
+                        Совпадений не найдено
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
