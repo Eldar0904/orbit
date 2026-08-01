@@ -93,6 +93,7 @@ export async function matchOneItem(
 
   if (!normalizedQuery) return [];
 
+  try {
   // Build the SQL query combining trigram similarity + full-text search
   // The query uses:
   //   similarity(normalized_text, $query) — trigram similarity [0..1]
@@ -186,6 +187,13 @@ export async function matchOneItem(
     explanation: buildExplanation(row.trgm_score, row.fts_rank, row.code_match),
     rank: idx + 1,
   }));
+  } catch (err: any) {
+    const msg = err?.message ?? String(err);
+    if (msg.includes("similarity") || msg.includes("pg_trgm")) {
+      throw new Error("pg_trgm extension is not enabled. Run: CREATE EXTENSION IF NOT EXISTS pg_trgm; in Supabase SQL Editor.");
+    }
+    throw new Error(`Database matching error: ${msg.slice(0, 200)}`);
+  }
 }
 
 /**
