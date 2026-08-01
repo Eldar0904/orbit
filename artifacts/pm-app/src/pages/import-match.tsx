@@ -135,13 +135,35 @@ export default function ImportMatchPage() {
       const codeKey = header(["itemcode", "code", "sku", "article", "код", "артикул", "шифр"]);
       const quantityKey = header(["quantity", "qty", "amount", "количество", "кол-во", "объем"]);
       const unitKey = header(["unit", "uom", "единица", "ед.", "измерения"]);
-      const fallbackNameKey = nameKey ?? Object.keys(rows[0] ?? {}).map((key) => ({
-        key,
-        score: rows.reduce((total, row) => {
-          const value = String(row[key] ?? "").trim();
-          return total + (value.length >= 8 && !/^\d[\d\s.,-]*$/.test(value) ? value.length : 0);
-        }, 0),
-      })).sort((a, b) => b.score - a.score)[0]?.key ?? null;
+      // Smart heuristic: score each column to find the one most likely containing
+      // product names. Works regardless of header language.
+      const fallbackNameKey = nameKey ?? (() => {
+        const keys = Object.keys(rows[0] ?? {});
+        const sample = rows.slice(0, 50); // sample first 50 rows
+        const scored = keys.map((key) => {
+          let score = 0;
+          for (const row of sample) {
+            const val = String(row[key] ?? "").trim();
+            if (!val) continue;
+            // Skip pure numbers, dates, short codes
+            if (/^\d[\d\s.,\-/]*$/.test(val)) continue;
+            if (val.length < 4) continue;
+            // Penalize very long values (likely descriptions/addresses, not names)
+            const len = val.length;
+            const lenScore = len >= 6 && len <= 150 ? len : len > 150 ? 40 : 0;
+            // Bonus: contains Cyrillic (likely product text)
+            const hasCyrillic = /[\u0400-\u04FF]/.test(val) ? 1.3 : 1.0;
+            // Bonus: looks like a product name (contains typical words)
+            const hasProductWord = /стол|стул|шкаф|доск|полк|парт|ламп|стенд|оборуд|набор|комплект|панел|кресл|table|chair|shelf|desk|lamp/i.test(val) ? 1.5 : 1.0;
+            // Penalty: looks like a unit or code column (most vals are very short)
+            score += lenScore * hasCyrillic * hasProductWord;
+          }
+          // Penalty: if >70% of values are identical, it's probably a category, not names
+          const uniqueRatio = new Set(sample.map((r) => String(r[key] ?? "").trim())).size / sample.length;
+          return { key, score: score * Math.min(uniqueRatio * 1.5, 1.0) };
+        });
+        return scored.sort((a, b) => b.score - a.score)[0]?.key ?? null;
+      })();
       const normalizedRows = rows
         .map((row) => ({
           itemCode: codeKey ? String(row[codeKey] ?? "").trim() || null : null,

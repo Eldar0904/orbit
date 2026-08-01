@@ -71,8 +71,35 @@ export function parseCatalogRows(raw: Record<string, unknown>[]): ParsedCatalogR
 export function parseSpecRows(raw: Record<string, unknown>[]): ParsedSpecRow[] {
   if (raw.length === 0) return [];
   const headers = Object.keys(raw[0]);
-  const nameCol =
-    findCol(headers, "name", "item", "goods", "required", "description", "наименование", "название", "позиция", "item name") ?? headers[0];
+  const nameCol = findCol(
+    headers,
+    "name", "item", "goods", "required", "product",
+    "наименование", "название", "товар", "товары", "позиция",
+    "номенклатура", "продукт", "продукция", "материал",
+    "оборудование", "мебель", "предмет", "изделие", "перечень",
+    "item name", "наименование товара", "потребность",
+  ) ?? (() => {
+    // Smart heuristic fallback: find column most likely to contain product names
+    const sample = raw.slice(0, 50);
+    let bestKey = headers[0];
+    let bestScore = -1;
+    for (const key of headers) {
+      let score = 0;
+      for (const row of sample) {
+        const val = String(row[key] ?? "").trim();
+        if (!val || val.length < 4) continue;
+        if (/^\d[\d\s.,\-/]*$/.test(val)) continue;
+        const len = val.length;
+        const lenScore = len >= 6 && len <= 150 ? len : len > 150 ? 40 : 0;
+        const hasCyrillic = /[\u0400-\u04FF]/.test(val) ? 1.3 : 1.0;
+        score += lenScore * hasCyrillic;
+      }
+      const uniqueRatio = new Set(sample.map((r) => String(r[key] ?? "").trim())).size / sample.length;
+      score *= Math.min(uniqueRatio * 1.5, 1.0);
+      if (score > bestScore) { bestScore = score; bestKey = key; }
+    }
+    return bestKey;
+  })();
   const codeCol = findCol(headers, "code", "item code", "код", "артикул");
   const descCol = findCol(headers, "description", "описание");
   const qtyCol = findCol(headers, "qty", "quantity", "кол", "количество");
