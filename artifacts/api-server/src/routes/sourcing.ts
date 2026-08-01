@@ -19,7 +19,8 @@ import {
 import { z } from "zod/v4";
 import { normalizeForMatching } from "../lib/kb-normalize.js";
 import { parseSpecLines, parseSpecRows } from "../lib/kb-import.js";
-import { matchSpecItemsToCatalog, statusFromScore } from "../lib/multi-matcher.js";
+import { matchSpecItemsToCatalog, statusFromScore as statusFromScoreOld } from "../lib/multi-matcher.js";
+import { matchSpecItems, matchOneItem, statusFromScore } from "../lib/pg-matcher.js";
 import { buildOfferLines, buildOfferCsv } from "../lib/offer-export.js";
 
 const router: IRouter = Router();
@@ -444,32 +445,33 @@ router.post("/standalone-match", async (req, res): Promise<void> => {
     res.status(400).json({ error: "No specification items found in the uploaded file." });
     return;
   }
-  const products = await db
-    .select({
-      id: catalogProductsTable.id,
-      sourceId: catalogProductsTable.sourceId,
-      code: catalogProductsTable.code,
-      name: catalogProductsTable.name,
-      brand: catalogProductsTable.brand,
-      model: catalogProductsTable.model,
-      description: catalogProductsTable.description,
-      technicalSpecs: catalogProductsTable.technicalSpecs,
-      unit: catalogProductsTable.unit,
-      price: catalogProductsTable.price,
-    })
-    .from(catalogProductsTable)
-    .where(and(inArray(catalogProductsTable.sourceId, parsed.data.sourceIds), eq(catalogProductsTable.isActive, true)));
-  if (!products.length) {
-    res.status(400).json({ error: "Selected catalogs contain no active products." });
-    return;
-  }
-  const matches = matchSpecItemsToCatalog(specItems, products);
+  // Use PostgreSQL-native matching (pg_trgm + full-text search)
+  const pgResults = await matchSpecItems(
+    specItems.map((item) => ({
+      id: item.id,
+      itemName: item.itemName,
+      itemCode: item.itemCode ?? null,
+      description: item.description ?? null,
+    })),
+    parsed.data.sourceIds,
+  );
   res.json({
     items: specItems,
-    results: specItems.flatMap((item) => (matches.get(item.id) ?? []).map((candidate) => ({
-      itemId: item.id,
-      itemName: item.itemName,
-      ...candidate,
+    results: pgResults.flatMap((r) => r.candidates.map((candidate) => ({
+      itemId: r.specItemId,
+      itemName: r.itemName,
+      rank: candidate.rank,
+      confidenceScore: candidate.confidenceScore,
+      explanation: candidate.explanation,
+      catalogProductId: candidate.catalogProductId,
+      product: {
+        name: candidate.name,
+        code: candidate.code,
+        description: candidate.description,
+        technicalSpecs: candidate.technicalSpecs,
+        price: candidate.price,
+        unit: candidate.unit,
+      },
     }))),
   });
 });
