@@ -177,7 +177,7 @@ router.post("/kazniisa/analyze", async (req, res): Promise<void> => {
   const sectionList = sections.map(s => `- ${s.sectionCode}: ${s.sectionName} (${s.count} товаров)`).join("\n");
 
   // Build item list for AI (truncate if huge)
-  const itemList = parsed.data.items.slice(0, 100).map((item, i) =>
+  const itemList = parsed.data.items.slice(0, 50).map((item, i) =>
     `${i + 1}. ${item.name}${item.quantity ? ` (${item.quantity} шт)` : ""}`
   ).join("\n");
 
@@ -222,7 +222,7 @@ Respond ONLY with valid JSON, no markdown.`
             content: `File: "${parsed.data.filename}"\n\nItems:\n${itemList}`
           },
         ],
-        max_tokens: 2000,
+        max_tokens: 4096,
         temperature: 0,
       }),
     });
@@ -239,7 +239,20 @@ Respond ONLY with valid JSON, no markdown.`
 
     // Parse JSON from response (handle markdown code blocks)
     const jsonStr = content.replace(/^```json?\s*/, "").replace(/\s*```$/, "");
-    const analysis = JSON.parse(jsonStr);
+    let analysis;
+    try {
+      analysis = JSON.parse(jsonStr);
+    } catch {
+      // Try to repair truncated JSON by closing brackets
+      let repaired = jsonStr;
+      const openBraces = (repaired.match(/{/g) || []).length;
+      const closeBraces = (repaired.match(/}/g) || []).length;
+      const openBrackets = (repaired.match(/\[/g) || []).length;
+      const closeBrackets = (repaired.match(/\]/g) || []).length;
+      repaired += "]".repeat(Math.max(0, openBrackets - closeBrackets));
+      repaired += "}".repeat(Math.max(0, openBraces - closeBraces));
+      analysis = JSON.parse(repaired);
+    }
 
     res.json({
       filename: parsed.data.filename,
