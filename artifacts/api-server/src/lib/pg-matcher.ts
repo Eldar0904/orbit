@@ -42,8 +42,9 @@ export interface PgMatchResult {
   candidates: PgMatchCandidate[];
 }
 
-const HIGH = 0.72;
-const LOW = 0.42;
+const HIGH = 0.90; // 90%+ = good match (auto-confirmed)
+const LOW = 0.70;  // 70-90% = review range (user picks)
+const MIN_SHOW = 0.70; // Below 70% = don't show at all (no match)
 const TOP_N = 3;
 
 // Weights for combining signals
@@ -170,7 +171,9 @@ export async function matchOneItem(
     LIMIT ${topN}
   `);
 
-  return (rows.rows ?? rows ?? []).map((row: any, idx: number) => ({
+  return (rows.rows ?? rows ?? [])
+    .filter((row: any) => row.combined_score >= MIN_SHOW)
+    .map((row: any, idx: number) => ({
     catalogProductId: row.id,
     name: row.name,
     code: row.code,
