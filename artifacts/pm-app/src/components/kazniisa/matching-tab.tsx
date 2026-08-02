@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Upload, Sparkles, Search, Check, X, ChevronRight, FileText, Building2 } from "lucide-react";
+import { Upload, Sparkles, Search, Check, X, ChevronRight, FileText, Building2, Table } from "lucide-react";
 import { read, utils } from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,7 +47,7 @@ type GroupMatchState = {
   matches: MatchResult[];
   unmatched: number[];
   notes: string | null;
-  confirmed: Set<number>; // inputIndex set
+  confirmed: Set<number>;
   rejected: Set<number>;
 };
 
@@ -82,7 +82,7 @@ function detectNameColumn(rows: Record<string, unknown>[]): string | null {
 // ─── Step indicator ─────────────────────────────────────────────────────────
 
 function StepIndicator({ step }: { step: number }) {
-  const steps = ["Загрузка", "Анализ", "Подбор"];
+  const steps = ["Загрузка", "Просмотр", "Анализ", "Подбор"];
   return (
     <div className="flex items-center gap-2 mb-6">
       {steps.map((label, i) => (
@@ -108,9 +108,12 @@ export function MatchingTab() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // State
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [loading, setLoading] = useState(false);
   const [fileName, setFileName] = useState("");
+  const [headers, setHeaders] = useState<string[]>([]);
+  const [rows, setRows] = useState<Record<string, unknown>[]>([]);
+  const [nameCol, setNameCol] = useState<string>("");
   const [items, setItems] = useState<ParsedItem[]>([]);
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [activeGroup, setActiveGroup] = useState<number | null>(null);
@@ -123,36 +126,36 @@ export function MatchingTab() {
       const buf = await file.arrayBuffer();
       const wb = read(buf, { type: "array" });
       const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = utils.sheet_to_json<Record<string, unknown>>(ws);
+      const parsedRows = utils.sheet_to_json<Record<string, unknown>>(ws);
 
-      if (rows.length === 0) {
+      if (parsedRows.length === 0) {
         toast({ title: "Пустой файл", variant: "destructive" });
         return;
       }
 
-      const nameCol = detectNameColumn(rows);
-      if (!nameCol) {
-        toast({ title: "Не удалось определить колонку наименований", variant: "destructive" });
-        return;
-      }
+      const keys = Object.keys(parsedRows[0]);
+      const detectedCol = detectNameColumn(parsedRows) ?? keys[0];
 
-      const parsed: ParsedItem[] = rows
+      setHeaders(keys);
+      setRows(parsedRows);
+      setNameCol(detectedCol);
+      setFileName(file.name);
+
+      // Build items from detected name column
+      const parsed: ParsedItem[] = parsedRows
         .map((row) => ({
-          name: String(row[nameCol] ?? "").trim(),
+          name: String(row[detectedCol] ?? "").trim(),
           quantity: typeof row["кол-во"] === "number" ? row["кол-во"] :
                     typeof row["количество"] === "number" ? row["количество"] :
+                    typeof row["Количество"] === "number" ? row["Количество"] :
                     typeof row["qty"] === "number" ? row["qty"] : null,
         }))
         .filter((item) => item.name.length > 2);
 
       setItems(parsed);
-      setFileName(file.name);
-      setStep(1); // ready to analyze
+      setStep(2);
 
-      toast({ title: `Загружено: ${parsed.length} позиций` });
-
-      // Auto-trigger analysis
-      await analyzeList(file.name, parsed);
+      toast({ title: `Загружено: ${parsedRows.length} строк, ${keys.length} колонок` });
     } catch (err: any) {
       toast({ title: "Ошибка чтения файла", description: err.message, variant: "destructive" });
     }
@@ -160,14 +163,13 @@ export function MatchingTab() {
 
   // ─── AI Analysis ────────────────────────────────────────────────────────
 
-  async function analyzeList(filename: string, parsedItems: ParsedItem[]) {
+  async function analyzeList() {
     setLoading(true);
-    setStep(2);
     try {
       const resp = await fetch("/api/kazniisa/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ filename, items: parsedItems }),
+        body: JSON.stringify({ filename: fileName, items }),
       });
 
       if (!resp.ok) {
@@ -177,10 +179,9 @@ export function MatchingTab() {
 
       const data = await resp.json();
       setAnalysis(data.analysis);
-      setStep(2);
+      setStep(3);
     } catch (err: any) {
       toast({ title: "Ошибка анализа", description: err.message, variant: "destructive" });
-      setStep(1);
     } finally {
       setLoading(false);
     }
@@ -195,7 +196,7 @@ export function MatchingTab() {
 
     setActiveGroup(groupIdx);
     setLoading(true);
-    setStep(3);
+    setStep(4);
 
     try {
       const resp = await fetch("/api/kazniisa/ai-search", {
@@ -257,17 +258,17 @@ export function MatchingTab() {
   // ─── Render ─────────────────────────────────────────────────────────────
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
+    <div className="p-6 max-w-6xl mx-auto">
       <StepIndicator step={step} />
 
       {/* Step 1: Upload */}
-      {step === 1 && !analysis && (
+      {step === 1 && (
         <div className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-12 hover:border-primary/50 transition-colors">
           <Upload className="w-12 h-12 text-muted-foreground mb-4" />
           <p className="text-lg font-medium mb-2">Загрузите список товаров</p>
           <p className="text-sm text-muted-foreground mb-4">Excel или CSV файл со списком для подбора</p>
-          <Button onClick={() => fileInputRef.current?.click()} disabled={loading}>
-            {loading ? "Анализ..." : "Выбрать файл"}
+          <Button onClick={() => fileInputRef.current?.click()}>
+            Выбрать файл
           </Button>
           <input
             ref={fileInputRef}
@@ -282,18 +283,82 @@ export function MatchingTab() {
         </div>
       )}
 
-      {/* Loading */}
-      {loading && (
-        <div className="flex flex-col items-center justify-center py-12">
-          <Sparkles className="w-8 h-8 text-primary animate-pulse mb-3" />
-          <p className="text-sm text-muted-foreground">
-            {step === 2 ? "AI анализирует список..." : "AI ищет соответствия..."}
+      {/* Step 2: Table Preview */}
+      {step === 2 && rows.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Table className="w-5 h-5 text-muted-foreground" />
+              <div>
+                <h3 className="font-medium">{fileName}</h3>
+                <p className="text-sm text-muted-foreground">
+                  {rows.length} строк · {headers.length} колонок · Колонка наименований: <span className="font-medium text-foreground">{nameCol}</span>
+                </p>
+              </div>
+            </div>
+            <Button onClick={analyzeList} disabled={loading}>
+              <Sparkles className="w-4 h-4 mr-2" />
+              {loading ? "Анализ..." : "🤖 Анализировать"}
+            </Button>
+          </div>
+
+          {/* Data Table */}
+          <div className="border rounded-lg overflow-auto max-h-[500px]">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50 sticky top-0">
+                <tr>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground w-10">#</th>
+                  {headers.map((h) => (
+                    <th
+                      key={h}
+                      className={`px-3 py-2 text-left text-xs font-medium whitespace-nowrap ${
+                        h === nameCol ? "text-primary bg-primary/5" : "text-muted-foreground"
+                      }`}
+                    >
+                      {h}
+                      {h === nameCol && " ✓"}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {rows.map((row, i) => (
+                  <tr key={i} className="hover:bg-muted/30">
+                    <td className="px-3 py-1.5 text-xs text-muted-foreground">{i + 1}</td>
+                    {headers.map((h) => (
+                      <td
+                        key={h}
+                        className={`px-3 py-1.5 whitespace-nowrap max-w-[300px] truncate ${
+                          h === nameCol ? "font-medium" : ""
+                        }`}
+                      >
+                        {String(row[h] ?? "")}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <p className="text-xs text-muted-foreground text-center">
+            Проверьте данные и нажмите «Анализировать» для AI-категоризации
           </p>
         </div>
       )}
 
-      {/* Step 2: Analysis Results */}
-      {step === 2 && analysis && !loading && (
+      {/* Loading overlay */}
+      {loading && (
+        <div className="flex flex-col items-center justify-center py-12">
+          <Sparkles className="w-8 h-8 text-primary animate-pulse mb-3" />
+          <p className="text-sm text-muted-foreground">
+            {step === 3 || (step === 2 && loading) ? "AI анализирует список..." : "AI ищет соответствия..."}
+          </p>
+        </div>
+      )}
+
+      {/* Step 3: Analysis Results */}
+      {step === 3 && analysis && !loading && (
         <div className="space-y-4">
           {/* Summary Card */}
           <Card>
@@ -359,11 +424,18 @@ export function MatchingTab() {
               );
             })}
           </div>
+
+          {/* Back to table button */}
+          <div className="text-center pt-2">
+            <Button variant="ghost" size="sm" onClick={() => setStep(2)}>
+              ← Вернуться к таблице
+            </Button>
+          </div>
         </div>
       )}
 
-      {/* Step 3: Match Results */}
-      {step === 3 && activeGroup !== null && groupMatches[activeGroup] && !loading && (
+      {/* Step 4: Match Results */}
+      {step === 4 && activeGroup !== null && groupMatches[activeGroup] && !loading && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
@@ -372,7 +444,7 @@ export function MatchingTab() {
                 <p className="text-sm text-muted-foreground mt-0.5">{groupMatches[activeGroup].notes}</p>
               )}
             </div>
-            <Button variant="outline" size="sm" onClick={() => { setStep(2); setActiveGroup(null); }}>
+            <Button variant="outline" size="sm" onClick={() => { setStep(3); setActiveGroup(null); }}>
               ← Назад к группам
             </Button>
           </div>
