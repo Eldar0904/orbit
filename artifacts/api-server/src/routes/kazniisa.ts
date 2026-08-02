@@ -179,7 +179,7 @@ router.post("/kazniisa/match", async (req, res): Promise<void> => {
   for (const item of parsed.data.items) {
     // Combine name + description + searchText for better matching
     const queryParts = [item.name, item.description, item.searchText].filter(Boolean).join(" ");
-    const queryText = queryParts.slice(0, 500);
+    const queryText = queryParts.slice(0, 300);
 
     if (!queryText.trim()) {
       noMatchCount++;
@@ -187,28 +187,14 @@ router.post("/kazniisa/match", async (req, res): Promise<void> => {
       continue;
     }
 
+    const normalizedQuery = queryText
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}\s]/gu, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
     try {
-      // Embed the query using Jina
-      const embedResp = await fetch("https://api.jina.ai/v1/embeddings", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${process.env.JINA_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: "jina-embeddings-v5-text-small",
-          input: [queryText],
-          task: "retrieval.query",
-          dimensions: 1024,
-        }),
-      });
-
-      if (!embedResp.ok) throw new Error(`Jina API error: ${embedResp.status}`);
-      const embedData = await embedResp.json();
-      const queryVec = embedData.data[0].embedding;
-      const vecStr = `[${queryVec.join(",")}]`;
-
-      // Vector similarity search
+      // Step 1: pg_trgm + FTS gets top 10 rough candidates
       const candidates = await db.execute<{
         id: number;
         code: string;
@@ -219,25 +205,74 @@ router.post("/kazniisa/match", async (req, res): Promise<void> => {
         description: string | null;
         image_url: string | null;
         section_name: string | null;
-        distance: number;
+        score: number;
       }>(sql`
         SELECT
           p.id, p.code, p.name, p.unit, p.weight_kg, p.estimated_price,
           p.description, p.image_url, p.section_name,
-          (p.embedding <=> ${vecStr}::vector) AS distance
+          (
+            COALESCE(similarity(p.normalized_text, ${normalizedQuery}), 0) * 0.6
+            + LEAST(COALESCE(ts_rank(
+                to_tsvector('simple', COALESCE(p.normalized_text, '')),
+                plainto_tsquery('simple', ${normalizedQuery})
+              ), 0) * 3.0, 1.0) * 0.4
+          ) AS score
         FROM kazniisa_products p
         WHERE p.version_id = ${current.id}
           AND p.is_group_header = false
-          AND p.embedding IS NOT NULL
-        ORDER BY p.embedding <=> ${vecStr}::vector
-        LIMIT 3
+          AND (
+            similarity(p.normalized_text, ${normalizedQuery}) > 0.05
+            OR to_tsvector('simple', COALESCE(p.normalized_text, ''))
+               @@ plainto_tsquery('simple', ${normalizedQuery})
+          )
+        ORDER BY score DESC
+        LIMIT 10
       `);
 
       const rows = (candidates.rows ?? candidates ?? []) as any[];
-      // Convert distance to similarity score (1 - distance for cosine)
-      const filtered = rows
-        .map((r: any) => ({ ...r, score: Math.max(0, 1 - r.distance) }))
-        .filter((r: any) => r.score >= 0.40);
+
+      // Step 2: If we have candidates, ask StepFun to pick the best matches
+      let finalCandidates = rows.slice(0, 3); // fallback: just use top 3 from pg_trgm
+
+      if (rows.length > 0 && process.env.STEPFUN_API_KEY) {
+        try {
+          const candidateList = rows.slice(0, 10).map((r: any, i: number) =>
+            `${i + 1}. [${r.code}] ${r.name}`
+          ).join("\n");
+
+          const llmResp = await fetch("https://api.stepfun.com/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${process.env.STEPFUN_API_KEY}`,
+            },
+            body: JSON.stringify({
+              model: "step-3.7-flash",
+              messages: [
+                { role: "system", content: "You are a product matching assistant. Given a requested item and a list of catalogue candidates, return ONLY the numbers (1-based) of the top 3 best matches, comma-separated. If fewer than 3 match, return fewer. If nothing matches well, return 'none'. Only output numbers or 'none', nothing else." },
+                { role: "user", content: `Requested item: "${item.name}"\n${item.description ? `Description: ${item.description}\n` : ""}Catalogue candidates:\n${candidateList}` },
+              ],
+              max_tokens: 20,
+              temperature: 0,
+            }),
+          });
+
+          if (llmResp.ok) {
+            const llmData = await llmResp.json();
+            const answer = llmData.choices?.[0]?.message?.content?.trim() ?? "";
+            if (answer && answer !== "none") {
+              const picks = answer.match(/\d+/g)?.map(Number).filter((n: number) => n >= 1 && n <= rows.length) ?? [];
+              if (picks.length > 0) {
+                finalCandidates = picks.slice(0, 3).map((idx: number) => rows[idx - 1]);
+              }
+            }
+          }
+        } catch {
+          // LLM failed, fall back to pg_trgm top 3
+        }
+      }
+
+      const filtered = finalCandidates.filter((r: any) => r && r.score >= 0.05);
 
       if (filtered.length > 0 && filtered[0].score >= 0.55) {
         matchedCount++;
