@@ -183,7 +183,8 @@ router.post("/kazniisa/match", async (req, res): Promise<void> => {
       .toLowerCase()
       .replace(/[^\p{L}\p{N}\s]/gu, " ")
       .replace(/\s+/g, " ")
-      .trim();
+      .trim()
+      .slice(0, 300); // pg_trgm works best with shorter queries
 
     if (!normalizedQuery) {
       noMatchCount++;
@@ -224,7 +225,7 @@ router.post("/kazniisa/match", async (req, res): Promise<void> => {
         WHERE p.version_id = ${current.id}
           AND p.is_group_header = false
           AND (
-            p.normalized_text % ${normalizedQuery}
+            similarity(p.normalized_text, ${normalizedQuery}) > 0.1
             OR to_tsvector('simple', COALESCE(p.normalized_text, ''))
                @@ plainto_tsquery('simple', ${normalizedQuery})
             ${hasCode ? sql`OR lower(trim(p.code)) = ${safeCode}` : sql``}
@@ -234,9 +235,9 @@ router.post("/kazniisa/match", async (req, res): Promise<void> => {
       `);
 
       const rows = (candidates.rows ?? candidates ?? []) as any[];
-      const filtered = rows.filter((r: any) => r.score >= 0.70);
+      const filtered = rows.filter((r: any) => r.score >= 0.20);
 
-      if (filtered.length > 0 && filtered[0].score >= 0.90) {
+      if (filtered.length > 0 && filtered[0].score >= 0.55) {
         matchedCount++;
       } else if (filtered.length > 0) {
         reviewCount++;
@@ -253,7 +254,7 @@ router.post("/kazniisa/match", async (req, res): Promise<void> => {
           rank: (idx + 1) as any,
           productId: row.id,
           confidence: row.score,
-          status: row.score >= 0.90 ? "matched" : "review",
+          status: row.score >= 0.55 ? "matched" : "review",
         });
       }
 
