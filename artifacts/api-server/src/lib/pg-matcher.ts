@@ -15,8 +15,8 @@
  *   - IDF-like behavior from ts_rank (common words count less)
  */
 
-import { sql } from "drizzle-orm";
-import { db } from "@workspace/db";
+import { sql, inArray, eq, and } from "drizzle-orm";
+import { db, catalogProductsTable } from "@workspace/db";
 
 export interface PgMatchCandidate {
   catalogProductId: number;
@@ -93,6 +93,9 @@ export async function matchOneItem(
 
   if (!normalizedQuery) return [];
 
+  const hasCode = queryCode != null && queryCode.trim() !== "";
+  const safeCode = hasCode ? queryCode!.trim().toLowerCase() : "";
+
   try {
   // Build the SQL query combining trigram similarity + full-text search
   // The query uses:
@@ -134,9 +137,8 @@ export async function matchOneItem(
         ),
         0
       ) AS fts_rank,
-      CASE WHEN ${queryCode}::text IS NOT NULL
-           AND cp.code IS NOT NULL
-           AND lower(trim(cp.code)) = lower(trim(${queryCode}::text))
+      CASE WHEN ${hasCode} AND cp.code IS NOT NULL
+           AND lower(trim(cp.code)) = ${safeCode}
       THEN true ELSE false END AS code_match,
       (
         COALESCE(similarity(cp.normalized_text, ${normalizedQuery}), 0) * ${W_TRIGRAM}
@@ -150,21 +152,19 @@ export async function matchOneItem(
             ) * 2.5,
             1.0
           ) * ${W_FTS}
-        + CASE WHEN ${queryCode}::text IS NOT NULL
-               AND cp.code IS NOT NULL
-               AND lower(trim(cp.code)) = lower(trim(${queryCode}::text))
+        + CASE WHEN ${hasCode} AND cp.code IS NOT NULL
+               AND lower(trim(cp.code)) = ${safeCode}
           THEN 1.0 ELSE 0.0 END * ${W_CODE}
       ) AS combined_score
     FROM catalog_products cp
-    WHERE cp.source_id = ANY(${sourceIds}::int[])
+    WHERE cp.source_id = ANY(${sql.raw(`ARRAY[${sourceIds.join(",")}]`)})
       AND cp.is_active = true
       AND (
         similarity(cp.normalized_text, ${normalizedQuery}) > 0.08
         OR cp.normalized_text % ${normalizedQuery}
         OR to_tsvector('simple', COALESCE(cp.normalized_text, ''))
            @@ plainto_tsquery('simple', ${normalizedQuery})
-        OR (${queryCode}::text IS NOT NULL AND cp.code IS NOT NULL
-            AND lower(trim(cp.code)) = lower(trim(${queryCode}::text)))
+        OR (${hasCode} AND cp.code IS NOT NULL AND lower(trim(cp.code)) = ${safeCode})
       )
     ORDER BY combined_score DESC
     LIMIT ${topN}
@@ -189,7 +189,7 @@ export async function matchOneItem(
   }));
   } catch (err: any) {
     const msg = err?.message ?? String(err);
-    if (msg.includes("similarity") || msg.includes("pg_trgm")) {
+    if (msg.includes("function similarity") || msg.includes("does not exist") && msg.includes("similarity")) {
       throw new Error("pg_trgm extension is not enabled. Run: CREATE EXTENSION IF NOT EXISTS pg_trgm; in Supabase SQL Editor.");
     }
     throw new Error(`Database matching error: ${msg.slice(0, 200)}`);
