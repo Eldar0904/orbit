@@ -194,7 +194,14 @@ router.post("/kazniisa/match", async (req, res): Promise<void> => {
       .trim();
 
     try {
-      // Step 1: pg_trgm + FTS gets top 10 rough candidates
+      // Step 1: Get top 10 rough candidates via ILIKE + FTS (reliable for Cyrillic)
+      // Extract key words (2+ chars) for ILIKE matching
+      const words = normalizedQuery.split(" ").filter((w: string) => w.length >= 2).slice(0, 5);
+      const ilikeClauses = words.map((w: string) => `p.normalized_text ILIKE '%${w.replace(/'/g, "''")}%'`);
+      const whereFilter = ilikeClauses.length > 0
+        ? `(${ilikeClauses.join(" OR ")} OR to_tsvector('simple', COALESCE(p.normalized_text, '')) @@ plainto_tsquery('simple', '${normalizedQuery.replace(/'/g, "''")}'))`
+        : `to_tsvector('simple', COALESCE(p.normalized_text, '')) @@ plainto_tsquery('simple', '${normalizedQuery.replace(/'/g, "''")}')`;
+
       const candidates = await db.execute<{
         id: number;
         code: string;
@@ -210,22 +217,12 @@ router.post("/kazniisa/match", async (req, res): Promise<void> => {
         SELECT
           p.id, p.code, p.name, p.unit, p.weight_kg, p.estimated_price,
           p.description, p.image_url, p.section_name,
-          (
-            COALESCE(similarity(p.normalized_text, ${normalizedQuery}), 0) * 0.6
-            + LEAST(COALESCE(ts_rank(
-                to_tsvector('simple', COALESCE(p.normalized_text, '')),
-                plainto_tsquery('simple', ${normalizedQuery})
-              ), 0) * 3.0, 1.0) * 0.4
-          ) AS score
+          COALESCE(similarity(p.normalized_text, ${normalizedQuery}), 0) AS score
         FROM kazniisa_products p
         WHERE p.version_id = ${current.id}
           AND p.is_group_header = false
-          AND (
-            similarity(p.normalized_text, ${normalizedQuery}) > 0.05
-            OR to_tsvector('simple', COALESCE(p.normalized_text, ''))
-               @@ plainto_tsquery('simple', ${normalizedQuery})
-          )
-        ORDER BY score DESC
+          AND ${sql.raw(whereFilter)}
+        ORDER BY similarity(p.normalized_text, ${normalizedQuery}) DESC
         LIMIT 10
       `);
 
@@ -233,6 +230,7 @@ router.post("/kazniisa/match", async (req, res): Promise<void> => {
 
       // Step 2: If we have candidates, ask StepFun to pick the best matches
       let finalCandidates = rows.slice(0, 3); // fallback: just use top 3 from pg_trgm
+      let llmPicked = false;
 
       if (rows.length > 0 && process.env.STEPFUN_API_KEY) {
         try {
@@ -264,6 +262,7 @@ router.post("/kazniisa/match", async (req, res): Promise<void> => {
               const picks = answer.match(/\d+/g)?.map(Number).filter((n: number) => n >= 1 && n <= rows.length) ?? [];
               if (picks.length > 0) {
                 finalCandidates = picks.slice(0, 3).map((idx: number) => rows[idx - 1]);
+                llmPicked = true;
               }
             }
           }
@@ -272,9 +271,9 @@ router.post("/kazniisa/match", async (req, res): Promise<void> => {
         }
       }
 
-      const filtered = finalCandidates.filter((r: any) => r && r.score >= 0.05);
+      const filtered = finalCandidates.filter((r: any) => r != null);
 
-      if (filtered.length > 0 && filtered[0].score >= 0.55) {
+      if (filtered.length > 0 && llmPicked) {
         matchedCount++;
       } else if (filtered.length > 0) {
         reviewCount++;
@@ -291,7 +290,7 @@ router.post("/kazniisa/match", async (req, res): Promise<void> => {
           rank: (idx + 1) as any,
           productId: row.id,
           confidence: row.score,
-          status: row.score >= 0.55 ? "matched" : "review",
+          status: llmPicked ? "matched" : "review",
         });
       }
 
