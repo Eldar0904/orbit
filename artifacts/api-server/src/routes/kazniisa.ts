@@ -260,6 +260,7 @@ Rules:
 const SearchBody = z.object({
   items: z.array(z.string()).min(1),
   sectionCode: z.string().nullable().optional(),
+  query: z.string().optional(),
 });
 
 router.post("/kazniisa/ai-search", async (req, res): Promise<void> => {
@@ -289,11 +290,24 @@ router.post("/kazniisa/ai-search", async (req, res): Promise<void> => {
     conditions.push(eq(kazniisaProductsTable.sectionCode, parsed.data.sectionCode));
   }
 
+  // Use query keywords to pre-filter catalogue via ILIKE (keeps it small for AI)
+  const queryText = parsed.data.query ?? parsed.data.items.join(" ");
+  const keywords = queryText.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, " ").split(/\s+/).filter((w: string) => w.length >= 3);
+  const searchWords = keywords.slice(0, 4);
+
+  // Add ILIKE filter for keywords
+  if (searchWords.length > 0) {
+    const patterns = searchWords.map((w: string) => `%${w}%`);
+    const ilikeSql = patterns.map((p: string) => sql`${kazniisaProductsTable.name} ILIKE ${p}`);
+    conditions.push(or(...ilikeSql)!);
+  }
+
   const catalogueItems = await db
     .select({ id: kazniisaProductsTable.id, code: kazniisaProductsTable.code, name: kazniisaProductsTable.name, unit: kazniisaProductsTable.unit, estimatedPrice: kazniisaProductsTable.estimatedPrice })
     .from(kazniisaProductsTable)
     .where(and(...conditions))
-    .orderBy(kazniisaProductsTable.code);
+    .orderBy(kazniisaProductsTable.code)
+    .limit(30);
 
   if (catalogueItems.length === 0) {
     res.json({ matches: [], message: "No products in this section" });
@@ -354,7 +368,7 @@ Rules:
             content: `Items to match:\n${itemList}\n\nCatalogue (${catalogueItems.length} products):\n${catList}`
           },
         ],
-        max_tokens: 3000,
+        max_tokens: 1500,
         temperature: 0,
       }),
     });
@@ -369,7 +383,19 @@ Rules:
     const llmData = await llmResp.json();
     const content = llmData.choices?.[0]?.message?.content?.trim() ?? "";
     const jsonStr = content.replace(/^```json?\s*/, "").replace(/\s*```$/, "");
-    const result = JSON.parse(jsonStr);
+    let result;
+    try {
+      result = JSON.parse(jsonStr);
+    } catch {
+      let repaired = jsonStr;
+      const openBraces = (repaired.match(/{/g) || []).length;
+      const closeBraces = (repaired.match(/}/g) || []).length;
+      const openBrackets = (repaired.match(/\[/g) || []).length;
+      const closeBrackets = (repaired.match(/\]/g) || []).length;
+      repaired += "]".repeat(Math.max(0, openBrackets - closeBrackets));
+      repaired += "}".repeat(Math.max(0, openBraces - closeBraces));
+      result = JSON.parse(repaired);
+    }
 
     // Enrich matches with full product data
     const enriched = (result.matches ?? []).map((m: any) => {
