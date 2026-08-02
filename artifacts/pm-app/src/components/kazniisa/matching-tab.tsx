@@ -68,7 +68,7 @@ export function MatchingTab() {
 
   const [goodsPreview, setGoodsPreview] = useState<GoodsPreview | null>(null);
   const [selectedNameCol, setSelectedNameCol] = useState("");
-  const [goodsItems, setGoodsItems] = useState<{ name: string; code: string | null }[]>([]);
+  const [goodsItems, setGoodsItems] = useState<{ name: string; code: string | null; description: string | null; searchText: string | null }[]>([]);
   const [goodsFileName, setGoodsFileName] = useState("");
   const [results, setResults] = useState<MatchResultItem[]>([]);
   const [decisions, setDecisions] = useState<Record<string, "confirmed" | "rejected">>({});
@@ -100,10 +100,14 @@ export function MatchingTab() {
     if (!goodsPreview || !selectedNameCol) return;
     const { allRows, fileName, headers } = goodsPreview;
     const codeKey = headers.find((h) => /код|code|артикул|sku|шифр/i.test(h));
+    const descKey = headers.find((h) => /описание|description|характеристик|specification|техн/i.test(h));
+    const searchTextKey = headers.find((h) => /поисковый текст|search.?text/i.test(h));
     const items = allRows
       .map((row) => ({
         name: String(row[selectedNameCol] ?? "").trim(),
         code: codeKey ? String(row[codeKey] ?? "").trim() || null : null,
+        description: descKey ? String(row[descKey] ?? "").trim() || null : null,
+        searchText: searchTextKey ? String(row[searchTextKey] ?? "").trim() || null : null,
       }))
       .filter((item) => item.name.length >= 3);
     if (!items.length) { toast({ variant: "destructive", title: "Нет данных в выбранной колонке" }); return; }

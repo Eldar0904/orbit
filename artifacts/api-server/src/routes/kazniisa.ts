@@ -136,6 +136,8 @@ const MatchBody = z.object({
     z.object({
       name: z.string().min(1),
       code: z.string().nullable().optional(),
+      description: z.string().nullable().optional(),
+      searchText: z.string().nullable().optional(),
     }),
   ).min(1),
 });
@@ -175,7 +177,9 @@ router.post("/kazniisa/match", async (req, res): Promise<void> => {
   const results: any[] = [];
 
   for (const item of parsed.data.items) {
-    const normalizedQuery = item.name
+    // Combine name + description + searchText for better matching
+    const queryParts = [item.name, item.description, item.searchText].filter(Boolean).join(" ");
+    const normalizedQuery = queryParts
       .toLowerCase()
       .replace(/[^\p{L}\p{N}\s]/gu, " ")
       .replace(/\s+/g, " ")
