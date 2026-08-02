@@ -1,35 +1,58 @@
-import { useRef, useState, useMemo } from "react";
-import { Download, Play, Upload, X, Check } from "lucide-react";
-import { read, utils, write } from "xlsx";
+import { useRef, useState } from "react";
+import { Upload, Sparkles, Search, Check, X, ChevronRight, FileText, Building2 } from "lucide-react";
+import { read, utils } from "xlsx";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 
-type Candidate = {
-  rank: number;
-  productId: number;
-  code: string;
+// ─── Types ──────────────────────────────────────────────────────────────────
+
+type ParsedItem = {
   name: string;
-  unit: string | null;
-  price: number | null;
-  description: string | null;
-  imageUrl: string | null;
-  sectionName: string | null;
-  confidence: number;
+  code?: string | null;
+  description?: string | null;
+  quantity?: number | null;
 };
 
-type MatchResultItem = {
-  input: string;
-  candidates: Candidate[];
+type AnalysisGroup = {
+  name: string;
+  items: number[];
+  suggestedSection: string | null;
+  suggestedSectionName: string | null;
 };
 
-type GoodsPreview = {
-  headers: string[];
-  detectedNameCol: string;
-  sampleRows: Record<string, unknown>[];
-  allRows: Record<string, unknown>[];
-  fileName: string;
+type Analysis = {
+  summary: string;
+  organizationType: string;
+  organizationTypeLabel: string;
+  listType: string;
+  listTypeLabel: string;
+  totalItems: number;
+  groups: AnalysisGroup[];
+};
+
+type MatchResult = {
+  inputIndex: number;
+  inputName: string;
+  catalogueIndex: number;
+  confidence: "high" | "medium" | "low";
+  reason: string;
+  product: {
+    id: number;
+    code: string;
+    name: string;
+    unit: string | null;
+    estimatedPrice: number | null;
+  } | null;
+};
+
+type GroupMatchState = {
+  matches: MatchResult[];
+  unmatched: number[];
+  notes: string | null;
+  confirmed: Set<number>; // inputIndex set
+  rejected: Set<number>;
 };
 
 // ─── Smart column detection ─────────────────────────────────────────────────
@@ -48,284 +71,396 @@ function detectNameColumn(rows: Record<string, unknown>[]): string | null {
     let score = 0;
     for (const row of sample) {
       const val = String(row[key] ?? "").trim();
-      if (!val || val.length < 4) continue;
-      if (/^\d[\d\s.,\-/]*$/.test(val)) continue;
-      const len = val.length;
-      score += (len >= 6 && len <= 150 ? len : len > 150 ? 40 : 0) * (/[\u0400-\u04FF]/.test(val) ? 1.3 : 1.0);
+      if (val.length > 10) score += 2;
+      if (/[а-яА-ЯёЁ]/.test(val)) score += 2;
+      if (val.length > 5 && val.length < 200) score += 1;
     }
-    const uniqueRatio = new Set(sample.map((r) => String(r[key] ?? "").trim())).size / Math.max(sample.length, 1);
-    score *= Math.min(uniqueRatio * 1.5, 1.0);
-    if (score > bestScore) { bestScore = score; bestKey = key; }
+    if (score > bestScore) {
+      bestScore = score;
+      bestKey = key;
+    }
   }
   return bestKey;
 }
 
-// ─── Component ──────────────────────────────────────────────────────────────
+// ─── Step indicator ─────────────────────────────────────────────────────────
+
+function StepIndicator({ step }: { step: number }) {
+  const steps = ["Загрузка", "Анализ", "Подбор"];
+  return (
+    <div className="flex items-center gap-2 mb-6">
+      {steps.map((label, i) => (
+        <div key={i} className="flex items-center gap-2">
+          <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium ${
+            i + 1 === step ? "bg-primary text-primary-foreground" :
+            i + 1 < step ? "bg-green-500 text-white" : "bg-muted text-muted-foreground"
+          }`}>
+            {i + 1 < step ? <Check className="w-3.5 h-3.5" /> : i + 1}
+          </div>
+          <span className={`text-sm ${i + 1 === step ? "font-medium" : "text-muted-foreground"}`}>{label}</span>
+          {i < steps.length - 1 && <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Main Component ─────────────────────────────────────────────────────────
 
 export function MatchingTab() {
   const { toast } = useToast();
-  const fileRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [goodsPreview, setGoodsPreview] = useState<GoodsPreview | null>(null);
-  const [selectedNameCol, setSelectedNameCol] = useState("");
-  const [goodsItems, setGoodsItems] = useState<{ name: string; code: string | null; description: string | null; searchText: string | null }[]>([]);
-  const [goodsFileName, setGoodsFileName] = useState("");
-  const [results, setResults] = useState<MatchResultItem[]>([]);
-  const [decisions, setDecisions] = useState<Record<string, "confirmed" | "rejected">>({});
+  // State
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [loading, setLoading] = useState(false);
-  const [progress, setProgress] = useState<number | null>(null);
-  const [summary, setSummary] = useState<{ matched: number; review: number; noMatch: number } | null>(null);
+  const [fileName, setFileName] = useState("");
+  const [items, setItems] = useState<ParsedItem[]>([]);
+  const [analysis, setAnalysis] = useState<Analysis | null>(null);
+  const [activeGroup, setActiveGroup] = useState<number | null>(null);
+  const [groupMatches, setGroupMatches] = useState<Record<number, GroupMatchState>>({});
 
-  // ─── Upload goods list ──────────────────────────────────────────────────
+  // ─── File Upload & Parse ────────────────────────────────────────────────
 
-  const onFileSelect = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const workbook = read(e.target?.result, { type: "array" });
-        const raw = utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets[workbook.SheetNames[0]], { defval: "" });
-        if (!raw.length) throw new Error("Пустой файл");
-        const headers = Object.keys(raw[0]);
-        const detectedNameCol = detectNameColumn(raw) ?? headers[0];
-        setGoodsPreview({ headers, detectedNameCol, sampleRows: raw.slice(0, 5), allRows: raw, fileName: file.name });
-        setSelectedNameCol(detectedNameCol);
-      } catch (error) {
-        toast({ variant: "destructive", title: error instanceof Error ? error.message : "Не удалось прочитать файл" });
-      }
-    };
-    reader.readAsArrayBuffer(file);
-  };
-
-  const confirmColumn = () => {
-    if (!goodsPreview || !selectedNameCol) return;
-    const { allRows, fileName, headers } = goodsPreview;
-    const codeKey = headers.find((h) => /код|code|артикул|sku|шифр/i.test(h));
-    const descKey = headers.find((h) => /описание|description|характеристик|specification|техн/i.test(h));
-    const searchTextKey = headers.find((h) => /поисковый текст|search.?text/i.test(h));
-    const items = allRows
-      .map((row) => ({
-        name: String(row[selectedNameCol] ?? "").trim(),
-        code: codeKey ? String(row[codeKey] ?? "").trim() || null : null,
-        description: descKey ? String(row[descKey] ?? "").trim() || null : null,
-        searchText: searchTextKey ? String(row[searchTextKey] ?? "").trim() || null : null,
-      }))
-      .filter((item) => item.name.length >= 3);
-    if (!items.length) { toast({ variant: "destructive", title: "Нет данных в выбранной колонке" }); return; }
-    setGoodsItems(items);
-    setGoodsFileName(fileName);
-    setGoodsPreview(null);
-    setResults([]);
-    setDecisions({});
-    setSummary(null);
-    toast({ title: `Загружено: ${items.length} позиций` });
-  };
-
-  // ─── Run matching ───────────────────────────────────────────────────────
-
-  const runMatching = async () => {
-    if (!goodsItems.length) return;
-    setLoading(true);
-    setResults([]);
-    setProgress(0);
-    setSummary(null);
+  async function handleFile(file: File) {
     try {
-      const batchSize = 25;
-      const allResults: MatchResultItem[] = [];
-      let totalMatched = 0, totalReview = 0, totalNoMatch = 0;
+      const buf = await file.arrayBuffer();
+      const wb = read(buf, { type: "array" });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = utils.sheet_to_json<Record<string, unknown>>(ws);
 
-      for (let offset = 0; offset < goodsItems.length; offset += batchSize) {
-        const batch = goodsItems.slice(offset, offset + batchSize);
-        const resp = await fetch("/api/kazniisa/match", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ filename: goodsFileName, items: batch }),
-        });
-        if (!resp.ok) {
-          let msg = "Ошибка подбора";
-          try { const e = await resp.json(); msg = e.error ?? msg; } catch {}
-          throw new Error(msg);
-        }
-        const data = await resp.json();
-        allResults.push(...(data.results ?? []));
-        totalMatched += data.matched ?? 0;
-        totalReview += data.review ?? 0;
-        totalNoMatch += data.noMatch ?? 0;
-        setProgress(Math.round(((offset + batch.length) / goodsItems.length) * 100));
+      if (rows.length === 0) {
+        toast({ title: "Пустой файл", variant: "destructive" });
+        return;
       }
-      setResults(allResults);
-      setSummary({ matched: totalMatched, review: totalReview, noMatch: totalNoMatch });
-      setProgress(100);
-      toast({ title: `Подбор завершён` });
-    } catch (error) {
-      setProgress(null);
-      toast({ variant: "destructive", title: error instanceof Error ? error.message : "Ошибка" });
+
+      const nameCol = detectNameColumn(rows);
+      if (!nameCol) {
+        toast({ title: "Не удалось определить колонку наименований", variant: "destructive" });
+        return;
+      }
+
+      const parsed: ParsedItem[] = rows
+        .map((row) => ({
+          name: String(row[nameCol] ?? "").trim(),
+          quantity: typeof row["кол-во"] === "number" ? row["кол-во"] :
+                    typeof row["количество"] === "number" ? row["количество"] :
+                    typeof row["qty"] === "number" ? row["qty"] : null,
+        }))
+        .filter((item) => item.name.length > 2);
+
+      setItems(parsed);
+      setFileName(file.name);
+      setStep(1); // ready to analyze
+
+      toast({ title: `Загружено: ${parsed.length} позиций` });
+
+      // Auto-trigger analysis
+      await analyzeList(file.name, parsed);
+    } catch (err: any) {
+      toast({ title: "Ошибка чтения файла", description: err.message, variant: "destructive" });
+    }
+  }
+
+  // ─── AI Analysis ────────────────────────────────────────────────────────
+
+  async function analyzeList(filename: string, parsedItems: ParsedItem[]) {
+    setLoading(true);
+    setStep(2);
+    try {
+      const resp = await fetch("/api/kazniisa/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename, items: parsedItems }),
+      });
+
+      if (!resp.ok) {
+        const err = await resp.json();
+        throw new Error(err.error ?? `HTTP ${resp.status}`);
+      }
+
+      const data = await resp.json();
+      setAnalysis(data.analysis);
+      setStep(2);
+    } catch (err: any) {
+      toast({ title: "Ошибка анализа", description: err.message, variant: "destructive" });
+      setStep(1);
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  // ─── Export ─────────────────────────────────────────────────────────────
+  // ─── AI Search for a group ──────────────────────────────────────────────
 
-  const exportResults = () => {
-    const rows = results.flatMap((r) =>
-      r.candidates.length > 0
-        ? r.candidates.map((c) => ({
-            "Позиция из списка": r.input,
-            "Ранг": c.rank,
-            "Совпадение %": c.confidence,
-            "Код КазНИИСА": c.code,
-            "Наименование (каталог)": c.name,
-            "Описание": c.description ?? "",
-            "Ед.изм": c.unit ?? "",
-            "Сметная цена, ₸": c.price ?? "",
-            "Раздел": c.sectionName ?? "",
-            "Статус": decisions[`${r.input}-${c.rank}`] ?? "pending",
-          }))
-        : [{ "Позиция из списка": r.input, "Ранг": "", "Совпадение %": "", "Код КазНИИСА": "", "Наименование (каталог)": "", "Описание": "", "Ед.изм": "", "Сметная цена, ₸": "", "Раздел": "", "Статус": "нет совпадений" }],
-    );
-    const sheet = utils.json_to_sheet(rows);
-    const workbook = utils.book_new();
-    utils.book_append_sheet(workbook, sheet, "Подбор");
-    const buf = write(workbook, { type: "array", bookType: "xlsx" });
-    const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `подбор_${goodsFileName.replace(/\.[^.]+$/, "")}_${new Date().toISOString().slice(0, 10)}.xlsx`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+  async function searchGroup(groupIdx: number) {
+    if (!analysis) return;
+    const group = analysis.groups[groupIdx];
+    const groupItems = group.items.map((i) => items[i]?.name).filter(Boolean);
+
+    setActiveGroup(groupIdx);
+    setLoading(true);
+    setStep(3);
+
+    try {
+      const resp = await fetch("/api/kazniisa/ai-search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: groupItems,
+          sectionCode: group.suggestedSection,
+        }),
+      });
+
+      if (!resp.ok) {
+        const err = await resp.json();
+        throw new Error(err.error ?? `HTTP ${resp.status}`);
+      }
+
+      const data = await resp.json();
+      setGroupMatches((prev) => ({
+        ...prev,
+        [groupIdx]: {
+          matches: data.matches ?? [],
+          unmatched: data.unmatched ?? [],
+          notes: data.notes,
+          confirmed: new Set(),
+          rejected: new Set(),
+        },
+      }));
+    } catch (err: any) {
+      toast({ title: "Ошибка поиска", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function confirmMatch(groupIdx: number, inputIndex: number) {
+    setGroupMatches((prev) => {
+      const state = prev[groupIdx];
+      if (!state) return prev;
+      const confirmed = new Set(state.confirmed);
+      confirmed.add(inputIndex);
+      const rejected = new Set(state.rejected);
+      rejected.delete(inputIndex);
+      return { ...prev, [groupIdx]: { ...state, confirmed, rejected } };
+    });
+  }
+
+  function rejectMatch(groupIdx: number, inputIndex: number) {
+    setGroupMatches((prev) => {
+      const state = prev[groupIdx];
+      if (!state) return prev;
+      const rejected = new Set(state.rejected);
+      rejected.add(inputIndex);
+      const confirmed = new Set(state.confirmed);
+      confirmed.delete(inputIndex);
+      return { ...prev, [groupIdx]: { ...state, confirmed, rejected } };
+    });
+  }
 
   // ─── Render ─────────────────────────────────────────────────────────────
 
   return (
-    <div className="space-y-4">
-      {/* Upload / status bar */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <h2 className="font-semibold text-lg">Подбор товаров</h2>
-              {goodsItems.length > 0 && (
-                <>
-                  <Badge variant="secondary">{goodsItems.length} позиций</Badge>
-                  <span className="text-sm text-muted-foreground">{goodsFileName}</span>
-                </>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()}>
-                <Upload className="w-4 h-4 mr-2" />
-                {goodsItems.length ? "Другой список" : "Загрузить список"}
-              </Button>
-              <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => { if (e.target.files?.[0]) onFileSelect(e.target.files[0]); e.target.value = ""; }} />
-              {goodsItems.length > 0 && (
-                <Button onClick={runMatching} disabled={loading}>
-                  <Play className="w-4 h-4 mr-2" />{loading ? "Подбор..." : "Запустить подбор"}
-                </Button>
-              )}
-              {results.length > 0 && (
-                <Button size="sm" variant="outline" onClick={exportResults}>
-                  <Download className="w-4 h-4 mr-2" />XLSX
-                </Button>
-              )}
-            </div>
-          </div>
+    <div className="p-6 max-w-5xl mx-auto">
+      <StepIndicator step={step} />
 
-          {/* Drop zone */}
-          {goodsItems.length === 0 && !goodsPreview && (
-            <div
-              className="mt-4 border-2 border-dashed rounded-lg p-10 text-center text-muted-foreground cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors"
-              onClick={() => fileRef.current?.click()}
-              onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add("border-primary", "bg-primary/5"); }}
-              onDragLeave={(e) => { e.currentTarget.classList.remove("border-primary", "bg-primary/5"); }}
-              onDrop={(e) => { e.preventDefault(); e.currentTarget.classList.remove("border-primary", "bg-primary/5"); if (e.dataTransfer.files[0]) onFileSelect(e.dataTransfer.files[0]); }}
-            >
-              <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
-              <p className="text-lg mb-1">Перетащите список товаров</p>
-              <p className="text-sm">.xlsx, .xls, .csv — колонка определится автоматически</p>
-            </div>
-          )}
-
-          {/* Column picker */}
-          {goodsPreview && (
-            <div className="mt-4 border rounded-lg p-4 bg-amber-50/50 border-amber-200">
-              <h3 className="font-semibold mb-2">Подтвердите колонку с названиями</h3>
-              <div className="flex items-center gap-2 mb-3">
-                <select className="border rounded-md px-3 py-2 text-sm bg-white" value={selectedNameCol} onChange={(e) => setSelectedNameCol(e.target.value)}>
-                  {goodsPreview.headers.map((h) => <option key={h} value={h}>{h}{h === goodsPreview.detectedNameCol ? " ← авто" : ""}</option>)}
-                </select>
-                <Button size="sm" onClick={confirmColumn}><Check className="w-4 h-4 mr-1" />ОК</Button>
-                <Button size="sm" variant="ghost" onClick={() => setGoodsPreview(null)}><X className="w-4 h-4 mr-1" />Отмена</Button>
-              </div>
-              <div className="overflow-x-auto rounded border bg-white">
-                <table className="w-full text-xs">
-                  <thead><tr className="bg-muted/30">{goodsPreview.headers.map((h) => <th key={h} className={`p-2 text-left whitespace-nowrap ${h === selectedNameCol ? "bg-primary/10 font-bold text-primary" : ""}`}>{h}</th>)}</tr></thead>
-                  <tbody className="divide-y">{goodsPreview.sampleRows.map((row, idx) => <tr key={idx}>{goodsPreview.headers.map((h) => <td key={h} className={`p-2 max-w-48 truncate ${h === selectedNameCol ? "bg-primary/5 font-medium" : ""}`}>{String(row[h] ?? "").slice(0, 50)}</td>)}</tr>)}</tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* Progress */}
-          {progress !== null && progress >= 0 && progress < 100 && (
-            <div className="mt-3 flex items-center gap-2 text-sm text-blue-700">
-              <div className="w-full bg-blue-200 rounded-full h-2">
-                <div className="bg-blue-600 h-2 rounded-full transition-all" style={{ width: `${progress}%` }} />
-              </div>
-              <span className="shrink-0">{progress}%</span>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Summary */}
-      {summary && (
-        <div className="flex gap-3">
-          <Badge className="bg-emerald-600 text-white">✅ Совпадения: {summary.matched}</Badge>
-          <Badge variant="secondary">🔶 На проверку: {summary.review}</Badge>
-          <Badge variant="outline">❌ Нет: {summary.noMatch}</Badge>
+      {/* Step 1: Upload */}
+      {step === 1 && !analysis && (
+        <div className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-12 hover:border-primary/50 transition-colors">
+          <Upload className="w-12 h-12 text-muted-foreground mb-4" />
+          <p className="text-lg font-medium mb-2">Загрузите список товаров</p>
+          <p className="text-sm text-muted-foreground mb-4">Excel или CSV файл со списком для подбора</p>
+          <Button onClick={() => fileInputRef.current?.click()} disabled={loading}>
+            {loading ? "Анализ..." : "Выбрать файл"}
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".xlsx,.xls,.csv"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) handleFile(f);
+            }}
+          />
         </div>
       )}
 
-      {/* Results */}
-      {results.filter((r) => r.candidates.length > 0).map((item, idx) => (
-        <Card key={idx}>
-          <CardContent className="p-4">
-            <div className="flex items-start justify-between mb-3">
-              <h3 className="font-semibold">{item.input}</h3>
-              <div className="flex gap-1">
-                {decisions[`${item.input}-1`] === "confirmed" ? (
-                  <Badge className="bg-emerald-600"><Check className="w-3 h-3 mr-1" />Подтверждено</Badge>
-                ) : (
-                  <Button size="sm" variant="outline" onClick={() => setDecisions((d) => ({ ...d, [`${item.input}-1`]: "confirmed" }))}><Check className="w-3 h-3 mr-1" />Подтвердить</Button>
-                )}
-                {decisions[`${item.input}-1`] === "rejected" ? (
-                  <Badge variant="destructive"><X className="w-3 h-3 mr-1" />Отклонено</Badge>
-                ) : (
-                  <Button size="sm" variant="ghost" onClick={() => setDecisions((d) => ({ ...d, [`${item.input}-1`]: "rejected" }))}><X className="w-3 h-3 mr-1" />Отклонить</Button>
-                )}
-              </div>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-3">
-              {item.candidates.map((c) => (
-                <div key={c.rank} className={`rounded-lg border p-3 space-y-1.5 ${c.rank === 1 ? "border-emerald-300 bg-emerald-50/50" : c.rank === 2 ? "border-blue-200 bg-blue-50/30" : "border-muted"}`}>
-                  <div className="flex items-center justify-between">
-                    <Badge variant={c.rank === 1 ? "default" : "outline"} className={c.rank === 1 ? "bg-emerald-600" : ""}>
-                      {c.rank === 1 ? "🥇" : c.rank === 2 ? "🥈" : "🥉"} {c.confidence}%
-                    </Badge>
-                    {c.sectionName && <span className="text-xs text-muted-foreground">{c.sectionName}</span>}
-                  </div>
-                  <p className="font-medium text-sm">{c.name}</p>
-                  <p className="text-xs font-mono text-muted-foreground">Код: {c.code}</p>
-                  {c.price != null && <p className="text-sm font-bold text-emerald-700">{c.price.toLocaleString("ru-KZ")} ₸{c.unit ? ` / ${c.unit}` : ""}</p>}
-                  {c.description && <p className="text-xs text-muted-foreground line-clamp-2">{c.description}</p>}
+      {/* Loading */}
+      {loading && (
+        <div className="flex flex-col items-center justify-center py-12">
+          <Sparkles className="w-8 h-8 text-primary animate-pulse mb-3" />
+          <p className="text-sm text-muted-foreground">
+            {step === 2 ? "AI анализирует список..." : "AI ищет соответствия..."}
+          </p>
+        </div>
+      )}
+
+      {/* Step 2: Analysis Results */}
+      {step === 2 && analysis && !loading && (
+        <div className="space-y-4">
+          {/* Summary Card */}
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-3">
+                <FileText className="w-5 h-5 text-muted-foreground" />
+                <div>
+                  <CardTitle className="text-base">{fileName}</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-0.5">{analysis.summary}</p>
                 </div>
-              ))}
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-4 flex-wrap">
+                <Badge variant="secondary" className="gap-1.5">
+                  <Building2 className="w-3.5 h-3.5" />
+                  {analysis.organizationTypeLabel}
+                </Badge>
+                <Badge variant="secondary">{analysis.listTypeLabel}</Badge>
+                <Badge variant="outline">{items.length} позиций</Badge>
+                <Badge variant="outline">{analysis.groups.length} групп</Badge>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Groups */}
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium text-muted-foreground">Группы товаров:</h3>
+            {analysis.groups.map((group, idx) => {
+              const matchState = groupMatches[idx];
+              const confirmedCount = matchState?.confirmed.size ?? 0;
+              const total = group.items.length;
+
+              return (
+                <Card key={idx} className="hover:shadow-sm transition-shadow">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{group.name}</span>
+                          <Badge variant="outline" className="text-xs">{total} шт</Badge>
+                          {confirmedCount > 0 && (
+                            <Badge className="bg-green-500 text-xs">{confirmedCount}/{total} ✓</Badge>
+                          )}
+                        </div>
+                        {group.suggestedSectionName && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            → КазНИИСА: {group.suggestedSection} {group.suggestedSectionName}
+                          </p>
+                        )}
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => searchGroup(idx)}
+                        disabled={loading}
+                      >
+                        <Search className="w-4 h-4 mr-1" />
+                        Найти
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Step 3: Match Results */}
+      {step === 3 && activeGroup !== null && groupMatches[activeGroup] && !loading && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-medium">{analysis?.groups[activeGroup]?.name}</h3>
+              {groupMatches[activeGroup].notes && (
+                <p className="text-sm text-muted-foreground mt-0.5">{groupMatches[activeGroup].notes}</p>
+              )}
             </div>
-          </CardContent>
-        </Card>
-      ))}
+            <Button variant="outline" size="sm" onClick={() => { setStep(2); setActiveGroup(null); }}>
+              ← Назад к группам
+            </Button>
+          </div>
+
+          {/* Matches */}
+          <div className="space-y-2">
+            {groupMatches[activeGroup].matches.map((match, idx) => {
+              const isConfirmed = groupMatches[activeGroup].confirmed.has(match.inputIndex);
+              const isRejected = groupMatches[activeGroup].rejected.has(match.inputIndex);
+
+              return (
+                <Card key={idx} className={`transition-all ${
+                  isConfirmed ? "border-green-300 bg-green-50 dark:bg-green-950/20" :
+                  isRejected ? "border-red-200 bg-red-50/50 dark:bg-red-950/10 opacity-60" : ""
+                }`}>
+                  <CardContent className="p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium truncate">{match.inputName}</div>
+                        {match.product && (
+                          <div className="mt-1 pl-3 border-l-2 border-primary/30">
+                            <div className="text-sm">
+                              <span className="font-mono text-xs text-muted-foreground">{match.product.code}</span>
+                              {" "}{match.product.name}
+                            </div>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              {match.product.estimatedPrice && (
+                                <span className="text-xs text-muted-foreground">{match.product.estimatedPrice.toLocaleString()} тг</span>
+                              )}
+                              <Badge variant={match.confidence === "high" ? "default" : match.confidence === "medium" ? "secondary" : "outline"} className="text-xs">
+                                {match.confidence === "high" ? "Точно" : match.confidence === "medium" ? "Похоже" : "Неточно"}
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-0.5">{match.reason}</p>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        <Button
+                          size="icon"
+                          variant={isConfirmed ? "default" : "ghost"}
+                          className="w-7 h-7"
+                          onClick={() => confirmMatch(activeGroup, match.inputIndex)}
+                        >
+                          <Check className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant={isRejected ? "destructive" : "ghost"}
+                          className="w-7 h-7"
+                          onClick={() => rejectMatch(activeGroup, match.inputIndex)}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+
+          {/* Unmatched */}
+          {groupMatches[activeGroup].unmatched.length > 0 && (
+            <Card>
+              <CardContent className="p-4">
+                <p className="text-sm font-medium text-muted-foreground mb-2">
+                  Не найдено в каталоге ({groupMatches[activeGroup].unmatched.length}):
+                </p>
+                <div className="space-y-1">
+                  {groupMatches[activeGroup].unmatched.map((itemIdx) => {
+                    const group = analysis?.groups[activeGroup];
+                    const realIdx = group?.items[itemIdx];
+                    const itemName = realIdx !== undefined ? items[realIdx]?.name : `Item ${itemIdx}`;
+                    return (
+                      <div key={itemIdx} className="text-sm text-muted-foreground">• {itemName}</div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
     </div>
   );
 }

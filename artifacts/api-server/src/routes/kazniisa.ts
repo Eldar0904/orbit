@@ -128,22 +128,139 @@ router.get("/kazniisa/products/:code", async (req, res): Promise<void> => {
   res.json(product);
 });
 
-// ─── Match endpoint ─────────────────────────────────────────────────────────
+// ─── AI Analyze: Summarize & categorize uploaded list ────────────────────────
 
-const MatchBody = z.object({
+const AnalyzeBody = z.object({
   filename: z.string().min(1),
   items: z.array(
     z.object({
       name: z.string().min(1),
       code: z.string().nullable().optional(),
       description: z.string().nullable().optional(),
-      searchText: z.string().nullable().optional(),
+      quantity: z.number().nullable().optional(),
     }),
   ).min(1),
 });
 
-router.post("/kazniisa/match", async (req, res): Promise<void> => {
-  const parsed = MatchBody.safeParse(req.body);
+router.post("/kazniisa/analyze", async (req, res): Promise<void> => {
+  const parsed = AnalyzeBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+
+  if (!process.env.STEPFUN_API_KEY) {
+    res.status(500).json({ error: "STEPFUN_API_KEY not configured" });
+    return;
+  }
+
+  // Get available sections for context
+  const [current] = await db
+    .select()
+    .from(kazniisaVersionsTable)
+    .where(eq(kazniisaVersionsTable.isCurrent, true))
+    .limit(1);
+
+  const sections = current ? await db
+    .select({
+      sectionCode: kazniisaProductsTable.sectionCode,
+      sectionName: kazniisaProductsTable.sectionName,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(kazniisaProductsTable)
+    .where(and(
+      eq(kazniisaProductsTable.versionId, current.id),
+      eq(kazniisaProductsTable.isGroupHeader, false),
+    ))
+    .groupBy(kazniisaProductsTable.sectionCode, kazniisaProductsTable.sectionName) : [];
+
+  const sectionList = sections.map(s => `- ${s.sectionCode}: ${s.sectionName} (${s.count} товаров)`).join("\n");
+
+  // Build item list for AI (truncate if huge)
+  const itemList = parsed.data.items.slice(0, 100).map((item, i) =>
+    `${i + 1}. ${item.name}${item.quantity ? ` (${item.quantity} шт)` : ""}`
+  ).join("\n");
+
+  try {
+    const llmResp = await fetch("https://api.stepfun.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.STEPFUN_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "step-3.7-flash",
+        messages: [
+          {
+            role: "system",
+            content: `You are a procurement analyst. Analyze the uploaded item list and respond in JSON format:
+{
+  "summary": "Brief description of the list (1-2 sentences, in Russian)",
+  "organizationType": "kindergarten|school|university|hospital|office|other",
+  "organizationTypeLabel": "Human-readable label in Russian (e.g. Детский сад)",
+  "listType": "procurement|inventory|supplier_offer|internal_request|other",
+  "listTypeLabel": "Human-readable label in Russian",
+  "totalItems": number,
+  "groups": [
+    {
+      "name": "Group name in Russian (e.g. Мебель детская)",
+      "items": [indices of items, 0-based],
+      "suggestedSection": "КазНИИСА section code or null",
+      "suggestedSectionName": "section name or null"
+    }
+  ]
+}
+
+Available КазНИИСА catalogue sections:
+${sectionList}
+
+Group items by their functional category. Map each group to the most relevant КазНИИСА section.
+Respond ONLY with valid JSON, no markdown.`
+          },
+          {
+            role: "user",
+            content: `File: "${parsed.data.filename}"\n\nItems:\n${itemList}`
+          },
+        ],
+        max_tokens: 2000,
+        temperature: 0,
+      }),
+    });
+
+    if (!llmResp.ok) {
+      const errText = await llmResp.text();
+      console.error("[analyze] StepFun error:", llmResp.status, errText);
+      res.status(502).json({ error: `AI service error: ${llmResp.status}` });
+      return;
+    }
+
+    const llmData = await llmResp.json();
+    const content = llmData.choices?.[0]?.message?.content?.trim() ?? "";
+
+    // Parse JSON from response (handle markdown code blocks)
+    const jsonStr = content.replace(/^```json?\s*/, "").replace(/\s*```$/, "");
+    const analysis = JSON.parse(jsonStr);
+
+    res.json({
+      filename: parsed.data.filename,
+      items: parsed.data.items,
+      analysis,
+    });
+  } catch (err: any) {
+    console.error("[analyze] Error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── AI Search: Find matches within a category for a group of items ─────────
+
+const SearchBody = z.object({
+  items: z.array(z.string()).min(1),
+  sectionCode: z.string().nullable().optional(),
+});
+
+router.post("/kazniisa/ai-search", async (req, res): Promise<void> => {
+  const parsed = SearchBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
     return;
@@ -156,192 +273,119 @@ router.post("/kazniisa/match", async (req, res): Promise<void> => {
     .limit(1);
 
   if (!current) {
-    res.status(400).json({ error: "No catalogue loaded. Import a PDF first." });
+    res.status(400).json({ error: "No catalogue loaded" });
     return;
   }
 
-  // Create session
-  const [session] = await db
-    .insert(kazniisaMatchSessionsTable)
-    .values({
-      versionId: current.id,
-      filename: parsed.data.filename,
-      itemCount: parsed.data.items.length,
-    })
-    .returning();
-
-  let matchedCount = 0;
-  let reviewCount = 0;
-  let noMatchCount = 0;
-
-  const results: any[] = [];
-
-  for (const item of parsed.data.items) {
-    // Combine name + description + searchText for better matching
-    const queryParts = [item.name, item.description, item.searchText].filter(Boolean).join(" ");
-    const queryText = queryParts.slice(0, 300);
-
-    if (!queryText.trim()) {
-      noMatchCount++;
-      results.push({ input: item.name, candidates: [] });
-      continue;
-    }
-
-    const normalizedQuery = queryText
-      .toLowerCase()
-      .replace(/[^\p{L}\p{N}\s]/gu, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-
-    try {
-      // Step 1: Get top 10 rough candidates via ILIKE + FTS (reliable for Cyrillic)
-      // Extract key words (2+ chars) for ILIKE matching
-      const words = normalizedQuery.split(" ").filter((w: string) => w.length >= 2).slice(0, 5);
-      const ilikeClauses = words.map((w: string) => `p.normalized_text ILIKE '%${w.replace(/'/g, "''")}%'`);
-      const whereFilter = ilikeClauses.length > 0
-        ? `(${ilikeClauses.join(" OR ")} OR to_tsvector('simple', COALESCE(p.normalized_text, '')) @@ plainto_tsquery('simple', '${normalizedQuery.replace(/'/g, "''")}'))`
-        : `to_tsvector('simple', COALESCE(p.normalized_text, '')) @@ plainto_tsquery('simple', '${normalizedQuery.replace(/'/g, "''")}')`;
-
-      const candidates = await db.execute<{
-        id: number;
-        code: string;
-        name: string;
-        unit: string | null;
-        weight_kg: number | null;
-        estimated_price: number | null;
-        description: string | null;
-        image_url: string | null;
-        section_name: string | null;
-        score: number;
-      }>(sql`
-        SELECT
-          p.id, p.code, p.name, p.unit, p.weight_kg, p.estimated_price,
-          p.description, p.image_url, p.section_name,
-          COALESCE(similarity(p.normalized_text, ${normalizedQuery}), 0) AS score
-        FROM kazniisa_products p
-        WHERE p.version_id = ${current.id}
-          AND p.is_group_header = false
-          AND ${sql.raw(whereFilter)}
-        ORDER BY similarity(p.normalized_text, ${normalizedQuery}) DESC
-        LIMIT 10
-      `);
-
-      const rows = (candidates.rows ?? candidates ?? []) as any[];
-
-      // Step 2: If we have candidates, ask StepFun to pick the best matches
-      let finalCandidates = rows.slice(0, 3); // fallback: just use top 3 from pg_trgm
-      let llmPicked = false;
-
-      if (rows.length > 0 && process.env.STEPFUN_API_KEY) {
-        try {
-          const candidateList = rows.slice(0, 10).map((r: any, i: number) =>
-            `${i + 1}. [${r.code}] ${r.name}`
-          ).join("\n");
-
-          const llmResp = await fetch("https://api.stepfun.com/v1/chat/completions", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${process.env.STEPFUN_API_KEY}`,
-            },
-            body: JSON.stringify({
-              model: "step-3.7-flash",
-              messages: [
-                { role: "system", content: "You are a product matching assistant. Given a requested item and a list of catalogue candidates, return ONLY the numbers (1-based) of the top 3 best matches, comma-separated. If fewer than 3 match, return fewer. If nothing matches well, return 'none'. Only output numbers or 'none', nothing else." },
-                { role: "user", content: `Requested item: "${item.name}"\n${item.description ? `Description: ${item.description}\n` : ""}Catalogue candidates:\n${candidateList}` },
-              ],
-              max_tokens: 20,
-              temperature: 0,
-            }),
-          });
-
-          if (llmResp.ok) {
-            const llmData = await llmResp.json();
-            const answer = llmData.choices?.[0]?.message?.content?.trim() ?? "";
-            if (answer && answer !== "none") {
-              const picks = answer.match(/\d+/g)?.map(Number).filter((n: number) => n >= 1 && n <= rows.length) ?? [];
-              if (picks.length > 0) {
-                finalCandidates = picks.slice(0, 3).map((idx: number) => rows[idx - 1]);
-                llmPicked = true;
-              }
-            }
-          }
-        } catch {
-          // LLM failed, fall back to pg_trgm top 3
-        }
-      }
-
-      const filtered = finalCandidates.filter((r: any) => r != null);
-
-      if (filtered.length > 0 && llmPicked) {
-        matchedCount++;
-      } else if (filtered.length > 0) {
-        reviewCount++;
-      } else {
-        noMatchCount++;
-      }
-
-      // Save results to DB
-      for (const [idx, row] of filtered.entries()) {
-        await db.insert(kazniisaMatchResultsTable).values({
-          sessionId: session.id,
-          inputName: item.name,
-          inputCode: item.code ?? null,
-          rank: (idx + 1) as any,
-          productId: row.id,
-          confidence: row.score,
-          status: llmPicked ? "matched" : "review",
-        });
-      }
-
-      if (filtered.length === 0) {
-        await db.insert(kazniisaMatchResultsTable).values({
-          sessionId: session.id,
-          inputName: item.name,
-          inputCode: item.code ?? null,
-          rank: 1,
-          productId: null,
-          confidence: 0,
-          status: "no_match",
-        });
-      }
-
-      results.push({
-        input: item.name,
-        candidates: filtered.map((row: any, idx: number) => ({
-          rank: idx + 1,
-          productId: row.id,
-          code: row.code,
-          name: row.name,
-          unit: row.unit,
-          price: row.estimated_price,
-          description: row.description,
-          imageUrl: row.image_url,
-          sectionName: row.section_name,
-          confidence: Math.round(row.score * 100),
-        })),
-      });
-    } catch (err: any) {
-      noMatchCount++;
-      results.push({ input: item.name, candidates: [], error: err.message?.slice(0, 100) });
-    }
+  // Get catalogue items from the suggested section (or all if no section)
+  const conditions: any[] = [
+    eq(kazniisaProductsTable.versionId, current.id),
+    eq(kazniisaProductsTable.isGroupHeader, false),
+  ];
+  if (parsed.data.sectionCode) {
+    conditions.push(eq(kazniisaProductsTable.sectionCode, parsed.data.sectionCode));
   }
 
-  // Update session counts
-  await db
-    .update(kazniisaMatchSessionsTable)
-    .set({ matchedCount, reviewCount, noMatchCount })
-    .where(eq(kazniisaMatchSessionsTable.id, session.id));
+  const catalogueItems = await db
+    .select({ id: kazniisaProductsTable.id, code: kazniisaProductsTable.code, name: kazniisaProductsTable.name, unit: kazniisaProductsTable.unit, estimatedPrice: kazniisaProductsTable.estimatedPrice })
+    .from(kazniisaProductsTable)
+    .where(and(...conditions))
+    .orderBy(kazniisaProductsTable.code);
 
-  res.json({
-    sessionId: session.id,
-    filename: parsed.data.filename,
-    total: parsed.data.items.length,
-    matched: matchedCount,
-    review: reviewCount,
-    noMatch: noMatchCount,
-    results,
-  });
+  if (catalogueItems.length === 0) {
+    res.json({ matches: [], message: "No products in this section" });
+    return;
+  }
+
+  // Build catalogue list for AI (chunk if large)
+  const catList = catalogueItems.map((p, i) =>
+    `${i + 1}. [${p.code}] ${p.name} (${p.unit ?? "шт"}, ${p.estimatedPrice ?? "—"} тг)`
+  ).join("\n");
+
+  const itemList = parsed.data.items.map((name, i) => `${i + 1}. ${name}`).join("\n");
+
+  if (!process.env.STEPFUN_API_KEY) {
+    res.status(500).json({ error: "STEPFUN_API_KEY not configured" });
+    return;
+  }
+
+  try {
+    const llmResp = await fetch("https://api.stepfun.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.STEPFUN_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "step-3.7-flash",
+        messages: [
+          {
+            role: "system",
+            content: `You are a product matching assistant for КазНИИСА catalogue. Match requested items to catalogue products.
+
+Respond in JSON format:
+{
+  "matches": [
+    {
+      "inputIndex": 0,
+      "inputName": "original item name",
+      "catalogueIndex": number (1-based from catalogue list),
+      "confidence": "high"|"medium"|"low",
+      "reason": "Brief explanation in Russian why this matches"
+    }
+  ],
+  "unmatched": [indices of items with no good match],
+  "notes": "Optional notes in Russian about the matching"
+}
+
+Rules:
+- Match each input item to the BEST catalogue item (only one match per input)
+- "high" = exact or near-exact product match
+- "medium" = same type but different spec/size
+- "low" = loosely related, user should verify
+- If nothing in the catalogue fits, put the index in "unmatched"
+- Respond ONLY with valid JSON, no markdown.`
+          },
+          {
+            role: "user",
+            content: `Items to match:\n${itemList}\n\nCatalogue (${catalogueItems.length} products):\n${catList}`
+          },
+        ],
+        max_tokens: 3000,
+        temperature: 0,
+      }),
+    });
+
+    if (!llmResp.ok) {
+      const errText = await llmResp.text();
+      console.error("[ai-search] StepFun error:", llmResp.status, errText);
+      res.status(502).json({ error: `AI service error: ${llmResp.status}` });
+      return;
+    }
+
+    const llmData = await llmResp.json();
+    const content = llmData.choices?.[0]?.message?.content?.trim() ?? "";
+    const jsonStr = content.replace(/^```json?\s*/, "").replace(/\s*```$/, "");
+    const result = JSON.parse(jsonStr);
+
+    // Enrich matches with full product data
+    const enriched = (result.matches ?? []).map((m: any) => {
+      const catItem = catalogueItems[m.catalogueIndex - 1];
+      return {
+        ...m,
+        product: catItem ?? null,
+      };
+    });
+
+    res.json({
+      matches: enriched,
+      unmatched: result.unmatched ?? [],
+      notes: result.notes ?? null,
+    });
+  } catch (err: any) {
+    console.error("[ai-search] Error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ─── Match sessions (history) ───────────────────────────────────────────────
