@@ -177,7 +177,7 @@ router.post("/kazniisa/analyze", async (req, res): Promise<void> => {
   const sectionList = sections.map(s => `- ${s.sectionCode}: ${s.sectionName} (${s.count} товаров)`).join("\n");
 
   // Build item list for AI (truncate if huge)
-  const itemList = parsed.data.items.slice(0, 50).map((item, i) =>
+  const itemList = parsed.data.items.slice(0, 30).map((item, i) =>
     `${i + 1}. ${item.name}${item.quantity ? ` (${item.quantity} шт)` : ""}`
   ).join("\n");
 
@@ -193,36 +193,28 @@ router.post("/kazniisa/analyze", async (req, res): Promise<void> => {
         messages: [
           {
             role: "system",
-            content: `You are a procurement analyst. Analyze the uploaded item list and respond in JSON format:
+            content: `You are a procurement analyst. Analyze the item list and respond in compact JSON:
 {
-  "summary": "Brief description of the list (1-2 sentences, in Russian)",
-  "organizationType": "kindergarten|school|university|hospital|office|other",
-  "organizationTypeLabel": "Human-readable label in Russian (e.g. Детский сад)",
-  "listType": "procurement|inventory|supplier_offer|internal_request|other",
-  "listTypeLabel": "Human-readable label in Russian",
-  "totalItems": number,
+  "summary": "1 sentence in Russian",
+  "orgType": "Детский сад",
+  "listType": "Закупка",
   "groups": [
-    {
-      "name": "Group name in Russian (e.g. Мебель детская)",
-      "items": [indices of items, 0-based],
-      "suggestedSection": "КазНИИСА section code or null",
-      "suggestedSectionName": "section name or null"
-    }
+    {"name": "Group name", "itemNums": [1,2,5], "section": "521-1"}
   ]
 }
 
-Available КазНИИСА catalogue sections:
+itemNums = 1-based numbers from the list.
+section = best КазНИИСА section code from:
 ${sectionList}
 
-Group items by their functional category. Map each group to the most relevant КазНИИСА section.
-Respond ONLY with valid JSON, no markdown.`
+Keep groups to max 5-6. Respond ONLY valid JSON, no text.`
           },
           {
             role: "user",
             content: `File: "${parsed.data.filename}"\n\nItems:\n${itemList}`
           },
         ],
-        max_tokens: 4096,
+        max_tokens: 1500,
         temperature: 0,
       }),
     });

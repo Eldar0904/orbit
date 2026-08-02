@@ -17,18 +17,14 @@ type ParsedItem = {
 
 type AnalysisGroup = {
   name: string;
-  items: number[];
-  suggestedSection: string | null;
-  suggestedSectionName: string | null;
+  itemNums: number[];
+  section: string | null;
 };
 
 type Analysis = {
   summary: string;
-  organizationType: string;
-  organizationTypeLabel: string;
+  orgType: string;
   listType: string;
-  listTypeLabel: string;
-  totalItems: number;
   groups: AnalysisGroup[];
 };
 
@@ -195,7 +191,7 @@ export function MatchingTab() {
   async function searchGroup(groupIdx: number) {
     if (!analysis) return;
     const group = analysis.groups[groupIdx];
-    const groupItems = group.items.map((i) => items[i]?.name).filter(Boolean);
+    const groupItems = group.itemNums.map((n) => items[n - 1]?.name).filter(Boolean);
 
     setActiveGroup(groupIdx);
     setLoading(true);
@@ -207,7 +203,7 @@ export function MatchingTab() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           items: groupItems,
-          sectionCode: group.suggestedSection,
+          sectionCode: group.section,
         }),
       });
 
@@ -314,9 +310,9 @@ export function MatchingTab() {
               <div className="flex gap-4 flex-wrap">
                 <Badge variant="secondary" className="gap-1.5">
                   <Building2 className="w-3.5 h-3.5" />
-                  {analysis.organizationTypeLabel}
+                  {analysis.orgType}
                 </Badge>
-                <Badge variant="secondary">{analysis.listTypeLabel}</Badge>
+                <Badge variant="secondary">{analysis.listType}</Badge>
                 <Badge variant="outline">{items.length} позиций</Badge>
                 <Badge variant="outline">{analysis.groups.length} групп</Badge>
               </div>
@@ -329,7 +325,7 @@ export function MatchingTab() {
             {analysis.groups.map((group, idx) => {
               const matchState = groupMatches[idx];
               const confirmedCount = matchState?.confirmed.size ?? 0;
-              const total = group.items.length;
+              const total = group.itemNums.length;
 
               return (
                 <Card key={idx} className="hover:shadow-sm transition-shadow">
@@ -343,9 +339,9 @@ export function MatchingTab() {
                             <Badge className="bg-green-500 text-xs">{confirmedCount}/{total} ✓</Badge>
                           )}
                         </div>
-                        {group.suggestedSectionName && (
+                        {group.section && (
                           <p className="text-xs text-muted-foreground mt-1">
-                            → КазНИИСА: {group.suggestedSection} {group.suggestedSectionName}
+                            → КазНИИСА: {group.section}
                           </p>
                         )}
                       </div>
@@ -449,7 +445,7 @@ export function MatchingTab() {
                 <div className="space-y-1">
                   {groupMatches[activeGroup].unmatched.map((itemIdx) => {
                     const group = analysis?.groups[activeGroup];
-                    const realIdx = group?.items[itemIdx];
+                    const realIdx = group?.itemNums[itemIdx] ? group.itemNums[itemIdx] - 1 : undefined;
                     const itemName = realIdx !== undefined ? items[realIdx]?.name : `Item ${itemIdx}`;
                     return (
                       <div key={itemIdx} className="text-sm text-muted-foreground">• {itemName}</div>
