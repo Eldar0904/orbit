@@ -189,7 +189,7 @@ router.post("/kazniisa/analyze", async (req, res): Promise<void> => {
         "Authorization": `Bearer ${process.env.NOUS_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "stepfun-ai/Step-3.7-Flash",
+        model: "stepfun/step-3.7-flash:free",
         messages: [
           {
             role: "system",
@@ -317,7 +317,7 @@ router.post("/kazniisa/ai-search", async (req, res): Promise<void> => {
         "Authorization": `Bearer ${process.env.NOUS_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "stepfun-ai/Step-3.7-Flash",
+        model: "stepfun/step-3.7-flash:free",
         messages: [
           {
             role: "system",
