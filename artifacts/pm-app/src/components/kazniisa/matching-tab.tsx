@@ -17,8 +17,7 @@ type ParsedItem = {
 
 type AnalysisGroup = {
   name: string;
-  itemNums: number[];
-  section: string | null;
+  section: string;
 };
 
 type Analysis = {
@@ -192,7 +191,8 @@ export function MatchingTab() {
   async function searchGroup(groupIdx: number) {
     if (!analysis) return;
     const group = analysis.groups[groupIdx];
-    const groupItems = group.itemNums.map((n) => items[n - 1]?.name).filter(Boolean);
+    // Send all items — the AI will match what it can within this section
+    const groupItems = items.map((item) => item.name);
 
     setActiveGroup(groupIdx);
     setLoading(true);
@@ -390,7 +390,6 @@ export function MatchingTab() {
             {analysis.groups.map((group, idx) => {
               const matchState = groupMatches[idx];
               const confirmedCount = matchState?.confirmed.size ?? 0;
-              const total = group.itemNums.length;
 
               return (
                 <Card key={idx} className="hover:shadow-sm transition-shadow">
@@ -399,9 +398,8 @@ export function MatchingTab() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <span className="font-medium">{group.name}</span>
-                          <Badge variant="outline" className="text-xs">{total} шт</Badge>
                           {confirmedCount > 0 && (
-                            <Badge className="bg-green-500 text-xs">{confirmedCount}/{total} ✓</Badge>
+                            <Badge className="bg-green-500 text-xs">{confirmedCount} ✓</Badge>
                           )}
                         </div>
                         {group.section && (
@@ -516,9 +514,7 @@ export function MatchingTab() {
                 </p>
                 <div className="space-y-1">
                   {groupMatches[activeGroup].unmatched.map((itemIdx) => {
-                    const group = analysis?.groups[activeGroup];
-                    const realIdx = group?.itemNums[itemIdx] ? group.itemNums[itemIdx] - 1 : undefined;
-                    const itemName = realIdx !== undefined ? items[realIdx]?.name : `Item ${itemIdx}`;
+                    const itemName = items[itemIdx]?.name ?? `Item ${itemIdx + 1}`;
                     return (
                       <div key={itemIdx} className="text-sm text-muted-foreground">• {itemName}</div>
                     );

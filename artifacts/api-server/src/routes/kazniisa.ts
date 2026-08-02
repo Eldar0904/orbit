@@ -177,7 +177,7 @@ router.post("/kazniisa/analyze", async (req, res): Promise<void> => {
   const sectionList = sections.map(s => `- ${s.sectionCode}: ${s.sectionName} (${s.count} товаров)`).join("\n");
 
   // Build item list for AI (truncate if huge)
-  const itemList = parsed.data.items.slice(0, 30).map((item, i) =>
+  const itemList = parsed.data.items.slice(0, 15).map((item, i) =>
     `${i + 1}. ${item.name}${item.quantity ? ` (${item.quantity} шт)` : ""}`
   ).join("\n");
 
@@ -193,28 +193,26 @@ router.post("/kazniisa/analyze", async (req, res): Promise<void> => {
         messages: [
           {
             role: "system",
-            content: `You are a procurement analyst. Analyze the item list and respond in compact JSON:
-{
-  "summary": "1 sentence in Russian",
-  "orgType": "Детский сад",
-  "listType": "Закупка",
-  "groups": [
-    {"name": "Group name", "itemNums": [1,2,5], "section": "521-1"}
-  ]
-}
+            content: `Categorize this procurement list. Reply ONLY in this exact JSON format, nothing else:
+{"summary":"описание на русском","orgType":"тип организации","listType":"тип списка","groups":[{"name":"название группы","section":"код"}]}
 
-itemNums = 1-based numbers from the list.
-section = best КазНИИСА section code from:
+Available section codes:
 ${sectionList}
 
-Keep groups to max 5-6. Respond ONLY valid JSON, no text.`
+Rules:
+- summary: 1 sentence describing the list in Russian
+- orgType: type of organization in Russian (Детский сад, Школа, etc)
+- listType: type of list in Russian (Закупка, Инвентаризация, etc)
+- groups: 3-5 categories, each with a name in Russian and a section code
+- DO NOT include item numbers, just group names
+- Output ONLY the JSON object, no markdown, no explanation`
           },
           {
             role: "user",
-            content: `File: "${parsed.data.filename}"\n\nItems:\n${itemList}`
+            content: `File: ${parsed.data.filename}\n${itemList}`
           },
         ],
-        max_tokens: 1500,
+        max_tokens: 500,
         temperature: 0,
       }),
     });
