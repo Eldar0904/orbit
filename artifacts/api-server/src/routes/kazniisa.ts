@@ -189,7 +189,7 @@ router.post("/kazniisa/analyze", async (req, res): Promise<void> => {
         "Authorization": `Bearer ${process.env.NOUS_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "stepfun/step-3.7-flash:free",
+        model: "deepseek/deepseek-v4-flash-0731",
         messages: [
           {
             role: "system",
@@ -334,7 +334,7 @@ router.post("/kazniisa/ai-search", async (req, res): Promise<void> => {
         "Authorization": `Bearer ${process.env.NOUS_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "stepfun/step-3.7-flash:free",
+        model: "deepseek/deepseek-v4-flash-0731",
         messages: [
           {
             role: "system",
