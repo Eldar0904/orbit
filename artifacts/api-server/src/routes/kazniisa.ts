@@ -179,23 +179,36 @@ router.post("/kazniisa/match", async (req, res): Promise<void> => {
   for (const item of parsed.data.items) {
     // Combine name + description + searchText for better matching
     const queryParts = [item.name, item.description, item.searchText].filter(Boolean).join(" ");
-    const normalizedQuery = queryParts
-      .toLowerCase()
-      .replace(/[^\p{L}\p{N}\s]/gu, " ")
-      .replace(/\s+/g, " ")
-      .trim()
-      .slice(0, 300); // pg_trgm works best with shorter queries
+    const queryText = queryParts.slice(0, 500);
 
-    if (!normalizedQuery) {
+    if (!queryText.trim()) {
       noMatchCount++;
       results.push({ input: item.name, candidates: [] });
       continue;
     }
 
-    const safeCode = item.code?.trim().toLowerCase() ?? "";
-    const hasCode = safeCode.length > 0;
-
     try {
+      // Embed the query using Jina
+      const embedResp = await fetch("https://api.jina.ai/v1/embeddings", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.JINA_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "jina-embeddings-v5-text-small",
+          input: [queryText],
+          task: "retrieval.query",
+          dimensions: 1024,
+        }),
+      });
+
+      if (!embedResp.ok) throw new Error(`Jina API error: ${embedResp.status}`);
+      const embedData = await embedResp.json();
+      const queryVec = embedData.data[0].embedding;
+      const vecStr = `[${queryVec.join(",")}]`;
+
+      // Vector similarity search
       const candidates = await db.execute<{
         id: number;
         code: string;
@@ -206,36 +219,25 @@ router.post("/kazniisa/match", async (req, res): Promise<void> => {
         description: string | null;
         image_url: string | null;
         section_name: string | null;
-        score: number;
+        distance: number;
       }>(sql`
         SELECT
           p.id, p.code, p.name, p.unit, p.weight_kg, p.estimated_price,
           p.description, p.image_url, p.section_name,
-          (
-            COALESCE(similarity(p.normalized_text, ${normalizedQuery}), 0) * 0.55
-            + LEAST(COALESCE(ts_rank(
-                to_tsvector('simple', COALESCE(p.normalized_text, '')),
-                plainto_tsquery('simple', ${normalizedQuery})
-              ), 0) * 2.5, 1.0) * 0.30
-            + CASE WHEN ${hasCode} AND p.code IS NOT NULL
-                   AND lower(trim(p.code)) = ${safeCode}
-              THEN 1.0 ELSE 0.0 END * 0.15
-          ) AS score
+          (p.embedding <=> ${vecStr}::vector) AS distance
         FROM kazniisa_products p
         WHERE p.version_id = ${current.id}
           AND p.is_group_header = false
-          AND (
-            similarity(p.normalized_text, ${normalizedQuery}) > 0.1
-            OR to_tsvector('simple', COALESCE(p.normalized_text, ''))
-               @@ plainto_tsquery('simple', ${normalizedQuery})
-            ${hasCode ? sql`OR lower(trim(p.code)) = ${safeCode}` : sql``}
-          )
-        ORDER BY score DESC
+          AND p.embedding IS NOT NULL
+        ORDER BY p.embedding <=> ${vecStr}::vector
         LIMIT 3
       `);
 
       const rows = (candidates.rows ?? candidates ?? []) as any[];
-      const filtered = rows.filter((r: any) => r.score >= 0.20);
+      // Convert distance to similarity score (1 - distance for cosine)
+      const filtered = rows
+        .map((r: any) => ({ ...r, score: Math.max(0, 1 - r.distance) }))
+        .filter((r: any) => r.score >= 0.40);
 
       if (filtered.length > 0 && filtered[0].score >= 0.55) {
         matchedCount++;
