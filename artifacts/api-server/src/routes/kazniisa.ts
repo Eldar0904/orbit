@@ -149,8 +149,8 @@ router.post("/kazniisa/analyze", async (req, res): Promise<void> => {
     return;
   }
 
-  if (!process.env.STEPFUN_API_KEY) {
-    res.status(500).json({ error: "STEPFUN_API_KEY not configured" });
+  if (!process.env.NOUS_API_KEY) {
+    res.status(500).json({ error: "NOUS_API_KEY not configured" });
     return;
   }
 
@@ -182,14 +182,14 @@ router.post("/kazniisa/analyze", async (req, res): Promise<void> => {
   ).join("\n");
 
   try {
-    const llmResp = await fetch("https://api.stepfun.com/v1/chat/completions", {
+    const llmResp = await fetch("https://inference-api.nousresearch.com/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.STEPFUN_API_KEY}`,
+        "Authorization": `Bearer ${process.env.NOUS_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "step-3.7-flash",
+        model: "stepfun-ai/Step-3.7-Flash",
         messages: [
           {
             role: "system",
@@ -304,20 +304,20 @@ router.post("/kazniisa/ai-search", async (req, res): Promise<void> => {
 
   const itemList = parsed.data.items.map((name, i) => `${i + 1}. ${name}`).join("\n");
 
-  if (!process.env.STEPFUN_API_KEY) {
-    res.status(500).json({ error: "STEPFUN_API_KEY not configured" });
+  if (!process.env.NOUS_API_KEY) {
+    res.status(500).json({ error: "NOUS_API_KEY not configured" });
     return;
   }
 
   try {
-    const llmResp = await fetch("https://api.stepfun.com/v1/chat/completions", {
+    const llmResp = await fetch("https://inference-api.nousresearch.com/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.STEPFUN_API_KEY}`,
+        "Authorization": `Bearer ${process.env.NOUS_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "step-3.7-flash",
+        model: "stepfun-ai/Step-3.7-Flash",
         messages: [
           {
             role: "system",
