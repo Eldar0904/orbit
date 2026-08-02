@@ -130,50 +130,44 @@ export default function ImportMatchPage() {
   // ─── Load catalogue from Supabase on mount ────────────────────────────
 
   useEffect(() => {
-    loadCatalogFromApi();
-  }, [sources]);
+    if (sources?.length) {
+      setActiveSourceId(sources[0].id);
+      setCatalogLoading(false);
+      fetchCatalogPage(0, sources[0].id);
+    } else {
+      setCatalogLoading(false);
+    }
+  }, [sources]); // eslint-disable-line
 
-  const loadCatalogFromApi = async () => {
-    if (!sources?.length) { setCatalogLoading(false); return; }
-    // Use the first (most recent) active source
-    const source = sources[0];
-    setActiveSourceId(source.id);
+  const fetchCatalogPage = async (page: number, srcId?: number) => {
+    const sid = srcId ?? activeSourceId;
+    if (!sid) return;
     setCatalogLoading(true);
     try {
-      // Fetch all products (paginated)
-      const allProducts: CatalogProduct[] = [];
-      let offset = 0;
-      const limit = 200;
-      let hasMore = true;
-      while (hasMore) {
-        const resp = await fetch(`/api/kb/sources/${source.id}/products?limit=${limit}&offset=${offset}`);
-        if (!resp.ok) break;
-        const data = await resp.json();
-        const rows = Array.isArray(data) ? data : data.products ?? data.rows ?? [];
-        if (rows.length === 0) { hasMore = false; break; }
-        allProducts.push(...rows.map((r: any) => ({
-          id: r.id,
-          name: r.name,
-          code: r.code ?? null,
-          description: r.description ?? null,
-          technicalSpecs: r.technicalSpecs ?? r.technical_specs ?? null,
-          unit: r.unit ?? null,
-          price: r.price ?? null,
-          categoryName: r.categoryName ?? r.category_name ?? null,
-        })));
-        offset += limit;
-        if (rows.length < limit) hasMore = false;
-      }
-      // Assign categories client-side if not already set
-      for (const p of allProducts) {
+      const resp = await fetch(`/api/kb/sources/${sid}/products?limit=${PAGE_SIZE}&offset=${page * PAGE_SIZE}&search=${encodeURIComponent(catalogSearch)}`);
+      if (!resp.ok) throw new Error("Failed to load");
+      const data = await resp.json();
+      const rows = Array.isArray(data) ? data : data.products ?? data.rows ?? [];
+      const products: CatalogProduct[] = rows.map((r: any) => ({
+        id: r.id,
+        name: r.name,
+        code: r.code ?? null,
+        description: r.description ?? null,
+        technicalSpecs: r.technicalSpecs ?? r.technical_specs ?? null,
+        unit: r.unit ?? null,
+        price: r.price ?? null,
+        categoryName: r.categoryName ?? r.category_name ?? null,
+      }));
+      for (const p of products) {
         if (!p.categoryName) {
           const cat = detectCategory(p.name);
           p.categoryName = cat.label;
         }
       }
-      setCatalogProducts(allProducts);
-    } catch {
-      // Silent fail — catalogue just won't show
+      setCatalogProducts(products);
+      setCatalogPage(page);
+    } catch (err) {
+      // silent
     } finally {
       setCatalogLoading(false);
     }
@@ -181,26 +175,17 @@ export default function ImportMatchPage() {
 
   // ─── Filtered catalogue ─────────────────────────────────────────────────
 
+  // Client-side category filter on the already-fetched page
   const filteredCatalog = useMemo(() => {
-    let items = catalogProducts;
-    if (activeCategory !== "all") {
-      const cat = CATEGORIES.find((c) => c.id === activeCategory);
-      if (cat) items = items.filter((p) => p.categoryName === cat.label);
-    }
-    if (catalogSearch.trim()) {
-      const q = catalogSearch.toLowerCase();
-      items = items.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) ||
-          (p.code ?? "").toLowerCase().includes(q) ||
-          (p.description ?? "").toLowerCase().includes(q),
-      );
-    }
-    return items;
-  }, [catalogProducts, catalogSearch, activeCategory]);
+    if (activeCategory === "all") return catalogProducts;
+    const cat = CATEGORIES.find((c) => c.id === activeCategory);
+    if (!cat) return catalogProducts;
+    return catalogProducts.filter((p) => p.categoryName === cat.label);
+  }, [catalogProducts, activeCategory]);
 
-  const totalPages = Math.ceil(filteredCatalog.length / PAGE_SIZE);
-  const pagedCatalog = filteredCatalog.slice(catalogPage * PAGE_SIZE, (catalogPage + 1) * PAGE_SIZE);
+  // With server-side pagination, we show whatever the server returned
+  const pagedCatalog = filteredCatalog;
+  const hasMore = catalogProducts.length >= PAGE_SIZE; // if we got a full page, there may be more
 
   // Category counts
   const categoryCounts = useMemo(() => {
@@ -472,7 +457,9 @@ export default function ImportMatchPage() {
                 placeholder="Поиск по каталогу..."
                 className="pl-9"
                 value={catalogSearch}
-                onChange={(e) => { setCatalogSearch(e.target.value); setCatalogPage(0); }}
+                onChange={(e) => { setCatalogSearch(e.target.value); }}
+                onKeyDown={(e) => { if (e.key === "Enter") fetchCatalogPage(0); }}
+                onBlur={() => fetchCatalogPage(0)}
               />
             </div>
           </div>
@@ -516,14 +503,14 @@ export default function ImportMatchPage() {
                   </tbody>
                 </table>
               </div>
-              {totalPages > 1 && (
+              {(catalogPage > 0 || hasMore) && (
                 <div className="p-3 border-t flex items-center justify-between text-sm text-muted-foreground">
-                  <span>Показано {catalogPage * PAGE_SIZE + 1}–{Math.min((catalogPage + 1) * PAGE_SIZE, filteredCatalog.length)} из {filteredCatalog.length}</span>
+                  <span>Страница {catalogPage + 1}</span>
                   <div className="flex gap-1">
-                    <Button size="sm" variant="ghost" disabled={catalogPage === 0} onClick={() => setCatalogPage((p) => p - 1)}>
+                    <Button size="sm" variant="ghost" disabled={catalogPage === 0} onClick={() => fetchCatalogPage(catalogPage - 1)}>
                       <ChevronLeft className="w-4 h-4" />
                     </Button>
-                    <Button size="sm" variant="ghost" disabled={catalogPage >= totalPages - 1} onClick={() => setCatalogPage((p) => p + 1)}>
+                    <Button size="sm" variant="ghost" disabled={!hasMore} onClick={() => fetchCatalogPage(catalogPage + 1)}>
                       <ChevronRight className="w-4 h-4" />
                     </Button>
                   </div>
