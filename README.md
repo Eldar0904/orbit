@@ -1,6 +1,6 @@
-# Orbit
+# PINE B2B
 
-Project management workspace for fitout and construction teams. Track projects through staged delivery (P1–P6), assign tasks, manage team workload, register documents, and run the sourcing workflow (catalog matching → suppliers → commercial offer → procurement).
+PINE B2B is a project management workspace for fitout and construction teams. Track projects through staged delivery (P1–P6), assign tasks, manage team workload, register documents, and run the sourcing workflow (catalog matching → suppliers → commercial offer → procurement).
 
 Originally exported from [Replit](https://replit.com); evolved from the **B2B Fitout Dashboard** prototype. See [docs/B2B_REFERENCE.md](./docs/B2B_REFERENCE.md) for phase definitions, AI roadmap, and architecture mapping.
 

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400..800;1,400..800&family=Spline+Sans+Mono:ital,wght@0,400..700;1,400..700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&family=Spline+Sans+Mono:wght@400..700&display=swap');
 @layer theme, base, clerk, components, utilities;
 @import 'tailwindcss';
 @import 'tw-animate-css';
@@ -58,8 +58,16 @@
   --color-sidebar-accent-border: var(--sidebar-accent-border);
   --color-sidebar-ring: hsl(var(--sidebar-ring));
 
+  --color-pine: #3b898e;
+  --color-pine-deep: #286a6e;
+  --color-pine-ink: #173b3d;
+  --color-pine-muted: #587375;
+  --color-sand: #d6a58c;
+  --color-sand-deep: #bc7f5f;
+
   --font-sans: var(--app-font-sans);
   --font-mono: var(--app-font-mono);
+  --font-display: var(--app-font-display);
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -77,54 +85,55 @@
   --elevate-1: rgba(0, 0, 0, 0.03);
   --elevate-2: rgba(0, 0, 0, 0.08);
 
-  --background: 210 20% 98%; 
-  --foreground: 222 47% 11%;
+  --background: 48 24% 97%;
+  --foreground: 183 45% 16%;
 
-  --border: 214 32% 91%;
+  --border: 36 18% 87%;
 
   --card: 0 0% 100%;
-  --card-foreground: 222 47% 11%;
-  --card-border: 214 32% 91%;
+  --card-foreground: 183 45% 16%;
+  --card-border: 36 18% 87%;
 
   --sidebar: 0 0% 100%;
-  --sidebar-foreground: 222 47% 11%;
-  --sidebar-border: 214 32% 91%;
-  --sidebar-primary: 221 83% 53%;
+  --sidebar-foreground: 183 45% 16%;
+  --sidebar-border: 36 18% 87%;
+  --sidebar-primary: 183 41% 39%;
   --sidebar-primary-foreground: 210 40% 98%;
   --sidebar-accent: 214 32% 96%;
   --sidebar-accent-foreground: 222 47% 11%;
-  --sidebar-ring: 221 83% 53%;
+  --sidebar-ring: 183 41% 39%;
 
   --popover: 0 0% 100%;
-  --popover-foreground: 222 47% 11%;
-  --popover-border: 214 32% 91%;
+  --popover-foreground: 183 45% 16%;
+  --popover-border: 36 18% 87%;
 
-  --primary: 243 75% 59%;
+  --primary: 183 41% 39%;
   --primary-foreground: 210 40% 98%;
 
-  --secondary: 214 32% 96%;
-  --secondary-foreground: 222 47% 11%;
+  --secondary: 20 44% 91%;
+  --secondary-foreground: 183 45% 16%;
 
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
+  --muted: 40 20% 94%;
+  --muted-foreground: 183 14% 40%;
 
-  --accent: 214 32% 96%;
-  --accent-foreground: 222 47% 11%;
+  --accent: 20 44% 91%;
+  --accent-foreground: 183 45% 16%;
 
   --destructive: 348 83% 47%;
   --destructive-foreground: 210 40% 98%;
 
-  --input: 214 32% 91%;
-  --ring: 243 75% 59%;
+  --input: 36 18% 84%;
+  --ring: 183 41% 39%;
   
-  --chart-1: 243 75% 59%;
-  --chart-2: 348 83% 47%;
-  --chart-3: 142 71% 45%;
-  --chart-4: 39 100% 50%;
-  --chart-5: 275 80% 60%;
+  --chart-1: 183 41% 39%;
+  --chart-2: 20 44% 69%;
+  --chart-3: 185 52% 27%;
+  --chart-4: 21 38% 52%;
+  --chart-5: 173 24% 60%;
 
-  --app-font-sans: 'Plus Jakarta Sans', sans-serif;
+  --app-font-sans: 'Montserrat', sans-serif;
   --app-font-mono: 'Spline Sans Mono', monospace;
+  --app-font-display: 'Playfair Display', serif;
   
   --radius: 0.25rem; 
   --shadow-2xs: 0px 2px 0px 0px rgba(0,0,0,0.02);
@@ -161,17 +170,17 @@
   --sidebar: 222 47% 11%;
   --sidebar-foreground: 210 40% 98%;
   --sidebar-border: 217 33% 17%;
-  --sidebar-primary: 243 75% 59%;
+  --sidebar-primary: 183 41% 45%;
   --sidebar-primary-foreground: 210 40% 98%;
   --sidebar-accent: 217 33% 17%;
   --sidebar-accent-foreground: 210 40% 98%;
-  --sidebar-ring: 243 75% 59%;
+  --sidebar-ring: 183 41% 45%;
 
   --popover: 222 47% 11%;
   --popover-foreground: 210 40% 98%;
   --popover-border: 217 33% 17%;
 
-  --primary: 243 75% 59%;
+  --primary: 183 41% 45%;
   --primary-foreground: 210 40% 98%;
 
   --secondary: 217 33% 17%;
@@ -187,13 +196,13 @@
   --destructive-foreground: 210 40% 98%;
 
   --input: 217 33% 17%;
-  --ring: 243 75% 59%;
+  --ring: 183 41% 45%;
 
-  --chart-1: 243 75% 59%;
-  --chart-2: 348 83% 47%;
-  --chart-3: 142 71% 45%;
-  --chart-4: 39 100% 50%;
-  --chart-5: 275 80% 60%;
+  --chart-1: 183 41% 55%;
+  --chart-2: 20 44% 69%;
+  --chart-3: 173 24% 60%;
+  --chart-4: 21 38% 52%;
+  --chart-5: 190 32% 70%;
 }
 
 @layer base {
@@ -204,4 +213,17 @@
   body {
     @apply font-sans antialiased bg-background text-foreground;
   }
+}
+
+.pine-pattern::before {
+  content: "";
+  position: absolute;
+  inset: -10%;
+  opacity: 0.14;
+  background-image:
+    radial-gradient(circle at center, white 0 2px, transparent 2.5px),
+    linear-gradient(45deg, transparent 43%, white 44% 48%, transparent 49%),
+    linear-gradient(-45deg, transparent 43%, white 44% 48%, transparent 49%);
+  background-size: 74px 74px;
+  transform: rotate(-6deg) scale(1.1);
 }

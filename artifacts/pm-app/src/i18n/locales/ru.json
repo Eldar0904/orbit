@@ -8,13 +8,22 @@
     "team": "Команда"
   },
   "landing": {
+    "eyebrow": "Для проектов под ключ",
+    "workspace": "Пространство PINE B2B",
+    "panelTitle": "От первого брифа до финальной сдачи.",
+    "panelBody": "Управляйте каждым этапом, решением, документом и поставщиком в единой системе реализации проектов.",
+    "features": {
+      "projects": "Контроль проектов P1–P6",
+      "catalogs": "Умные каталоги",
+      "delivery": "Прозрачная работа команды"
+    },
     "headline": "Оснащение объектов под ключ",
     "subheadline": "Рабочее пространство команды B2B",
     "signIn": "Войти",
     "createAccount": "Создать аккаунт"
   },
   "common": {
-    "appName": "PINE Orbit",
+    "appName": "PINE B2B",
     "user": "Пользователь",
     "signOut": "Выйти",
     "language": "Язык",
@@ -25,7 +34,7 @@
     "search": "Поиск",
     "create": "Создать",
     "edit": "Редактировать",
-    "loading": "Загрузка PINE Orbit…",
+    "loading": "Загрузка PINE B2B…",
     "noDescription": "Без описания",
     "viewAll": "Смотреть все",
     "open": "Открыть",
@@ -49,9 +58,9 @@
     "adding": "Добавление…"
   },
   "auth": {
-    "signInTitle": "С возвращением в PINE Orbit",
+    "signInTitle": "С возвращением в PINE B2B",
     "signInSubtitle": "Войдите в рабочее пространство",
-    "signUpTitle": "Создайте аккаунт PINE Orbit",
+    "signUpTitle": "Создайте аккаунт PINE B2B",
     "signUpSubtitle": "Запустите работу команды уже сегодня",
     "authFailedTitle": "Не удалось загрузить аутентификацию",
     "authFailedBody": "Для production-ключей (pk_live_) добавьте URL сайта в Clerk → Domains и укажите VITE_CLERK_PROXY_URL=/api/__clerk. Для тестовых ключей удалите переменную proxy на Vercel."

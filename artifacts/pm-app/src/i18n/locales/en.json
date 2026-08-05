@@ -8,13 +8,22 @@
     "team": "Team"
   },
   "landing": {
-    "headline": "Turnkey object fit-out",
-    "subheadline": "B2B team workspace",
+    "eyebrow": "Built for turnkey delivery",
+    "headline": "Every project, moving as one.",
+    "subheadline": "PINE B2B brings projects, teams, specifications, catalogs, and sourcing into one clear delivery workspace.",
     "signIn": "Sign in",
-    "createAccount": "Create account"
+    "createAccount": "Enter workspace",
+    "workspace": "PINE B2B workspace",
+    "panelTitle": "From first brief to final handover.",
+    "panelBody": "Keep every stage, decision, document, and supplier aligned in a single operating system for project delivery.",
+    "features": {
+      "projects": "P1–P6 project control",
+      "catalogs": "Catalog intelligence",
+      "delivery": "Team delivery clarity"
+    }
   },
   "common": {
-    "appName": "PINE Orbit",
+    "appName": "PINE B2B",
     "user": "User",
     "signOut": "Sign out",
     "language": "Language",
@@ -25,7 +34,7 @@
     "search": "Search",
     "create": "Create",
     "edit": "Edit",
-    "loading": "Loading PINE Orbit…",
+    "loading": "Loading PINE B2B…",
     "noDescription": "No description",
     "viewAll": "View all",
     "open": "Open",
@@ -49,9 +58,9 @@
     "adding": "Adding…"
   },
   "auth": {
-    "signInTitle": "Welcome back to PINE Orbit",
+    "signInTitle": "Welcome back to PINE B2B",
     "signInSubtitle": "Sign in to your workspace",
-    "signUpTitle": "Create your PINE Orbit account",
+    "signUpTitle": "Create your PINE B2B account",
     "signUpSubtitle": "Get your team up and running today",
     "authFailedTitle": "Authentication failed to load",
     "authFailedBody": "For production (pk_live_) keys, add this site URL in Clerk → Domains and keep VITE_CLERK_PROXY_URL=/api/__clerk. For test keys, remove the proxy env var on Vercel."

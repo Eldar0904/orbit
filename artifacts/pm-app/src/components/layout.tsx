@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { useClerk, useUser } from "@clerk/react";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { BrandLogo } from "@/components/brand-logo";
 
 const NAV_ITEMS = [
   { href: "/dashboard", labelKey: "nav.dashboard", icon: LayoutDashboard, testId: "dashboard" },
@@ -25,12 +26,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen w-full bg-background text-foreground">
-      <aside className="w-64 flex-shrink-0 border-r border-border bg-card flex flex-col hidden md:flex">
-        <div className="h-14 flex items-center px-4 font-bold text-lg tracking-tight text-foreground border-b border-border gap-2">
-          <div className="w-6 h-6 rounded bg-primary flex items-center justify-center text-primary-foreground">
-            <div className="w-2 h-2 rounded-sm bg-white" />
-          </div>
-          {t("common.appName")}
+      <aside className="hidden w-64 flex-shrink-0 flex-col border-r border-pine-deep bg-pine md:flex">
+        <div className="flex h-20 items-center border-b border-white/15 px-5">
+          <BrandLogo inverse imageClassName="h-7" />
         </div>
 
         <div className="flex-1 py-4 flex flex-col gap-1 px-3">
@@ -45,8 +43,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
                   className={cn(
                     "flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md cursor-pointer transition-colors",
                     isActive
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                      ? "bg-white text-pine-deep shadow-sm"
+                      : "text-white/75 hover:bg-white/10 hover:text-white",
                   )}
                   data-testid={`nav-${item.testId}`}
                 >
@@ -58,35 +56,35 @@ export function AppLayout({ children }: { children: ReactNode }) {
           })}
         </div>
 
-        <div className="border-t border-border p-3 space-y-3">
+        <div className="space-y-3 border-t border-white/15 p-3 text-white">
           <LanguageSwitcher />
           <div className="flex items-center gap-3 px-2 py-2">
             {user?.imageUrl ? (
               <img
                 src={user.imageUrl}
                 alt={user.fullName ?? t("common.user")}
-                className="w-7 h-7 rounded-full object-cover flex-shrink-0"
+                className="h-8 w-8 flex-shrink-0 rounded-full object-cover ring-2 ring-white/30"
               />
             ) : (
-              <div className="w-7 h-7 rounded-full bg-primary/15 flex items-center justify-center flex-shrink-0">
-                <span className="text-xs font-semibold text-primary">
+              <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-white/15">
+                <span className="text-xs font-semibold text-white">
                   {user?.firstName?.[0] ?? user?.emailAddresses?.[0]?.emailAddress?.[0]?.toUpperCase() ?? "?"}
                 </span>
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">
+              <p className="truncate text-sm font-medium text-white">
                 {user?.fullName ?? user?.emailAddresses?.[0]?.emailAddress ?? ""}
               </p>
               {user?.fullName && (
-                <p className="text-xs text-muted-foreground truncate">
+                <p className="truncate text-xs text-white/60">
                   {user.emailAddresses?.[0]?.emailAddress ?? ""}
                 </p>
               )}
             </div>
             <button
               onClick={() => signOut({ redirectUrl: basePath || "/" })}
-              className="flex-shrink-0 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              className="flex-shrink-0 rounded-md p-1.5 text-white/65 transition-colors hover:bg-white/10 hover:text-white"
               title={t("common.signOut")}
             >
               <LogOut className="w-4 h-4" />
@@ -96,13 +94,13 @@ export function AppLayout({ children }: { children: ReactNode }) {
       </aside>
 
       <main className="flex-1 flex flex-col min-w-0">
-        <header className="h-14 flex md:hidden items-center justify-between px-4 border-b border-border bg-card gap-3">
-          <span className="font-bold text-lg">{t("common.appName")}</span>
+        <header className="flex h-16 items-center justify-between gap-3 border-b border-pine-deep bg-pine px-4 md:hidden">
+          <BrandLogo inverse imageClassName="h-7" />
           <div className="flex items-center gap-2">
             <LanguageSwitcher compact />
             <button
               onClick={() => signOut({ redirectUrl: basePath || "/" })}
-              className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              className="rounded-md p-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
               title={t("common.signOut")}
             >
               <LogOut className="w-4 h-4" />

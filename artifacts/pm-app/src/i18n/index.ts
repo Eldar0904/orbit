@@ -4,7 +4,7 @@ import en from "./locales/en.json";
 import ru from "./locales/ru.json";
 import kk from "./locales/kk.json";
 
-export const LOCALE_STORAGE_KEY = "orbit-locale";
+export const LOCALE_STORAGE_KEY = "pine-b2b-locale";
 export const SUPPORTED_LOCALES = ["ru", "en", "kk"] as const;
 export type AppLocale = (typeof SUPPORTED_LOCALES)[number];
 

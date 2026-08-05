@@ -58,12 +58,12 @@ function AuthShell({ children }: { children: ReactNode }) {
   return (
     <>
       <ClerkLoading>
-        <div className="flex min-h-[100dvh] items-center justify-center bg-gradient-to-br from-slate-50 via-indigo-50/30 to-slate-100">
+        <div className="flex min-h-[100dvh] items-center justify-center bg-[#f8f7f3]">
           <p className="text-sm text-slate-500">{t("common.loading")}</p>
         </div>
       </ClerkLoading>
       <ClerkFailed>
-        <div className="flex min-h-[100dvh] items-center justify-center bg-gradient-to-br from-slate-50 via-indigo-50/30 to-slate-100 px-4">
+        <div className="flex min-h-[100dvh] items-center justify-center bg-[#f8f7f3] px-4">
           <div className="max-w-md rounded-2xl border border-red-200 bg-white p-6 text-center shadow-sm">
             <h1 className="text-lg font-semibold text-slate-900">
               {t("auth.authFailedTitle")}
