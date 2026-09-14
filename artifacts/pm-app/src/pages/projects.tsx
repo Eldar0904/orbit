@@ -231,12 +231,12 @@ function CreateProjectDialog({ open, onOpenChange, workspace }: { open: boolean;
         data: {
           name,
           description: description || undefined,
-          color,
+          color: workspace === "b2g" ? "#3B898E" : color,
           status: "active",
           projectType: workspace === "b2g" ? "B2G" : projectType || undefined,
           location: location || undefined,
           client: client || undefined,
-          stage: stage as "p1",
+          stage: (workspace === "b2g" ? "p1" : stage) as "p1",
         },
       },
       {
@@ -276,58 +276,47 @@ function CreateProjectDialog({ open, onOpenChange, workspace }: { open: boolean;
               <Label htmlFor="name">{t("projects.projectName")}</Label>
               <Input id="name" placeholder={t("projects.projectNamePlaceholder")} value={name} onChange={(e) => setName(e.target.value)} autoFocus />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              {workspace === "b2g" ? (
+            {workspace !== "b2g" && <>
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Контур</Label>
-                  <div className="flex h-9 items-center rounded-md border border-pine/25 bg-pine/5 px-3 text-sm font-medium text-pine-deep">B2G</div>
+                  <Label htmlFor="type">{t("projects.type")}</Label>
+                  <Input id="type" placeholder={t("projects.typePlaceholder")} value={projectType} onChange={(e) => setProjectType(e.target.value)} />
                 </div>
-              ) : <div className="space-y-2">
-                <Label htmlFor="type">{t("projects.type")}</Label>
-                <Input id="type" placeholder={t("projects.typePlaceholder")} value={projectType} onChange={(e) => setProjectType(e.target.value)} />
-              </div>}
+                <div className="space-y-2">
+                  <Label>{t("projects.startingStage")}</Label>
+                  <Select value={stage} onValueChange={setStage}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {PROJECT_STAGES.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>{s.short} — {t(`stages.${s.id}`)}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="location">{t("projects.location")}</Label>
+                  <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="client">{t("projects.client")}</Label>
+                  <Input id="client" value={client} onChange={(e) => setClient(e.target.value)} />
+                </div>
+              </div>
               <div className="space-y-2">
-                <Label>{t("projects.startingStage")}</Label>
-                <Select value={stage} onValueChange={setStage}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {workspace === "b2g" ? B2G_STAGES.map((s, index) => (
-                      <SelectItem key={s.id} value={s.id}>{index + 1}. {s.label}</SelectItem>
-                    )) : PROJECT_STAGES.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>{s.short} — {t(`stages.${s.id}`)}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="location">{t("projects.location")}</Label>
-                <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} />
+                <Label htmlFor="description">{t("projects.descriptionOptional")}</Label>
+                <Textarea id="description" placeholder={t("projects.descriptionPlaceholder")} value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="client">{t("projects.client")}</Label>
-                <Input id="client" value={client} onChange={(e) => setClient(e.target.value)} />
+                <Label>{t("projects.projectColor")}</Label>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {colors.map((c) => (
+                    <button key={c} type="button" className={`w-6 h-6 rounded-full cursor-pointer transition-transform ${color === c ? "scale-125 ring-2 ring-offset-2 ring-primary" : "hover:scale-110"}`} style={{ backgroundColor: c }} onClick={() => setColor(c)} />
+                  ))}
+                </div>
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="description">{t("projects.descriptionOptional")}</Label>
-              <Textarea id="description" placeholder={t("projects.descriptionPlaceholder")} value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
-            </div>
-            <div className="space-y-2">
-              <Label>{t("projects.projectColor")}</Label>
-              <div className="flex flex-wrap gap-2 pt-1">
-                {colors.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    className={`w-6 h-6 rounded-full cursor-pointer transition-transform ${color === c ? "scale-125 ring-2 ring-offset-2 ring-primary" : "hover:scale-110"}`}
-                    style={{ backgroundColor: c }}
-                    onClick={() => setColor(c)}
-                  />
-                ))}
-              </div>
-            </div>
+            </>}
           </div>
           <div className="flex justify-end gap-2 pt-2 border-t">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{t("common.cancel")}</Button>

@@ -16,7 +16,6 @@ const B2B_NAV_ITEMS = [
 
 const B2G_NAV_ITEMS = [
   { href: "/b2g/projects", labelKey: "nav.b2gProjects", icon: Landmark, testId: "b2g-projects" },
-  { href: "/team", labelKey: "nav.team", icon: Users, testId: "team" },
 ] as const;
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -33,7 +32,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
     <div className="flex min-h-screen w-full bg-background text-foreground">
       <aside className="hidden w-64 flex-shrink-0 flex-col border-r border-pine-deep bg-pine md:flex">
         <div className="flex h-20 items-center border-b border-white/15 px-5">
-          <BrandLogo inverse imageClassName="h-7" productName={isB2GWorkspace ? "B2G" : "B2B"} />
+          <BrandLogo inverse imageClassName="h-7" />
         </div>
 
         <div className="flex-1 py-4 flex flex-col gap-1 px-3">
@@ -104,7 +103,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
       <main className="flex-1 flex flex-col min-w-0">
         <header className="flex h-16 items-center justify-between gap-3 border-b border-pine-deep bg-pine px-4 md:hidden">
-          <BrandLogo inverse imageClassName="h-7" productName={isB2GWorkspace ? "B2G" : "B2B"} />
+          <BrandLogo inverse imageClassName="h-7" />
           <div className="flex items-center gap-2">
             <LanguageSwitcher compact />
             <button

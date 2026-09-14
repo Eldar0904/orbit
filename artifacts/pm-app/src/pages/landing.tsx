@@ -11,7 +11,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-[100dvh] bg-[#f8f7f3] text-pine-ink">
       <header className="mx-auto flex h-20 max-w-[1440px] items-center justify-between px-6 lg:px-10">
-        <BrandLogo imageClassName="h-9" productName="PINE" />
+        <BrandLogo imageClassName="h-9" />
         <div className="flex items-center gap-3">
           <LanguageSwitcher compact />
           <Link href="/sign-in" className="hidden rounded-full px-4 py-2 text-sm font-semibold text-pine-deep hover:bg-pine/10 sm:block">
