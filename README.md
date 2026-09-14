@@ -1,17 +1,21 @@
-# PINE B2B
+# PINE Projects
 
-PINE B2B is a project management workspace for fitout and construction teams. Track projects through staged delivery (P1–P6), assign tasks, manage team workload, and register documents.
+PINE is a project management platform for fitout and construction teams. It provides separate workspaces for commercial **B2B** projects and government-contract **B2G** projects, each with its own workflow.
+
+**Live platform:** [orbit-b2b-six.vercel.app](https://orbit-b2b-six.vercel.app/)
 
 Originally exported from [Replit](https://replit.com); evolved from the **B2B Fitout Dashboard** prototype.
 
 ## Features
 
-- **Dashboard** — project and task stats, completion rate, recent activity feed
-- **Projects** — rich project cards with progress, P1–P6 stage stepper, budget and deadline stats
-- **Project detail** — Tasks (kanban), Documents, and Overview (project passport)
-- **All Tasks** — cross-project task list with filters
-- **Team** — add members, view workload by status
-- **Auth** — sign-in / sign-up via [Clerk](https://clerk.com)
+- **Workspace selection** — choose B2B or B2G before entering the platform
+- **B2B projects** — commercial delivery workflow with P1–P6 stages
+- **B2G projects** — government-contract workflow with an interactive multi-department process map
+- **Projects** — project cards, progress, budget, deadlines, tasks, documents, and a project passport
+- **Tasks** — Kanban workflow and cross-project task list
+- **Team** — members and workload by task status (B2B)
+- **Localization** — Russian, Kazakh, and English across the interface
+- **Auth** — sign-in and sign-up via [Clerk](https://clerk.com)
 
 ## Этапы разработки
 
@@ -25,15 +29,16 @@ Originally exported from [Replit](https://replit.com); evolved from the **B2B Fi
 
 ### 2. Основное управление проектами — преимущественно завершено
 
-- Дашборд
+- Раздельные рабочие пространства B2B и B2G
 - Проекты и жизненный цикл P1–P6
+- Карта процесса B2G с подразделениями и этапами
 - Карточка проекта и отслеживание прогресса
 - Задачи и Kanban-доска
 - Команда и загрузка сотрудников
 - Документы
 - Локализация на русском, казахском и английском языках
 
-### 3. ИИ и автоматизация
+### 3. ИИ и автоматизация — в планах
 
 - ИИ-анализ спецификаций
 - Улучшенное семантическое сопоставление товаров
@@ -42,7 +47,7 @@ Originally exported from [Replit](https://replit.com); evolved from the **B2B Fi
 - Уведомления о рисках и сроках
 - Диалоговый ИИ-ассистент PINE B2B
 
-### 4. Подготовка к промышленной эксплуатации и запуск
+### 4. Подготовка к промышленной эксплуатации и запуск — в планах
 
 - Авторизация API и изоляция рабочих пространств
 - Автоматизированные тесты
@@ -53,7 +58,7 @@ Originally exported from [Replit](https://replit.com); evolved from the **B2B Fi
 - Проверка безопасности
 - Пилотное внедрение, сбор обратной связи и публичный запуск
 
-Текущая стадия разработки — **этап 3**: развитие автоматизации и подготовка рабочего пространства к промышленной эксплуатации.
+Текущая стадия разработки — **этап 2**: развитие функциональности управления B2B- и B2G-проектами.
 
 ## Stack
 
@@ -109,9 +114,9 @@ Never commit `.env` or `.env.local` — they are in `.gitignore`.
 ## Project structure
 
 ```
-SaaS-Task-Manager/
+orbit/
 ├── artifacts/
-│   ├── pm-app/          # React frontend (Orbit UI)
+│   ├── pm-app/          # React frontend (PINE platform)
 │   └── api-server/      # Express API
 ├── lib/
 │   ├── api-spec/        # OpenAPI spec (source of truth)
