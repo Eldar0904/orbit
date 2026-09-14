@@ -1,152 +1,165 @@
 # PINE Projects
 
-PINE is a project management platform for fitout and construction teams. It provides separate workspaces for commercial **B2B** projects and government-contract **B2G** projects, each with its own workflow.
+PINE Projects — платформа управления проектами для fit-out, строительства и оснащения объектов. При входе пользователь выбирает рабочее пространство, после чего получает интерфейс и процесс, соответствующие типу проекта:
 
-**Live platform:** [orbit-b2b-six.vercel.app](https://orbit-b2b-six.vercel.app/)
+- **B2B** — коммерческие проекты с текущим жизненным циклом P1–P6.
+- **B2G** — тендеры, государственные контракты и проекты оснащения с межфункциональной картой процесса.
 
-Originally exported from [Replit](https://replit.com); evolved from the **B2B Fitout Dashboard** prototype.
+**Рабочая версия платформы:** [https://orbit-b2b-six.vercel.app/](https://orbit-b2b-six.vercel.app/)
 
-## Features
+## Что реализовано
 
-- **Workspace selection** — choose B2B or B2G before entering the platform
-- **B2B projects** — commercial delivery workflow with P1–P6 stages
-- **B2G projects** — government-contract workflow with an interactive multi-department process map
-- **Projects** — project cards, progress, budget, deadlines, tasks, documents, and a project passport
-- **Tasks** — Kanban workflow and cross-project task list
-- **Team** — members and workload by task status (B2B)
-- **Localization** — Russian, Kazakh, and English across the interface
-- **Auth** — sign-in and sign-up via [Clerk](https://clerk.com)
+### Вход и рабочие пространства
 
-## Этапы разработки
+- Фирменная welcome-страница PINE с выбором B2B или B2G.
+- Логотип, favicon, цвета и визуальный стиль на основе переданных бренд-материалов PINE.
+- Раздельная навигация B2B и B2G после авторизации.
+- Переключение между рабочими пространствами через боковое меню.
+- Полная локализация интерфейса: **русский, казахский и английский**.
+- Вход и регистрация через [Clerk](https://clerk.com).
 
-### 1. Фундамент — завершено
+### Рабочее пространство B2B
 
-- Монорепозиторий, React-фронтенд и Express API
-- PostgreSQL и схемы Drizzle ORM
-- Авторизация через Clerk
-- OpenAPI и сгенерированный API-клиент
-- Конфигурация развертывания
+- Панель с показателями только B2B-проектов и задач.
+- Реестр коммерческих проектов: поиск, карточки, бюджет, сроки, прогресс и этапы P1–P6.
+- Карточка проекта: Kanban-задачи, документы, паспорт проекта, руководители, график, бюджет и параметры объекта.
+- Общий список задач с фильтрацией.
+- Команда и загрузка сотрудников по статусам задач.
 
-### 2. Основное управление проектами — преимущественно завершено
+### Рабочее пространство B2G
 
-- Раздельные рабочие пространства B2B и B2G
-- Проекты и жизненный цикл P1–P6
-- Карта процесса B2G с подразделениями и этапами
-- Карточка проекта и отслеживание прогресса
-- Задачи и Kanban-доска
-- Команда и загрузка сотрудников
-- Документы
-- Локализация на русском, казахском и английском языках
+- Отдельный реестр B2G-проектов.
+- При создании нового B2G-проекта требуется только название; стартовый этап задаётся автоматически.
+- B2G-проекты сохраняются с типом `B2G` и не попадают в списки и показатели B2B.
+- В карточке B2G-проекта доступна вкладка **«Карта процесса»**.
+- Карта процесса основана на BPMN-модели и отображает шесть этапов:
+  1. Тендер и заявка
+  2. Контракт и мобилизация
+  3. Проектирование и закупки
+  4. Работы на объекте
+  5. Сдача и закрытие
+  6. Гарантия и сопровождение
+- Для каждого проекта показываются функциональные дорожки: коммерческий/тендерный блок, технический/проектный блок, управление проектом, финансы, снабжение/логистика, объект/подрядчики, качество/ОТ и ТБ, документооборот/сервис.
+- Шаги процесса визуально разделены на завершённые, текущие и предстоящие. При выборе шага отображаются ответственный контур, контроль этапа, связанные задачи и документы.
 
-### 3. ИИ и автоматизация — в планах
+### Общие функции проектов
 
-- ИИ-анализ спецификаций
-- Улучшенное семантическое сопоставление товаров
-- Рекомендации поставщиков
-- Помощь в подготовке смет и предложений
-- Уведомления о рисках и сроках
-- Диалоговый ИИ-ассистент PINE B2B
+- Создание и редактирование проектов.
+- Задачи со статусами, приоритетами, исполнителями, сроками и перемещением по Kanban.
+- Расчёт прогресса проекта и загрузки сотрудников.
+- Реестр документов с категориями и метаданными.
+- Паспорта проектов, бюджеты, фактические расходы, сроки, площади, помещения и этажи.
 
-### 4. Подготовка к промышленной эксплуатации и запуск — в планах
+## Текущий статус продукта
 
-- Авторизация API и изоляция рабочих пространств
-- Автоматизированные тесты
-- Управляемые миграции базы данных
-- Роли, разрешения и журнал аудита
-- Мониторинг и резервное копирование
-- Оптимизация производительности, мобильной версии и доступности
-- Проверка безопасности
-- Пилотное внедрение, сбор обратной связи и публичный запуск
+| Направление | Статус |
+| --- | --- |
+| Фирменный стиль PINE и welcome-страница | Реализовано |
+| B2B-рабочее пространство | Реализовано |
+| B2G-рабочее пространство и карта процесса | Реализовано |
+| Локализация RU / KK / EN | Реализовано |
+| Проекты, задачи, документы и команда | Реализовано |
+| Физическое хранение прикреплённых файлов | Пока регистрируются метаданные; требуется подключение storage-провайдера |
+| Права доступа по подразделениям и ролям B2G | Планируется |
+| Автоматические переходы и проверки BPMN-этапов | Планируется |
+| Согласования, уведомления, журнал аудита и автоматизация | Планируется |
 
-Текущая стадия разработки — **этап 2**: развитие функциональности управления B2B- и B2G-проектами.
+## Разделение данных B2B и B2G
 
-## Stack
+Тип рабочего пространства определяется полем `project_type` проекта:
 
-| Layer | Tech |
-|-------|------|
-| Monorepo | pnpm workspaces, Node.js 24, TypeScript |
-| Frontend | React 19, Vite, Wouter, TanStack Query, Tailwind CSS 4 |
-| API | Express 5, OpenAPI-first (Orval codegen) |
-| Database | PostgreSQL + Drizzle ORM |
-| Auth | Clerk |
+| Рабочее пространство | Тип проекта | Основные маршруты |
+| --- | --- | --- |
+| B2B | Любое значение, кроме `B2G`, включая прежние проекты без типа | `/dashboard`, `/projects`, `/tasks`, `/team` |
+| B2G | `B2G` | `/b2g/projects`, `/b2g/projects/:id` |
 
-## Prerequisites
+API проектов и панель B2B используют фильтр рабочего пространства. Поэтому B2G-проекты исключаются из B2B-списков и B2B-показателей на уровне запроса к данным, а не только скрываются в интерфейсе.
+
+## Технологии
+
+| Слой | Технологии |
+| --- | --- |
+| Монорепозиторий | pnpm workspaces, Node.js 24, TypeScript |
+| Frontend | React 19, Vite, Wouter, TanStack Query, Tailwind CSS |
+| API | Express 5, OpenAPI-first контракт, Orval и Zod |
+| База данных | PostgreSQL и Drizzle ORM |
+| Авторизация | Clerk |
+| Развёртывание | Vercel |
+
+## Локальная разработка
+
+Подробная инструкция для Windows: [LOCAL_DEV.md](./LOCAL_DEV.md).
+
+### Требования
 
 - Node.js 24+
-- [pnpm](https://pnpm.io) (`npm install -g pnpm`)
-- PostgreSQL ([Supabase](https://supabase.com) or local)
-- Clerk application ([dashboard.clerk.com](https://dashboard.clerk.com))
+- [pnpm](https://pnpm.io)
+- PostgreSQL: локально или через Supabase
+- Приложение Clerk
 
-## Quick start
-
-See **[LOCAL_DEV.md](./LOCAL_DEV.md)** for full Windows setup.
+### Запуск
 
 ```powershell
-# 1. Clone and install
 git clone https://github.com/Eldar0904/orbit.git
 cd orbit
 pnpm install
 
-# 2. Environment (copy templates, then fill in secrets)
+# Скопируйте шаблон и заполните переменные окружения.
 Copy-Item .env.example .env
-# Edit .env: DATABASE_URL, CLERK_SECRET_KEY, CLERK_PUBLISHABLE_KEY
-# Edit artifacts/pm-app/.env.local: VITE_CLERK_PUBLISHABLE_KEY
 
-# 3. Create database tables
+# Создайте или обновите таблицы локальной базы.
 pnpm --filter @workspace/db run push
 
-# 4. Run (two terminals)
+# Запустите API и frontend в разных терминалах.
 pnpm --filter @workspace/api-server run dev   # http://localhost:8080
 pnpm --filter @workspace/pm-app run dev       # http://localhost:5173
 ```
 
-## Environment variables
+### Переменные окружения
 
-| Variable | Where | Purpose |
-|----------|-------|---------|
-| `DATABASE_URL` | root `.env` | PostgreSQL connection (Supabase or local) |
-| `CLERK_SECRET_KEY` | root `.env` | Clerk server key |
-| `CLERK_PUBLISHABLE_KEY` | root `.env` | Clerk publishable key |
-| `VITE_CLERK_PUBLISHABLE_KEY` | `artifacts/pm-app/.env.local` | Same publishable key for the frontend |
+| Переменная | Где задаётся | Назначение |
+| --- | --- | --- |
+| `DATABASE_URL` | корневой `.env` | строка подключения PostgreSQL |
+| `CLERK_SECRET_KEY` | корневой `.env` | серверный ключ Clerk |
+| `CLERK_PUBLISHABLE_KEY` | корневой `.env` | публичный ключ Clerk |
+| `VITE_CLERK_PUBLISHABLE_KEY` | `artifacts/pm-app/.env.local` | ключ Clerk для frontend |
+| `VITE_API_URL` | `artifacts/pm-app/.env.local` | необязательный базовый URL API |
 
-Never commit `.env` or `.env.local` — they are in `.gitignore`.
+Файлы `.env` и `.env.local` не следует добавлять в Git.
 
-## Project structure
+## Структура репозитория
 
-```
+```text
 orbit/
 ├── artifacts/
-│   ├── pm-app/          # React frontend (PINE platform)
-│   └── api-server/      # Express API
+│   ├── pm-app/              # React-приложение PINE
+│   └── api-server/          # Express API
 ├── lib/
-│   ├── api-spec/        # OpenAPI spec (source of truth)
-│   ├── api-client-react/# Generated React Query hooks
-│   ├── api-zod/         # Generated Zod validators
-│   └── db/              # Drizzle schema + migrations
-├── docs/
-│   ├── PROJECTS_SPEC.md # Projects section UX spec
-│   └── B2B_REFERENCE.md # B2B prototype phases, roadmap, architecture
-├── .env.example
+│   ├── api-spec/            # Исходный OpenAPI-контракт
+│   ├── api-client-react/    # Сгенерированные React Query hooks
+│   ├── api-zod/             # Сгенерированные валидаторы
+│   └── db/                  # Drizzle-схема и инструменты БД
+├── docs/                    # Продуктовая и deployment-документация
 ├── LOCAL_DEV.md
-└── replit.md            # Replit deployment notes
+└── README.md
 ```
 
-## Common commands
+## Полезные команды
 
 ```powershell
-pnpm run typecheck                              # Typecheck all packages
-pnpm run build                                  # Build all packages
-pnpm --filter @workspace/api-spec run codegen   # Regenerate API client after OpenAPI changes
-pnpm --filter @workspace/db run push            # Push schema to Postgres (dev)
+pnpm run typecheck                              # Проверка типов во всех пакетах
+pnpm run build                                  # Сборка всех пакетов
+pnpm --filter @workspace/api-spec run codegen   # Перегенерация клиента и валидаторов после изменения OpenAPI
+pnpm --filter @workspace/db run push            # Применение изменений схемы в development
 ```
 
-## Documentation
+## Документация
 
-- [LOCAL_DEV.md](./LOCAL_DEV.md) — local setup on Windows
-- [docs/DEPLOY_VERCEL.md](./docs/DEPLOY_VERCEL.md) — deploy to Vercel (frontend + API)
-- [docs/PROJECTS_SPEC.md](./docs/PROJECTS_SPEC.md) — projects section fields, tabs, and stages
-- [replit.md](./replit.md) — architecture notes and gotchas
+- [LOCAL_DEV.md](./LOCAL_DEV.md) — локальная настройка на Windows
+- [docs/DEPLOY_VERCEL.md](./docs/DEPLOY_VERCEL.md) — развёртывание на Vercel
+- [docs/PROJECTS_SPEC.md](./docs/PROJECTS_SPEC.md) — спецификация раздела проектов
+- [replit.md](./replit.md) — исходные заметки по архитектуре и развёртыванию
 
-## License
+## Лицензия
 
 MIT
