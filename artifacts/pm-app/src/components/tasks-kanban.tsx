@@ -8,6 +8,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { KANBAN_COLUMNS } from "@/lib/project-constants";
 import { Calendar, Trash2 } from "lucide-react";
 import { format } from "date-fns";
+import { useTranslation } from "react-i18next";
 
 type TaskStatus = "todo" | "in_progress" | "blocked" | "done";
 
@@ -20,6 +21,7 @@ export function TasksKanban({
   onStatusChange: (taskId: number, status: TaskUpdate["status"]) => void;
   onDelete: (taskId: number) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
       {KANBAN_COLUMNS.map((col) => {
@@ -28,7 +30,7 @@ export function TasksKanban({
           <div key={col.id} className="space-y-3">
             <div className="flex items-center gap-2 px-1">
               <div className={`w-2 h-2 rounded-full ${col.color}`} />
-              <span className="text-sm font-semibold">{col.label}</span>
+              <span className="text-sm font-semibold">{t(`status.${col.id}`)}</span>
               <span className="text-xs font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
                 {columnTasks.length}
               </span>
@@ -44,7 +46,7 @@ export function TasksKanban({
               ))}
               {columnTasks.length === 0 && (
                 <div className="rounded-lg border border-dashed border-border/60 p-4 text-center text-xs text-muted-foreground">
-                  No tasks
+                  {t("projectDetail.noTasksYet")}
                 </div>
               )}
             </div>
@@ -64,6 +66,7 @@ function KanbanCard({
   onStatusChange: (taskId: number, status: TaskUpdate["status"]) => void;
   onDelete: (taskId: number) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <Card className="border-border/50 shadow-sm hover:border-primary/30 transition-colors">
       <CardContent className="p-3 space-y-2">
@@ -72,7 +75,7 @@ function KanbanCard({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-muted-foreground">
-                <span className="sr-only">Move task</span>
+                <span className="sr-only">{t("tasks.moveTask")}</span>
                 <StatusBadge status={task.status} />
               </Button>
             </DropdownMenuTrigger>
@@ -82,12 +85,12 @@ function KanbanCard({
                   key={col.id}
                   onClick={() => onStatusChange(task.id, col.id as TaskStatus)}
                 >
-                  {col.label}
+                  {t(`status.${col.id}`)}
                 </DropdownMenuItem>
               ))}
               <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => onDelete(task.id)}>
                 <Trash2 className="w-4 h-4 mr-2" />
-                Delete
+                {t("common.delete")}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

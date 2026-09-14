@@ -133,16 +133,25 @@ function ClerkProviderWithRoutes() {
       signInUrl={`${basePath}/sign-in`}
       signUpUrl={`${basePath}/sign-up`}
       localization={{
+        formButtonPrimary: t("auth.clerk.continue"),
+        socialButtonsBlockButton: t("auth.clerk.continueWith", { provider: "{{provider}}" }),
+        dividerText: t("auth.clerk.or"),
+        formFieldLabel__emailAddress: t("auth.clerk.emailAddress"),
+        formFieldInputPlaceholder__emailAddress: t("auth.clerk.emailPlaceholder"),
         signIn: {
           start: {
             title: t("auth.signInTitle"),
             subtitle: t("auth.signInSubtitle"),
+            actionText: t("auth.clerk.noAccount"),
+            actionLink: t("auth.clerk.signUp"),
           },
         },
         signUp: {
           start: {
             title: t("auth.signUpTitle"),
             subtitle: t("auth.signUpSubtitle"),
+            actionText: t("auth.clerk.hasAccount"),
+            actionLink: t("auth.clerk.signIn"),
           },
         },
       }}

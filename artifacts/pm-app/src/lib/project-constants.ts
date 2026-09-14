@@ -36,18 +36,20 @@ export const KANBAN_COLUMNS = [
 
 export function formatCurrency(amount: number | null | undefined): string {
   if (amount == null) return "—";
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(amount);
+  const locale = i18n.language === "kk" ? "kk-KZ" : i18n.language === "ru" ? "ru-RU" : "en-US";
+  return new Intl.NumberFormat(locale, { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(amount);
 }
 
 export function getStageLabel(stage: string | null | undefined): string {
-  return PROJECT_STAGES.find((s) => s.id === stage)?.label ?? "P1";
+  return stage ? i18n.t(`stages.${stage}`) : "P1";
 }
 
 export function getKindLabel(kind: string | null | undefined): string {
   if (!kind) return "—";
-  return PROJECT_KINDS.find((k) => k.id === kind)?.label ?? kind;
+  return i18n.t(`kinds.${kind}`, { defaultValue: kind });
 }
 
 export function getDocumentCategoryLabel(category: string): string {
-  return DOCUMENT_CATEGORIES.find((c) => c.id === category)?.label ?? category;
+  return i18n.t(`documentCategories.${category}`, { defaultValue: category });
 }
+import i18n from "@/i18n";

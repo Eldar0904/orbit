@@ -150,7 +150,7 @@ function ProjectCard({ project, workspace }: { project: ProjectWithStats; worksp
           <div>
             <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium mb-2">{t("common.stage")}</p>
             {workspace === "b2g" ? (
-              <p className="text-sm font-medium text-pine-deep">{B2G_STAGES.find((item) => item.id === project.stage)?.label ?? B2G_STAGES[0].label}</p>
+              <p className="text-sm font-medium text-pine-deep">{t(B2G_STAGES.find((item) => item.id === project.stage)?.label ?? B2G_STAGES[0].label)}</p>
             ) : <StageStepper stage={project.stage} compact />}
           </div>
 
@@ -265,7 +265,7 @@ function CreateProjectDialog({ open, onOpenChange, workspace }: { open: boolean;
       <DialogContent className="sm:max-w-[480px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>{workspace === "b2g" ? "Новый B2G-проект" : t("projects.createNewProject")}</DialogTitle>
+            <DialogTitle>{workspace === "b2g" ? t("b2g.newProject") : t("projects.createNewProject")}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="space-y-2">

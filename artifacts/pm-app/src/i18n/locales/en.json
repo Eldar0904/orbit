@@ -76,7 +76,8 @@
     "signUpTitle": "Create your PINE account",
     "signUpSubtitle": "Get your team up and running today",
     "authFailedTitle": "Authentication failed to load",
-    "authFailedBody": "For production (pk_live_) keys, add this site URL in Clerk → Domains and keep VITE_CLERK_PROXY_URL=/api/__clerk. For test keys, remove the proxy env var on Vercel."
+    "authFailedBody": "For production (pk_live_) keys, add this site URL in Clerk → Domains and keep VITE_CLERK_PROXY_URL=/api/__clerk. For test keys, remove the proxy env var on Vercel.",
+    "clerk": { "continue": "Continue", "continueWith": "Continue with {{provider}}", "or": "or", "emailAddress": "Email address", "emailPlaceholder": "Enter your email address", "noAccount": "Don't have an account?", "signUp": "Sign up", "hasAccount": "Already have an account?", "signIn": "Sign in" }
   },
   "dashboard": {
     "title": "Dashboard",
@@ -165,7 +166,8 @@
     "status": "Status",
     "assignee": "Assignee",
     "priority": "Priority",
-    "noMatch": "No tasks match your filters."
+    "noMatch": "No tasks match your filters.",
+    "moveTask": "Move task"
   },
   "team": {
     "title": "Team Members",
@@ -285,6 +287,17 @@
       "title": "Procurement",
       "description": "Place orders, track deliveries, and manage purchase documents after the offer is approved.",
       "comingSoon": "Coming soon"
+    }
+  },
+  "documentCategories": { "specification": "Specification", "contract": "Contract", "floor_plan": "Floor plan", "invoice": "Invoice", "permit": "Permit", "photo": "Photo", "procurement": "Procurement", "act": "Act", "other": "Other" },
+  "documents": { "noDocuments": "No documents yet", "emptyHint": "Register project documents such as specifications, contracts, and floor plans.", "addDocument": "Add document", "deleteConfirm": "Delete \"{{name}}\"?", "removed": "Document removed", "deleteFailed": "Failed to delete document", "added": "Added {{date}}", "registered": "Document registered", "addFailed": "Failed to add document", "registerDocument": "Register document", "name": "Document name", "namePlaceholder": "e.g. Floor plan v2", "category": "Category", "fileOptional": "File (optional)", "fileHint": "Metadata is stored now; file storage can be connected later." },
+  "editProject": { "title": "Edit project", "name": "Name", "selectKind": "Select kind", "none": "None", "spent": "Spent", "startDate": "Start date", "endDate": "End date", "area": "Area (m²)", "rooms": "Rooms", "saveChanges": "Save changes", "updated": "Project updated", "updateFailed": "Failed to update project" },
+  "b2g": {
+    "newProject": "New B2G project", "processMap": "Process map", "currentStage": "Current B2G stage", "department": "Department", "complete": "Complete", "current": "Current stage", "notStarted": "Not started", "selectedStep": "Selected step", "responsibleLane": "Responsible department", "stageControl": "Stage control", "stageControlHint": "Linked tasks and mandatory documents must be completed before moving on.", "projectTasks": "Project tasks", "risks": "Risks and comments",
+    "stages": { "p1": "Tender and bid", "p2": "Contract and mobilization", "p3": "Design and procurement", "p4": "On-site works", "p5": "Handover and closeout", "p6": "Warranty and support" },
+    "lanes": { "commercial": "Commercial / Tender", "technical": "Technical / Design", "management": "Project management / B2G", "finance": "Finance", "supply": "Supply / Logistics", "site": "Site / Contractors", "quality": "Quality / HSE", "documents": "Documents / Service" },
+    "steps": {
+      "registerTender": { "title": "Register tender", "detail": "Review bid documents and requirements." }, "prepareBid": { "title": "Prepare and submit bid", "detail": "Prepare, review, and submit the proposal package." }, "survey": { "title": "Survey the site", "detail": "Document the existing condition and constraints." }, "design": { "title": "Approve design and specification", "detail": "Prepare schedules, samples, and client approval." }, "commission": { "title": "Perform testing", "detail": "Compile test results and the as-built package." }, "kickoff": { "title": "Run kick-off and assign RACI", "detail": "Record the team, schedule, risks, and commitments." }, "changes": { "title": "Manage changes", "detail": "Assess schedule, cost, and risk impacts." }, "handover": { "title": "Coordinate acceptance", "detail": "Prepare handover and close observations." }, "margin": { "title": "Check margin and security", "detail": "Confirm participation economics and financial risks." }, "budget": { "title": "Open budget and reserve", "detail": "Record the baseline budget and reserve." }, "payment": { "title": "Control payment and P&L", "detail": "Invoice, track payment, and monitor plan versus actual." }, "suppliers": { "title": "Select suppliers", "detail": "Assess suppliers and agree terms." }, "delivery": { "title": "Order and receive materials", "detail": "Track deliveries, receiving, and shortages." }, "mobilize": { "title": "Mobilize the site", "detail": "Protect areas and prepare access and the work site." }, "execute": { "title": "Execute work packages", "detail": "Manage work, progress, and internal acceptance." }, "defects": { "title": "Resolve defects", "detail": "Close observations before handover." }, "hse": { "title": "Approve HSE plan", "detail": "Conduct briefing and record the control plan." }, "inspection": { "title": "Inspect work quality", "detail": "Run inspections, testing, and NCR tracking." }, "closeout": { "title": "Compile handover package", "detail": "As-built documents, certificates, warranties, and archive." }, "warranty": { "title": "Manage warranty requests", "detail": "Track SLA, defects, and escalations with partners." }
     }
   },
   "catalogs": {

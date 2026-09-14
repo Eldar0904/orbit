@@ -174,7 +174,7 @@ export default function ProjectDetail() {
           </TabsTrigger>
           {isB2GProject && <TabsTrigger value="process-map" className="gap-2">
             <Map className="w-3.5 h-3.5" />
-            Карта процесса
+            {t("b2g.processMap")}
           </TabsTrigger>}
         </TabsList>
 

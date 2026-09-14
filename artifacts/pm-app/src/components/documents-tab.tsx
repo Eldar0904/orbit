@@ -18,16 +18,17 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { DOCUMENT_CATEGORIES, getDocumentCategoryLabel } from "@/lib/project-constants";
 import { FileText, Plus, Trash2, Upload } from "lucide-react";
-import { format } from "date-fns";
+import { useTranslation } from "react-i18next";
 
 export function DocumentsTab({ projectId }: { projectId: number }) {
+  const { t } = useTranslation();
   const { data: documents, isLoading } = useListProjectDocuments(projectId);
   const [isAddOpen, setIsAddOpen] = useState(false);
 
   return (
     <Card className="border-border/50 shadow-sm overflow-hidden">
       <div className="bg-muted/30 px-5 py-3 border-b border-border flex justify-between items-center">
-        <h3 className="font-bold text-sm tracking-tight">DOCUMENTS ({documents?.length ?? 0})</h3>
+        <h3 className="font-bold text-sm tracking-tight">{t("common.documents")} ({documents?.length ?? 0})</h3>
         <AddDocumentDialog projectId={projectId} open={isAddOpen} onOpenChange={setIsAddOpen} />
       </div>
 
@@ -44,13 +45,13 @@ export function DocumentsTab({ projectId }: { projectId: number }) {
       ) : (
         <div className="p-12 text-center flex flex-col items-center justify-center">
           <FileText className="w-12 h-12 text-muted-foreground/30 mb-4" />
-          <h4 className="text-lg font-medium">No documents yet</h4>
+          <h4 className="text-lg font-medium">{t("documents.noDocuments")}</h4>
           <p className="text-sm text-muted-foreground mt-1 mb-6 max-w-sm">
-            Register project documents such as specifications, contracts, and floor plans.
+            {t("documents.emptyHint")}
           </p>
           <Button onClick={() => setIsAddOpen(true)} variant="outline">
             <Plus className="w-4 h-4 mr-2" />
-            Add Document
+            {t("documents.addDocument")}
           </Button>
         </div>
       )}
@@ -59,20 +60,21 @@ export function DocumentsTab({ projectId }: { projectId: number }) {
 }
 
 function DocumentRow({ document, projectId }: { document: ProjectDocument; projectId: number }) {
+  const { t, i18n } = useTranslation();
   const deleteDoc = useDeleteProjectDocument();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   const handleDelete = () => {
-    if (!confirm(`Delete "${document.name}"?`)) return;
+    if (!confirm(t("documents.deleteConfirm", { name: document.name }))) return;
     deleteDoc.mutate(
       { id: projectId, docId: document.id },
       {
         onSuccess: () => {
-          toast({ title: "Document removed" });
+          toast({ title: t("documents.removed") });
           queryClient.invalidateQueries({ queryKey: getListProjectDocumentsQueryKey(projectId) });
         },
-        onError: () => toast({ variant: "destructive", title: "Failed to delete document" }),
+        onError: () => toast({ variant: "destructive", title: t("documents.deleteFailed") }),
       },
     );
   };
@@ -86,7 +88,7 @@ function DocumentRow({ document, projectId }: { document: ProjectDocument; proje
         <div className="min-w-0">
           <p className="font-medium truncate">{document.name}</p>
           <p className="text-xs text-muted-foreground font-mono">
-            Added {format(new Date(document.createdAt), "MMM d, yyyy")}
+            {t("documents.added", { date: new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium" }).format(new Date(document.createdAt)) })}
             {document.sizeBytes ? ` · ${(document.sizeBytes / 1024).toFixed(1)} KB` : ""}
           </p>
         </div>
@@ -112,6 +114,7 @@ function AddDocumentDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { t } = useTranslation();
   const [name, setName] = useState("");
   const [category, setCategory] = useState<string>("other");
   const fileRef = useRef<HTMLInputElement>(null);
@@ -137,14 +140,14 @@ function AddDocumentDialog({
       },
       {
         onSuccess: () => {
-          toast({ title: "Document registered" });
+          toast({ title: t("documents.registered") });
           onOpenChange(false);
           queryClient.invalidateQueries({ queryKey: getListProjectDocumentsQueryKey(projectId) });
           setName("");
           setCategory("other");
           if (fileRef.current) fileRef.current.value = "";
         },
-        onError: () => toast({ variant: "destructive", title: "Failed to add document" }),
+        onError: () => toast({ variant: "destructive", title: t("documents.addFailed") }),
       },
     );
   };
@@ -154,50 +157,50 @@ function AddDocumentDialog({
       <DialogTrigger asChild>
         <Button size="sm">
           <Plus className="w-4 h-4 mr-2" />
-          Add Document
+          {t("documents.addDocument")}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Register document</DialogTitle>
+            <DialogTitle>{t("documents.registerDocument")}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="doc-name">Document name</Label>
+              <Label htmlFor="doc-name">{t("documents.name")}</Label>
               <Input
                 id="doc-name"
-                placeholder="e.g. Floor plan v2"
+                placeholder={t("documents.namePlaceholder")}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 autoFocus
               />
             </div>
             <div className="space-y-2">
-              <Label>Category</Label>
+              <Label>{t("documents.category")}</Label>
               <Select value={category} onValueChange={setCategory}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {DOCUMENT_CATEGORIES.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.label}</SelectItem>
+                    <SelectItem key={c.id} value={c.id}>{t(`documentCategories.${c.id}`)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>File (optional)</Label>
+              <Label>{t("documents.fileOptional")}</Label>
               <div className="flex items-center gap-2">
                 <Input ref={fileRef} type="file" className="text-sm" />
               </div>
               <p className="text-xs text-muted-foreground">
-                Metadata is stored now; file storage can be connected later.
+                {t("documents.fileHint")}
               </p>
             </div>
           </div>
           <div className="flex justify-end gap-2 pt-2 border-t">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{t("common.cancel")}</Button>
             <Button type="submit" disabled={!name || createDoc.isPending}>
-              {createDoc.isPending ? "Saving..." : "Save"}
+              {createDoc.isPending ? t("common.saving") : t("common.save")}
             </Button>
           </div>
         </form>

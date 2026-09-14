@@ -18,6 +18,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { PROJECT_STAGES, PROJECT_KINDS } from "@/lib/project-constants";
 import { B2G_STAGES } from "@/lib/b2g-workflow";
 import { Pencil } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export function EditProjectDialog({
   project,
@@ -26,6 +27,7 @@ export function EditProjectDialog({
   project: Project;
   members: Member[];
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(project.name);
   const [description, setDescription] = useState(project.description ?? "");
@@ -104,12 +106,12 @@ export function EditProjectDialog({
       },
       {
         onSuccess: () => {
-          toast({ title: "Project updated" });
+          toast({ title: t("editProject.updated") });
           setOpen(false);
           queryClient.invalidateQueries({ queryKey: getGetProjectQueryKey(project.id) });
           queryClient.invalidateQueries({ queryKey: getListProjectsQueryKey() });
         },
-        onError: () => toast({ variant: "destructive", title: "Failed to update project" }),
+        onError: () => toast({ variant: "destructive", title: t("editProject.updateFailed") }),
       },
     );
   };
@@ -119,105 +121,105 @@ export function EditProjectDialog({
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
           <Pencil className="w-4 h-4 mr-2" />
-          Edit
+          {t("common.edit")}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Edit project</DialogTitle>
+            <DialogTitle>{t("editProject.title")}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="edit-name">Name</Label>
+              <Label htmlFor="edit-name">{t("editProject.name")}</Label>
               <Input id="edit-name" value={name} onChange={(e) => setName(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-desc">Description</Label>
+              <Label htmlFor="edit-desc">{t("projectDetail.description")}</Label>
               <Textarea id="edit-desc" value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Type</Label>
-                <Input placeholder="e.g. School" value={projectType} onChange={(e) => setProjectType(e.target.value)} />
+                <Label>{t("projects.type")}</Label>
+                <Input placeholder={t("projects.typePlaceholder")} value={projectType} onChange={(e) => setProjectType(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label>Kind</Label>
+                <Label>{t("projectDetail.kind")}</Label>
                 <Select value={kind || "none"} onValueChange={(v) => setKind(v === "none" ? "" : v)}>
-                  <SelectTrigger><SelectValue placeholder="Select kind" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={t("editProject.selectKind")} /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">None</SelectItem>
+                    <SelectItem value="none">{t("editProject.none")}</SelectItem>
                     {PROJECT_KINDS.map((k) => (
-                      <SelectItem key={k.id} value={k.id}>{k.label}</SelectItem>
+                      <SelectItem key={k.id} value={k.id}>{t(`kinds.${k.id}`)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Stage</Label>
+              <Label>{t("common.stage")}</Label>
               <Select value={stage} onValueChange={(v) => setStage(v as typeof stage)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {isB2GProject ? B2G_STAGES.map((s, index) => (
-                    <SelectItem key={s.id} value={s.id}>{index + 1}. {s.label}</SelectItem>
+                    <SelectItem key={s.id} value={s.id}>{index + 1}. {t(s.label)}</SelectItem>
                   )) : PROJECT_STAGES.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>{s.short} — {s.label}</SelectItem>
+                    <SelectItem key={s.id} value={s.id}>{s.short} — {t(`stages.${s.id}`)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Location</Label>
+                <Label>{t("projects.location")}</Label>
                 <Input value={location} onChange={(e) => setLocation(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label>Client</Label>
+                <Label>{t("projects.client")}</Label>
                 <Input value={client} onChange={(e) => setClient(e.target.value)} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Budget</Label>
+                <Label>{t("common.budget")}</Label>
                 <Input type="number" value={budget} onChange={(e) => setBudget(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label>Spent</Label>
+                <Label>{t("editProject.spent")}</Label>
                 <Input type="number" value={budgetSpent} onChange={(e) => setBudgetSpent(e.target.value)} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Start date</Label>
+                <Label>{t("editProject.startDate")}</Label>
                 <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label>End date</Label>
+                <Label>{t("editProject.endDate")}</Label>
                 <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
               </div>
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label>Area (m²)</Label>
+                <Label>{t("editProject.area")}</Label>
                 <Input type="number" value={area} onChange={(e) => setArea(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label>Rooms</Label>
+                <Label>{t("editProject.rooms")}</Label>
                 <Input type="number" value={rooms} onChange={(e) => setRooms(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label>Floors</Label>
+                <Label>{t("projectDetail.floors")}</Label>
                 <Input type="number" value={floors} onChange={(e) => setFloors(e.target.value)} />
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Notes</Label>
+              <Label>{t("projectDetail.notes")}</Label>
               <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} />
             </div>
             {members.length > 0 && (
               <div className="space-y-2">
-                <Label>Managers</Label>
+                <Label>{t("projectDetail.managers")}</Label>
                 <div className="grid grid-cols-2 gap-2">
                   {members.map((m) => (
                     <label key={m.id} className="flex items-center gap-2 text-sm cursor-pointer">
@@ -233,9 +235,9 @@ export function EditProjectDialog({
             )}
           </div>
           <div className="flex justify-end gap-2 pt-2 border-t">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>{t("common.cancel")}</Button>
             <Button type="submit" disabled={!name || updateProject.isPending}>
-              {updateProject.isPending ? "Saving..." : "Save Changes"}
+              {updateProject.isPending ? t("common.saving") : t("editProject.saveChanges")}
             </Button>
           </div>
         </form>
