@@ -34,7 +34,7 @@
     }
   },
   "common": {
-    "appName": "PINE B2B",
+    "appName": "PINE",
     "user": "Пользователь",
     "signOut": "Выйти",
     "language": "Язык",
@@ -45,7 +45,7 @@
     "search": "Поиск",
     "create": "Создать",
     "edit": "Редактировать",
-    "loading": "Загрузка PINE B2B…",
+    "loading": "Загрузка PINE…",
     "noDescription": "Без описания",
     "viewAll": "Смотреть все",
     "open": "Открыть",
@@ -69,9 +69,9 @@
     "adding": "Добавление…"
   },
   "auth": {
-    "signInTitle": "С возвращением в PINE B2B",
+    "signInTitle": "С возвращением в PINE",
     "signInSubtitle": "Войдите в рабочее пространство",
-    "signUpTitle": "Создайте аккаунт PINE B2B",
+    "signUpTitle": "Создайте аккаунт PINE",
     "signUpSubtitle": "Запустите работу команды уже сегодня",
     "authFailedTitle": "Не удалось загрузить аутентификацию",
     "authFailedBody": "Для production-ключей (pk_live_) добавьте URL сайта в Clerk → Domains и укажите VITE_CLERK_PROXY_URL=/api/__clerk. Для тестовых ключей удалите переменную proxy на Vercel."

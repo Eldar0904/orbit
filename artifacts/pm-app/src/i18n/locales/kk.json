@@ -34,7 +34,7 @@
     }
   },
   "common": {
-    "appName": "PINE B2B",
+    "appName": "PINE",
     "user": "Пайдаланушы",
     "signOut": "Шығу",
     "language": "Тіл",
@@ -45,7 +45,7 @@
     "search": "Іздеу",
     "create": "Жасау",
     "edit": "Өңдеу",
-    "loading": "PINE B2B жүктелуде…",
+    "loading": "PINE жүктелуде…",
     "noDescription": "Сипаттамасыз",
     "viewAll": "Барлығын көру",
     "open": "Ашу",
@@ -69,9 +69,9 @@
     "adding": "Қосылуда…"
   },
   "auth": {
-    "signInTitle": "PINE B2B-ге қайта оралуыңызбен",
+    "signInTitle": "PINE-ге қайта оралуыңызбен",
     "signInSubtitle": "Жұмыс кеңістігіңізге кіріңіз",
-    "signUpTitle": "PINE B2B тіркелгісін жасаңыз",
+    "signUpTitle": "PINE тіркелгісін жасаңыз",
     "signUpSubtitle": "Командаңызды бүгін іске қосыңыз",
     "authFailedTitle": "Аутентификацияны жүктеу сәтсіз аяқталды",
     "authFailedBody": "Production (pk_live_) кілттері үшін Clerk → Domains бөлімінде сайт URL-ін қосып, VITE_CLERK_PROXY_URL=/api/__clerk орнатыңыз. Тест кілттері үшін Vercel-де proxy айнымалысын алып тастаңыз."
