@@ -5,6 +5,7 @@ type BrandLogoProps = {
   className?: string;
   imageClassName?: string;
   showProductName?: boolean;
+  productName?: string;
 };
 
 export function BrandLogo({
@@ -12,9 +13,10 @@ export function BrandLogo({
   className,
   imageClassName,
   showProductName = true,
+  productName = "B2B",
 }: BrandLogoProps) {
   return (
-    <div className={cn("flex items-center gap-2.5", className)} aria-label="PINE B2B">
+    <div className={cn("flex items-center gap-2.5", className)} aria-label={`PINE ${productName}`}>
       <svg
         viewBox="0 0 64 64"
         aria-hidden="true"
@@ -35,7 +37,7 @@ export function BrandLogo({
             inverse ? "text-white" : "text-pine-deep",
           )}
         >
-          B2B
+          {productName}
         </span>
       )}
     </div>

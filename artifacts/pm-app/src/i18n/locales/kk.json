@@ -1,8 +1,10 @@
 {
   "nav": {
     "dashboard": "Басқару панелі",
-    "projects": "Жобалар",
+    "projects": "B2B жобалары",
     "b2gProjects": "B2G жобалары",
+    "switchToB2B": "B2B-ге өту",
+    "switchToB2G": "B2G-ге өту",
     "tasks": "Барлық тапсырмалар",
     "team": "Команда"
   },

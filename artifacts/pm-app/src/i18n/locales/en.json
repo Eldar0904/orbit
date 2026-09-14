@@ -1,8 +1,10 @@
 {
   "nav": {
     "dashboard": "Dashboard",
-    "projects": "Projects",
+    "projects": "B2B Projects",
     "b2gProjects": "B2G Projects",
+    "switchToB2B": "Switch to B2B",
+    "switchToB2G": "Switch to B2G",
     "tasks": "All Tasks",
     "importMatch": "КазНИИСА",
     "catalogs": "Catalogs",

@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Briefcase, CheckSquare, Users, LogOut, Landmark } from "lucide-react";
+import { LayoutDashboard, Briefcase, CheckSquare, Users, LogOut, Landmark, ArrowLeftRight } from "lucide-react";
 import { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
@@ -7,11 +7,15 @@ import { useClerk, useUser } from "@clerk/react";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { BrandLogo } from "@/components/brand-logo";
 
-const NAV_ITEMS = [
+const B2B_NAV_ITEMS = [
   { href: "/dashboard", labelKey: "nav.dashboard", icon: LayoutDashboard, testId: "dashboard" },
   { href: "/projects", labelKey: "nav.projects", icon: Briefcase, testId: "projects" },
-  { href: "/b2g/projects", labelKey: "nav.b2gProjects", icon: Landmark, testId: "b2g-projects" },
   { href: "/tasks", labelKey: "nav.tasks", icon: CheckSquare, testId: "all-tasks" },
+  { href: "/team", labelKey: "nav.team", icon: Users, testId: "team" },
+] as const;
+
+const B2G_NAV_ITEMS = [
+  { href: "/b2g/projects", labelKey: "nav.b2gProjects", icon: Landmark, testId: "b2g-projects" },
   { href: "/team", labelKey: "nav.team", icon: Users, testId: "team" },
 ] as const;
 
@@ -22,16 +26,18 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const { signOut } = useClerk();
   const { user } = useUser();
   const { t } = useTranslation();
+  const isB2GWorkspace = location.startsWith("/b2g");
+  const navItems = isB2GWorkspace ? B2G_NAV_ITEMS : B2B_NAV_ITEMS;
 
   return (
     <div className="flex min-h-screen w-full bg-background text-foreground">
       <aside className="hidden w-64 flex-shrink-0 flex-col border-r border-pine-deep bg-pine md:flex">
         <div className="flex h-20 items-center border-b border-white/15 px-5">
-          <BrandLogo inverse imageClassName="h-7" />
+          <BrandLogo inverse imageClassName="h-7" productName={isB2GWorkspace ? "B2G" : "B2B"} />
         </div>
 
         <div className="flex-1 py-4 flex flex-col gap-1 px-3">
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const isActive =
               location === item.href ||
               (item.href !== "/dashboard" && location.startsWith(item.href));
@@ -56,6 +62,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </div>
 
         <div className="space-y-3 border-t border-white/15 p-3 text-white">
+          <Link href={isB2GWorkspace ? "/projects" : "/b2g/projects"} className="flex items-center gap-2 rounded-md px-2 py-2 text-xs font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white">
+            <ArrowLeftRight className="h-3.5 w-3.5" />
+            {t(isB2GWorkspace ? "nav.switchToB2B" : "nav.switchToB2G")}
+          </Link>
           <LanguageSwitcher />
           <div className="flex items-center gap-3 px-2 py-2">
             {user?.imageUrl ? (
@@ -94,7 +104,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
       <main className="flex-1 flex flex-col min-w-0">
         <header className="flex h-16 items-center justify-between gap-3 border-b border-pine-deep bg-pine px-4 md:hidden">
-          <BrandLogo inverse imageClassName="h-7" />
+          <BrandLogo inverse imageClassName="h-7" productName={isB2GWorkspace ? "B2G" : "B2B"} />
           <div className="flex items-center gap-2">
             <LanguageSwitcher compact />
             <button

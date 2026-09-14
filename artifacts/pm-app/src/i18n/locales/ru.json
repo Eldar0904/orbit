@@ -1,8 +1,10 @@
 {
   "nav": {
     "dashboard": "Панель",
-    "projects": "Проекты",
+    "projects": "B2B-проекты",
     "b2gProjects": "B2G-проекты",
+    "switchToB2B": "Перейти в B2B",
+    "switchToB2G": "Перейти в B2G",
     "tasks": "Все задачи",
     "team": "Команда"
   },
