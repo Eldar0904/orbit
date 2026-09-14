@@ -1,8 +1,9 @@
 import { Link } from "wouter";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { BrandLogo } from "@/components/brand-logo";
-import { ArrowRight, CheckCircle2, Layers3, Sparkles } from "lucide-react";
+import { ArrowRight, Building2, CheckCircle2, Landmark, Layers3, Sparkles } from "lucide-react";
 
 export default function LandingPage() {
   const { t } = useTranslation();
@@ -31,15 +32,11 @@ export default function LandingPage() {
           <p className="mt-7 max-w-xl text-lg leading-8 text-pine-muted sm:text-xl">
             {t("landing.subheadline")}
           </p>
-          <div className="mt-10 flex flex-col gap-3 sm:flex-row">
-            <Link href="/sign-up" className="inline-flex items-center justify-center gap-2 rounded-full bg-pine px-7 py-3.5 font-semibold text-white shadow-lg shadow-pine/20 transition hover:bg-pine-deep">
-              {t("landing.createAccount")}
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link href="/sign-in" className="inline-flex items-center justify-center rounded-full border border-pine/20 bg-white px-7 py-3.5 font-semibold text-pine-deep transition hover:border-pine/40 hover:bg-pine/5 sm:hidden">
-              {t("landing.signIn")}
-            </Link>
+          <div className="mt-10 grid max-w-2xl gap-3 sm:grid-cols-2">
+            <WorkspaceOption href="/sign-in?workspace=b2b" icon={<Building2 className="h-5 w-5" />} title={t("landing.b2bOption.title")} description={t("landing.b2bOption.description")} action={t("landing.b2bOption.action")} />
+            <WorkspaceOption href="/sign-in?workspace=b2g" icon={<Landmark className="h-5 w-5" />} title={t("landing.b2gOption.title")} description={t("landing.b2gOption.description")} action={t("landing.b2gOption.action")} featured />
           </div>
+          <Link href="/sign-up" className="mt-4 inline-flex w-fit items-center gap-2 text-sm font-semibold text-pine-deep hover:text-pine">{t("landing.createAccount")} <ArrowRight className="h-4 w-4" /></Link>
           <div className="mt-12 grid max-w-2xl gap-4 border-t border-pine/15 pt-6 text-sm text-pine-muted sm:grid-cols-3">
             {["projects", "delivery", "team"].map((item) => (
               <div key={item} className="flex items-center gap-2">
@@ -64,4 +61,13 @@ export default function LandingPage() {
       </main>
     </div>
   );
+}
+
+function WorkspaceOption({ href, icon, title, description, action, featured = false }: { href: string; icon: ReactNode; title: string; description: string; action: string; featured?: boolean }) {
+  return <Link href={href} className={`group rounded-2xl border p-5 transition-all ${featured ? "border-pine bg-pine text-white shadow-lg shadow-pine/15 hover:bg-pine-deep" : "border-pine/20 bg-white text-pine-ink hover:border-pine/45 hover:shadow-md"}`}>
+    <div className={`mb-5 flex h-10 w-10 items-center justify-center rounded-xl ${featured ? "bg-white/15 text-sand" : "bg-pine/10 text-pine"}`}>{icon}</div>
+    <h2 className="text-lg font-bold">{title}</h2>
+    <p className={`mt-1.5 min-h-10 text-sm leading-5 ${featured ? "text-white/75" : "text-pine-muted"}`}>{description}</p>
+    <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold">{action}<ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" /></span>
+  </Link>;
 }

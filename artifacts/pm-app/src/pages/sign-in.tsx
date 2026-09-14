@@ -3,6 +3,9 @@ import { SignIn } from "@clerk/react";
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 export default function SignInPage() {
+  const workspace = new URLSearchParams(window.location.search).get("workspace");
+  const fallbackRedirectUrl = workspace === "b2g" ? `${basePath}/b2g/projects` : `${basePath}/projects`;
+
   return (
     <div className="pine-pattern relative flex min-h-[100dvh] items-center justify-center overflow-hidden bg-pine px-4 py-10">
       <div className="absolute inset-0 bg-gradient-to-br from-pine-deep/20 via-transparent to-pine-deep/60" />
@@ -11,6 +14,7 @@ export default function SignInPage() {
         routing="path"
         path={`${basePath}/sign-in`}
         signUpUrl={`${basePath}/sign-up`}
+        fallbackRedirectUrl={fallbackRedirectUrl}
       />
       </div>
     </div>

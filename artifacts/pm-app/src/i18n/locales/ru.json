@@ -2,6 +2,7 @@
   "nav": {
     "dashboard": "Панель",
     "projects": "Проекты",
+    "b2gProjects": "B2G-проекты",
     "tasks": "Все задачи",
     "team": "Команда"
   },
@@ -18,7 +19,17 @@
     "headline": "Оснащение объектов под ключ",
     "subheadline": "Рабочее пространство команды B2B",
     "signIn": "Войти",
-    "createAccount": "Создать аккаунт"
+    "createAccount": "Создать аккаунт",
+    "b2bOption": {
+      "title": "B2B-проекты",
+      "description": "Коммерческие проекты и текущий процесс P1–P6.",
+      "action": "Открыть B2B"
+    },
+    "b2gOption": {
+      "title": "B2G-проекты",
+      "description": "Тендеры, госконтракты и межфункциональный процесс.",
+      "action": "Открыть B2G"
+    }
   },
   "common": {
     "appName": "PINE B2B",

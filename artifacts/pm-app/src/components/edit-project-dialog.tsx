@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PROJECT_STAGES, PROJECT_KINDS } from "@/lib/project-constants";
+import { B2G_STAGES } from "@/lib/b2g-workflow";
 import { Pencil } from "lucide-react";
 
 export function EditProjectDialog({
@@ -46,6 +47,7 @@ export function EditProjectDialog({
   const updateProject = useUpdateProject();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const isB2GProject = project.projectType?.toLowerCase() === "b2g";
 
   useEffect(() => {
     if (open) {
@@ -157,7 +159,9 @@ export function EditProjectDialog({
               <Select value={stage} onValueChange={(v) => setStage(v as typeof stage)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {PROJECT_STAGES.map((s) => (
+                  {isB2GProject ? B2G_STAGES.map((s, index) => (
+                    <SelectItem key={s.id} value={s.id}>{index + 1}. {s.label}</SelectItem>
+                  )) : PROJECT_STAGES.map((s) => (
                     <SelectItem key={s.id} value={s.id}>{s.short} — {s.label}</SelectItem>
                   ))}
                 </SelectContent>

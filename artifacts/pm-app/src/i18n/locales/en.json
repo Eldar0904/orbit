@@ -2,6 +2,7 @@
   "nav": {
     "dashboard": "Dashboard",
     "projects": "Projects",
+    "b2gProjects": "B2G Projects",
     "tasks": "All Tasks",
     "importMatch": "КазНИИСА",
     "catalogs": "Catalogs",
@@ -13,6 +14,16 @@
     "subheadline": "PINE B2B brings projects, teams, specifications, and delivery work into one clear workspace.",
     "signIn": "Sign in",
     "createAccount": "Enter workspace",
+    "b2bOption": {
+      "title": "B2B Projects",
+      "description": "Commercial projects and the current P1–P6 workflow.",
+      "action": "Open B2B"
+    },
+    "b2gOption": {
+      "title": "B2G Projects",
+      "description": "Tenders, public contracts, and cross-functional delivery.",
+      "action": "Open B2G"
+    },
     "workspace": "PINE B2B workspace",
     "panelTitle": "From first brief to final handover.",
     "panelBody": "Keep every stage, decision, document, and supplier aligned in a single operating system for project delivery.",

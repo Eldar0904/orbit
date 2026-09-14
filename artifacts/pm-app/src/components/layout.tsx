@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Briefcase, CheckSquare, Users, LogOut } from "lucide-react";
+import { LayoutDashboard, Briefcase, CheckSquare, Users, LogOut, Landmark } from "lucide-react";
 import { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
@@ -10,6 +10,7 @@ import { BrandLogo } from "@/components/brand-logo";
 const NAV_ITEMS = [
   { href: "/dashboard", labelKey: "nav.dashboard", icon: LayoutDashboard, testId: "dashboard" },
   { href: "/projects", labelKey: "nav.projects", icon: Briefcase, testId: "projects" },
+  { href: "/b2g/projects", labelKey: "nav.b2gProjects", icon: Landmark, testId: "b2g-projects" },
   { href: "/tasks", labelKey: "nav.tasks", icon: CheckSquare, testId: "all-tasks" },
   { href: "/team", labelKey: "nav.team", icon: Users, testId: "team" },
 ] as const;

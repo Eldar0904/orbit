@@ -2,6 +2,7 @@
   "nav": {
     "dashboard": "Басқару панелі",
     "projects": "Жобалар",
+    "b2gProjects": "B2G жобалары",
     "tasks": "Барлық тапсырмалар",
     "team": "Команда"
   },
@@ -18,7 +19,17 @@
     "headline": "Нысандарды жабдықтауды",
     "subheadline": "B2B командасының жұмыс кеңістігі",
     "signIn": "Кіру",
-    "createAccount": "Тіркелгі жасау"
+    "createAccount": "Тіркелгі жасау",
+    "b2bOption": {
+      "title": "B2B жобалары",
+      "description": "Коммерциялық жобалар және қолданыстағы P1–P6 процесі.",
+      "action": "B2B ашу"
+    },
+    "b2gOption": {
+      "title": "B2G жобалары",
+      "description": "Тендерлер, мемлекеттік шарттар және бөлімаралық процесс.",
+      "action": "B2G ашу"
+    }
   },
   "common": {
     "appName": "PINE B2B",

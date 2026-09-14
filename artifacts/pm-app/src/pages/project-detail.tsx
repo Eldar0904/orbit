@@ -23,7 +23,8 @@ import { DocumentsTab } from "@/components/documents-tab";
 import { OverviewTab } from "@/components/overview-tab";
 import { TasksKanban } from "@/components/tasks-kanban";
 import { EditProjectDialog } from "@/components/edit-project-dialog";
-import { ArrowLeft, Plus, CheckCircle2, FileText, LayoutGrid } from "lucide-react";
+import { B2GProcessMap } from "@/components/b2g-process-map";
+import { ArrowLeft, Plus, CheckCircle2, FileText, LayoutGrid, Map } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -94,6 +95,7 @@ export default function ProjectDetail() {
   };
 
   const budget = project.budget ?? 0;
+  const isB2GProject = project.projectType?.toLowerCase() === "b2g";
   const spent = project.budgetSpent ?? 0;
   const budgetLeft = budget > 0 ? budget - spent : null;
   const statusLabel = project.status === "active" ? t("common.active") : t("common.archived");
@@ -101,7 +103,7 @@ export default function ProjectDetail() {
   return (
     <div className="space-y-6">
       <div>
-        <Link href="/projects" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors">
+        <Link href={isB2GProject ? "/b2g/projects" : "/projects"} className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors">
           <ArrowLeft className="w-4 h-4 mr-1" />
           {t("projectDetail.backToProjects")}
         </Link>
@@ -112,6 +114,7 @@ export default function ProjectDetail() {
             <div className="text-xs font-mono px-2 py-1 bg-muted rounded text-muted-foreground border">
               {statusLabel.toUpperCase()}
             </div>
+            {isB2GProject && <div className="text-xs font-mono px-2 py-1 bg-pine/10 text-pine-deep rounded border border-pine/20">B2G</div>}
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <EditProjectDialog project={project} members={members ?? []} />
@@ -169,6 +172,10 @@ export default function ProjectDetail() {
             <LayoutGrid className="w-3.5 h-3.5" />
             {t("common.overview")}
           </TabsTrigger>
+          {isB2GProject && <TabsTrigger value="process-map" className="gap-2">
+            <Map className="w-3.5 h-3.5" />
+            Карта процесса
+          </TabsTrigger>}
         </TabsList>
 
         <TabsContent value="tasks" className="mt-4 space-y-4">
@@ -209,6 +216,16 @@ export default function ProjectDetail() {
         <TabsContent value="overview" className="mt-4">
           <OverviewTab project={project} />
         </TabsContent>
+
+        {isB2GProject && <TabsContent value="process-map" className="mt-4">
+          <B2GProcessMap
+            stage={project.stage}
+            taskCount={tasks?.length ?? 0}
+            documentCount={documents?.length ?? 0}
+            onOpenTasks={() => setActiveTab("tasks")}
+            onOpenDocuments={() => setActiveTab("documents")}
+          />
+        </TabsContent>}
       </Tabs>
     </div>
   );
