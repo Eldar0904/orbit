@@ -11,9 +11,9 @@
     "team": "Team"
   },
   "landing": {
-    "eyebrow": "Built for turnkey delivery",
-    "headline": "Every project, moving as one.",
-    "subheadline": "PINE B2B brings projects, teams, specifications, and delivery work into one clear workspace.",
+    "eyebrow": "One platform for every project",
+    "headline": "Manage every project in one place.",
+    "subheadline": "Choose the workspace for commercial or public-sector projects.",
     "signIn": "Sign in",
     "createAccount": "Enter workspace",
     "b2bOption": {
@@ -26,9 +26,9 @@
       "description": "Tenders, public contracts, and cross-functional delivery.",
       "action": "Open B2G"
     },
-    "workspace": "PINE B2B workspace",
-    "panelTitle": "From first brief to final handover.",
-    "panelBody": "Keep every stage, decision, document, and supplier aligned in a single operating system for project delivery.",
+    "workspace": "PINE workspace",
+    "panelTitle": "Choose your workspace.",
+    "panelBody": "Keep stages, decisions, documents, and teams aligned in one operating system for delivery.",
     "features": {
       "projects": "P1–P6 project control",
       "delivery": "Delivery clarity",
