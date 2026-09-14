@@ -6,8 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { ListProjectsStatus } from './listProjectsStatus';
+import type { ListProjectsWorkspace } from './listProjectsWorkspace';
 
 export type ListProjectsParams = {
 status?: ListProjectsStatus;
 withStats?: boolean;
+workspace?: ListProjectsWorkspace;
 };

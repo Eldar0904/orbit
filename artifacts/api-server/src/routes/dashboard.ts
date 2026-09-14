@@ -1,14 +1,21 @@
 import { Router, type IRouter } from "express";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import { db, projectsTable, tasksTable, activityTable } from "@workspace/db";
 import { GetRecentActivityQueryParams } from "@workspace/api-zod";
 
 const router: IRouter = Router();
 
-router.get("/dashboard/summary", async (_req, res): Promise<void> => {
+router.get("/dashboard/summary", async (req, res): Promise<void> => {
+  const workspace = req.query.workspace === "b2g" ? "b2g" : "b2b";
+  const workspaceCondition = workspace === "b2g"
+    ? sql`lower(coalesce(${projectsTable.projectType}, '')) = 'b2g'`
+    : sql`lower(coalesce(${projectsTable.projectType}, '')) <> 'b2g'`;
   const [projects, tasks] = await Promise.all([
-    db.select({ status: projectsTable.status }).from(projectsTable),
-    db.select({ status: tasksTable.status, dueDate: tasksTable.dueDate }).from(tasksTable),
+    db.select({ status: projectsTable.status }).from(projectsTable).where(workspaceCondition),
+    db.select({ status: tasksTable.status, dueDate: tasksTable.dueDate })
+      .from(tasksTable)
+      .innerJoin(projectsTable, eq(tasksTable.projectId, projectsTable.id))
+      .where(workspaceCondition),
   ]);
 
   const now = new Date().toISOString().split("T")[0];

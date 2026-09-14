@@ -21,10 +21,12 @@ export const HealthCheckResponse = zod.object({
  * @summary List all projects
  */
 export const listProjectsQueryWithStatsDefault = false;
+export const listProjectsQueryWorkspaceDefault = `b2b`;
 
 export const ListProjectsQueryParams = zod.object({
   "status": zod.enum(['active', 'archived']).optional(),
-  "withStats": zod.coerce.boolean().default(listProjectsQueryWithStatsDefault)
+  "withStats": zod.coerce.boolean().default(listProjectsQueryWithStatsDefault),
+  "workspace": zod.enum(['b2b', 'b2g']).default(listProjectsQueryWorkspaceDefault)
 })
 
 export const ListProjectsResponseItem = zod.union([zod.object({
@@ -754,6 +756,12 @@ export const GetMemberWorkloadResponse = zod.object({
 /**
  * @summary Get dashboard summary stats
  */
+export const getDashboardSummaryQueryWorkspaceDefault = `b2b`;
+
+export const GetDashboardSummaryQueryParams = zod.object({
+  "workspace": zod.enum(['b2b', 'b2g']).default(getDashboardSummaryQueryWorkspaceDefault)
+})
+
 export const GetDashboardSummaryResponse = zod.object({
   "totalProjects": zod.number(),
   "activeProjects": zod.number(),

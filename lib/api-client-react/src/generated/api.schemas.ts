@@ -480,6 +480,7 @@ export interface ActivityItem {
 export type ListProjectsParams = {
 status?: ListProjectsStatus;
 withStats?: boolean;
+workspace?: ListProjectsWorkspace;
 };
 
 export type ListProjectsStatus = typeof ListProjectsStatus[keyof typeof ListProjectsStatus];
@@ -488,6 +489,14 @@ export type ListProjectsStatus = typeof ListProjectsStatus[keyof typeof ListProj
 export const ListProjectsStatus = {
   active: 'active',
   archived: 'archived',
+} as const;
+
+export type ListProjectsWorkspace = typeof ListProjectsWorkspace[keyof typeof ListProjectsWorkspace];
+
+
+export const ListProjectsWorkspace = {
+  b2b: 'b2b',
+  b2g: 'b2g',
 } as const;
 
 export type ListTasksParams = {
@@ -514,6 +523,18 @@ export const ListTasksPriority = {
   low: 'low',
   medium: 'medium',
   high: 'high',
+} as const;
+
+export type GetDashboardSummaryParams = {
+workspace?: GetDashboardSummaryWorkspace;
+};
+
+export type GetDashboardSummaryWorkspace = typeof GetDashboardSummaryWorkspace[keyof typeof GetDashboardSummaryWorkspace];
+
+
+export const GetDashboardSummaryWorkspace = {
+  b2b: 'b2b',
+  b2g: 'b2g',
 } as const;
 
 export type GetRecentActivityParams = {

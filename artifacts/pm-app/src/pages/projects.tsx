@@ -35,18 +35,14 @@ export default function Projects({ workspace = "b2b" }: { workspace?: "b2b" | "b
   const [search, setSearch] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
-  const { data: projects, isLoading } = useListProjects({ withStats: true });
+  const { data: projects, isLoading } = useListProjects({ withStats: true, workspace });
 
-  const filteredProjects = projects?.filter((p) => {
-    const isB2GProject = p.projectType?.toLowerCase() === "b2g";
-    const belongsToWorkspace = isB2GWorkspace ? isB2GProject : !isB2GProject;
-    return belongsToWorkspace && (
+  const filteredProjects = projects?.filter((p) => (
       p.name.toLowerCase().includes(search.toLowerCase()) ||
       (p.description && p.description.toLowerCase().includes(search.toLowerCase())) ||
       (p.client && p.client.toLowerCase().includes(search.toLowerCase())) ||
       (p.location && p.location.toLowerCase().includes(search.toLowerCase()))
-    );
-  });
+    ));
 
   return (
     <div className="space-y-6">
