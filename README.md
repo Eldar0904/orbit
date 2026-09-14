@@ -1,15 +1,14 @@
 # PINE B2B
 
-PINE B2B is a project management workspace for fitout and construction teams. Track projects through staged delivery (P1–P6), assign tasks, manage team workload, register documents, and run the sourcing workflow (catalog matching → suppliers → commercial offer → procurement).
+PINE B2B is a project management workspace for fitout and construction teams. Track projects through staged delivery (P1–P6), assign tasks, manage team workload, and register documents.
 
-Originally exported from [Replit](https://replit.com); evolved from the **B2B Fitout Dashboard** prototype. See [docs/B2B_REFERENCE.md](./docs/B2B_REFERENCE.md) for phase definitions, AI roadmap, and architecture mapping.
+Originally exported from [Replit](https://replit.com); evolved from the **B2B Fitout Dashboard** prototype.
 
 ## Features
 
 - **Dashboard** — project and task stats, completion rate, recent activity feed
 - **Projects** — rich project cards with progress, P1–P6 stage stepper, budget and deadline stats
-- **Catalogs** — workspace knowledge base: import catalogs, manage suppliers, growing product library
-- **Project detail** — Tasks (kanban), Documents, Sourcing & Offer (spec matching, AI suppliers, КП export), Overview (project passport)
+- **Project detail** — Tasks (kanban), Documents, and Overview (project passport)
 - **All Tasks** — cross-project task list with filters
 - **Team** — add members, view workload by status
 - **Auth** — sign-in / sign-up via [Clerk](https://clerk.com)
@@ -34,42 +33,7 @@ Originally exported from [Replit](https://replit.com); evolved from the **B2B Fi
 - Документы
 - Локализация на русском, казахском и английском языках
 
-### 3. Каталоги и спецификации — в разработке
-
-- Единый каталог продукции
-- Импорт каталога КазНИИСА
-- Загрузка спецификаций из Excel и CSV
-- Поиск и сопоставление продукции
-- Проверка и корректировка результатов
-- Сохранение сессий сопоставления
-
-### 4. Поиск и выбор поставщиков
-
-- База поставщиков
-- Формирование запросов коммерческих предложений
-- Сбор предложений поставщиков
-- Подбор альтернативных товаров
-- Сравнение цен и сроков поставки
-- Формирование короткого списка поставщиков
-
-### 5. Коммерческое предложение
-
-- Расчет себестоимости
-- Наценки и скидки
-- Подготовка коммерческого предложения для клиента
-- Экспорт в Excel и PDF
-- Версии предложений и история согласований
-
-### 6. Закупки и поставка
-
-- Заказы поставщикам
-- Графики платежей
-- Отслеживание заказов и поставок
-- Приемка на складе или объекте
-- Контроль монтажа
-- Закупочная документация
-
-### 7. ИИ и автоматизация
+### 3. ИИ и автоматизация
 
 - ИИ-анализ спецификаций
 - Улучшенное семантическое сопоставление товаров
@@ -78,7 +42,7 @@ Originally exported from [Replit](https://replit.com); evolved from the **B2B Fi
 - Уведомления о рисках и сроках
 - Диалоговый ИИ-ассистент PINE B2B
 
-### 8. Подготовка к промышленной эксплуатации и запуск
+### 4. Подготовка к промышленной эксплуатации и запуск
 
 - Авторизация API и изоляция рабочих пространств
 - Автоматизированные тесты
@@ -89,7 +53,7 @@ Originally exported from [Replit](https://replit.com); evolved from the **B2B Fi
 - Проверка безопасности
 - Пилотное внедрение, сбор обратной связи и публичный запуск
 
-Текущая стадия разработки — **этап 3**: основное рабочее пространство готово, а активная разработка сосредоточена на каталогах и сопоставлении продукции КазНИИСА.
+Текущая стадия разработки — **этап 3**: развитие автоматизации и подготовка рабочего пространства к промышленной эксплуатации.
 
 ## Stack
 
@@ -176,7 +140,6 @@ pnpm --filter @workspace/db run push            # Push schema to Postgres (dev)
 - [LOCAL_DEV.md](./LOCAL_DEV.md) — local setup on Windows
 - [docs/DEPLOY_VERCEL.md](./docs/DEPLOY_VERCEL.md) — deploy to Vercel (frontend + API)
 - [docs/PROJECTS_SPEC.md](./docs/PROJECTS_SPEC.md) — projects section fields, tabs, and stages
-- [docs/B2B_REFERENCE.md](./docs/B2B_REFERENCE.md) — B2B prototype phases, AI roadmap, and Orbit mapping
 - [replit.md](./replit.md) — architecture notes and gotchas
 
 ## License

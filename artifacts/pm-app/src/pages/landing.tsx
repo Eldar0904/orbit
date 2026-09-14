@@ -41,7 +41,7 @@ export default function LandingPage() {
             </Link>
           </div>
           <div className="mt-12 grid max-w-2xl gap-4 border-t border-pine/15 pt-6 text-sm text-pine-muted sm:grid-cols-3">
-            {["projects", "catalogs", "delivery"].map((item) => (
+            {["projects", "delivery", "team"].map((item) => (
               <div key={item} className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 shrink-0 text-pine" />
                 {t(`landing.features.${item}`)}

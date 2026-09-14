@@ -477,58 +477,6 @@ export interface ActivityItem {
   createdAt: string;
 }
 
-export interface CatalogItem {
-  name: string;
-  /** @nullable */
-  code?: string | null;
-  /** @nullable */
-  unit?: string | null;
-  /** @nullable */
-  price?: number | null;
-}
-
-export interface CatalogUploadBody {
-  filename: string;
-  items: CatalogItem[];
-}
-
-export interface CatalogInfo {
-  id: number;
-  projectId: number;
-  filename: string;
-  itemCount: number;
-  items: CatalogItem[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface MatchRequest {
-  items: string[];
-}
-
-export type MatchResultStatus = typeof MatchResultStatus[keyof typeof MatchResultStatus];
-
-
-export const MatchResultStatus = {
-  matched: 'matched',
-  partial: 'partial',
-  unmatched: 'unmatched',
-} as const;
-
-export interface MatchResult {
-  input: string;
-  /** @nullable */
-  matched?: string | null;
-  score: number;
-  status: MatchResultStatus;
-  catalogItem?: CatalogItem;
-}
-
-export interface MatchResponse {
-  projectId: number;
-  results: MatchResult[];
-}
-
 export type ListProjectsParams = {
 status?: ListProjectsStatus;
 withStats?: boolean;

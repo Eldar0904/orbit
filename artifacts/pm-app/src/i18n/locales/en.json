@@ -10,7 +10,7 @@
   "landing": {
     "eyebrow": "Built for turnkey delivery",
     "headline": "Every project, moving as one.",
-    "subheadline": "PINE B2B brings projects, teams, specifications, catalogs, and sourcing into one clear delivery workspace.",
+    "subheadline": "PINE B2B brings projects, teams, specifications, and delivery work into one clear workspace.",
     "signIn": "Sign in",
     "createAccount": "Enter workspace",
     "workspace": "PINE B2B workspace",
@@ -18,8 +18,8 @@
     "panelBody": "Keep every stage, decision, document, and supplier aligned in a single operating system for project delivery.",
     "features": {
       "projects": "P1–P6 project control",
-      "catalogs": "Catalog intelligence",
-      "delivery": "Team delivery clarity"
+      "delivery": "Delivery clarity",
+      "team": "Team coordination"
     }
   },
   "common": {

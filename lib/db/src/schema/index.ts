@@ -4,4 +4,3 @@ export * from "./project-managers";
 export * from "./tasks";
 export * from "./activity";
 export * from "./documents";
-export * from "./kazniisa";
