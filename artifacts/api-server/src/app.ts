@@ -37,8 +37,7 @@ app.use(
 app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 
 app.use(cors({ credentials: true, origin: true }));
-// Spreadsheet rows are sent as JSON by the browser. Keep enough headroom for
-// realistic catalogues while still bounding request memory usage.
+// Spreadsheet-sized JSON requests need headroom while request memory remains bounded.
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 

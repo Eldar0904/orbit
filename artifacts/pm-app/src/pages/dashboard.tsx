@@ -1,7 +1,7 @@
-import { useGetDashboardSummary, useGetRecentActivity, useListProjects } from "@workspace/api-client-react";
+import { useGetDashboardSummary, useListProjects } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Activity, CheckCircle2, AlertCircle, Clock, Briefcase, LayoutDashboard } from "lucide-react";
+import { CheckCircle2, AlertCircle, Briefcase, LayoutDashboard } from "lucide-react";
 import { format } from "date-fns";
 import { Link } from "wouter";
 import { useTranslation } from "react-i18next";
@@ -9,7 +9,6 @@ import { useTranslation } from "react-i18next";
 export default function Dashboard() {
   const { t } = useTranslation();
   const { data: summary, isLoading: isSummaryLoading } = useGetDashboardSummary();
-  const { data: activity, isLoading: isActivityLoading } = useGetRecentActivity({ limit: 8 });
   const { data: projects, isLoading: isProjectsLoading } = useListProjects({ status: "active" });
 
   return (
@@ -75,8 +74,7 @@ export default function Dashboard() {
         </div>
       ) : null}
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div className="xl:col-span-2 space-y-6">
+      <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold tracking-tight">{t("dashboard.activeProjectsSection")}</h2>
             <Link href="/projects" className="text-sm text-primary font-medium hover:underline">{t("common.viewAll")}</Link>
@@ -119,52 +117,6 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           )}
-        </div>
-
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold tracking-tight">{t("dashboard.activityFeed")}</h2>
-          </div>
-
-          <Card className="shadow-sm border-border/50">
-            <CardContent className="p-0">
-              {isActivityLoading ? (
-                <div className="p-4 space-y-4">
-                  {Array(5).fill(0).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
-                </div>
-              ) : activity && activity.length > 0 ? (
-                <div className="divide-y divide-border">
-                  {activity.map(item => (
-                    <div key={item.id} className="p-4 text-sm hover:bg-muted/50 transition-colors flex gap-3">
-                      <div className="mt-0.5">
-                        {item.type === 'task_completed' && <CheckCircle2 className="w-4 h-4 text-green-500" />}
-                        {item.type === 'task_created' && <Activity className="w-4 h-4 text-blue-500" />}
-                        {item.type === 'project_created' && <Briefcase className="w-4 h-4 text-primary" />}
-                        {item.type.includes('updated') && <Clock className="w-4 h-4 text-slate-400" />}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-foreground">
-                          {item.assigneeName && <span className="font-medium">{item.assigneeName}</span>}
-                          {item.assigneeName ? " " : ""}
-                          <span dangerouslySetInnerHTML={{ __html: item.title.replace(item.assigneeName || '', '') }} />
-                        </p>
-                        <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground font-mono">
-                          {item.projectName && <span>{item.projectName}</span>}
-                          {item.projectName && <span>•</span>}
-                          <span>{format(new Date(item.createdAt), "MMM d, h:mm a")}</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-8 text-center text-sm text-muted-foreground">
-                  {t("dashboard.noRecentActivity")}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
       </div>
     </div>
   );
