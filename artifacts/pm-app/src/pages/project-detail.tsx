@@ -224,6 +224,7 @@ export default function ProjectDetail() {
             documentCount={documents?.length ?? 0}
             onOpenTasks={() => setActiveTab("tasks")}
             onOpenDocuments={() => setActiveTab("documents")}
+            onCreateTask={() => { setActiveTab("tasks"); setIsTaskCreateOpen(true); }}
           />
         </TabsContent>}
       </Tabs>
