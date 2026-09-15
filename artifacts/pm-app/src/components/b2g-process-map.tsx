@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import {
-  B2G_LANES, B2G_STAGES, type B2GWorkflowNode, getB2GNodeTaskStatus,
+  B2G_LANES, B2G_PHASE_ORDER, B2G_STAGES, type B2GWorkflowNode, getB2GNodeTaskStatus,
   getB2GStageIndex, getB2GStageLabel,
 } from "@/lib/b2g-workflow";
 
@@ -27,7 +27,8 @@ export function B2GProcessMap({
   const currentPhase = getB2GStageIndex(stage);
   const allNodes = useMemo(() => B2G_LANES.flatMap((lane) => lane.nodes.map((node) => ({ ...node, lane: lane.label }))), []);
   const selectedNode = allNodes.find((node) => node.id === selectedNodeId) ?? allNodes[0];
-  const currentNodes = allNodes.filter((node) => node.phase === currentPhase && node.required);
+  const currentNodes = allNodes.filter((node) => node.phase === currentPhase && node.required)
+    .sort((a, b) => B2G_PHASE_ORDER[currentPhase].indexOf(a.id) - B2G_PHASE_ORDER[currentPhase].indexOf(b.id));
   const currentDone = currentNodes.filter((node) => getB2GNodeTaskStatus(node.id, tasks) === "done").length;
   const activeGates = currentNodes.filter((node) => node.kind === "gate");
   const untrackedCurrentNodes = currentNodes.filter((node) => !getB2GNodeTaskStatus(node.id, tasks));
@@ -48,7 +49,7 @@ export function B2GProcessMap({
     if (status === "active") return <Clock3 className="h-3.5 w-3.5 shrink-0 text-pine" />;
     return <Circle className="h-3.5 w-3.5 shrink-0 text-slate-300" />;
   };
-  const NodeCard = ({ node }: { node: B2GWorkflowNode }) => {
+  const NodeCard = ({ node, sequence }: { node: B2GWorkflowNode; sequence?: number }) => {
     const status = statusFor(node);
     return <button type="button" title={node.title} onClick={() => setSelectedNodeId(node.id)}
       className={cn(
@@ -60,7 +61,7 @@ export function B2GProcessMap({
         status === "upcoming" && "border-border/70 bg-white text-slate-400",
         selectedNodeId === node.id && "ring-2 ring-pine/35",
       )}>
-      {node.kind === "gate" ? <GitBranch className="h-3.5 w-3.5 shrink-0 text-amber-600" /> : <StatusIcon status={status} />}
+      {sequence ? <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-semibold text-muted-foreground">{sequence}</span> : node.kind === "gate" ? <GitBranch className="h-3.5 w-3.5 shrink-0 text-amber-600" /> : <StatusIcon status={status} />}
       <span className="line-clamp-2">{node.title}</span>
     </button>;
   };
@@ -89,7 +90,7 @@ export function B2GProcessMap({
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
       {view === "work" ? <Card className="border-border/70 shadow-sm"><CardContent className="p-5">
         <div className="flex flex-col gap-2 border-b pb-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-pine">Рабочая очередь</p><h3 className="mt-1 text-lg font-bold text-pine-deep">Действия текущего этапа</h3><p className="mt-1 text-sm text-muted-foreground">Создайте чек-лист, назначьте исполнителей в задачах и завершайте действия по мере выполнения.</p></div><div className="rounded-full bg-pine/10 px-3 py-1 text-sm font-semibold text-pine-deep">{currentDone}/{currentNodes.length}</div></div>
-        {currentNodes.length > 0 ? <div className="mt-5 grid gap-3 md:grid-cols-2">{currentNodes.map((node) => <NodeCard key={node.id} node={node} />)}</div> : <p className="py-10 text-center text-sm text-muted-foreground">Для этого этапа пока нет обязательных действий.</p>}
+        {currentNodes.length > 0 ? <div className="mt-5 space-y-2">{currentNodes.map((node, index) => <NodeCard key={node.id} node={node} sequence={index + 1} />)}</div> : <p className="py-10 text-center text-sm text-muted-foreground">Для этого этапа пока нет обязательных действий.</p>}
         {activeGates.length > 0 && <div className="mt-5 rounded-lg border border-border bg-muted/30 p-3 text-sm text-pine-deep"><div className="flex items-center gap-2 font-semibold"><LockKeyhole className="h-4 w-4 text-pine" />Шлюзы этапа</div><p className="mt-1 text-xs leading-5 text-muted-foreground">Перед переходом должны быть завершены: {activeGates.map((node) => node.title).join(" · ")}</p></div>}
       </CardContent></Card> : <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
         <div className="min-w-[1250px]">

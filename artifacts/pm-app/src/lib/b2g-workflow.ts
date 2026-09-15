@@ -105,6 +105,16 @@ export const B2G_LANES: B2GLane[] = [
   ] },
 ];
 
+/** The operational queue follows BPMN handoffs, not the visual order of swimlanes. */
+export const B2G_PHASE_ORDER: Record<number, string[]> = {
+  1: ["tender-published", "register-opportunity", "qualify-bid", "technical-review", "cost-estimate", "legal-tender-review", "bid-margin", "participation-decision", "prepare-bid", "submit-bid", "record-outcome"],
+  2: ["contract-handover", "kickoff-raci", "project-risk-plan", "site-survey"],
+  3: ["design-package", "customer-approve-design", "baseline-approval", "budget-reserve", "supplier-selection", "supplier-contracts", "order-receive"],
+  4: ["site-handover", "hse-briefing", "site-mobilize", "work-packages", "inspection-test", "conformity-gate", "ncr-resolution", "change-control", "change-decision", "change-approval", "forecast-update", "supply-recovery", "internal-check", "ready-for-handover"],
+  5: ["customer-inspect", "correct-punch-list", "commissioning", "training", "closeout-package", "customer-accept", "invoice-payment", "pl-analysis"],
+  6: ["warranty-register", "warranty-close", "archive-lessons", "project-close"],
+};
+
 export function getB2GStageIndex(stage: string | null | undefined) {
   return Math.max(1, B2G_STAGES.findIndex((item) => item.id === stage) + 1);
 }
