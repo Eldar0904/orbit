@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { CheckCircle2, ChevronDown, Circle, Clock3, FileText, GitBranch, ListChecks, LockKeyhole, TriangleAlert } from "lucide-react";
+import { CheckCircle2, ChevronDown, Circle, Clock3, FileText, GitBranch, ListChecks, LockKeyhole, Map, PanelTop, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -9,8 +9,6 @@ import {
 } from "@/lib/b2g-workflow";
 
 type TaskRef = { title: string; status: string };
-type SelectedNode = B2GWorkflowNode & { lane: string };
-
 export function B2GProcessMap({
   stage, tasks, documentCount, onOpenTasks, onOpenDocuments, onCreateWorkflowTask, onCreateStageChecklist, onAdvanceStage,
 }: {
@@ -23,6 +21,7 @@ export function B2GProcessMap({
   onCreateStageChecklist: (nodes: B2GWorkflowNode[]) => void;
   onAdvanceStage: () => void;
 }) {
+  const [view, setView] = useState<"work" | "map">("work");
   const [selectedNodeId, setSelectedNodeId] = useState("register-opportunity");
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const currentPhase = getB2GStageIndex(stage);
@@ -79,6 +78,7 @@ export function B2GProcessMap({
         </div>
         <div className="flex flex-wrap items-center gap-3">
           {untrackedCurrentNodes.length > 0 && <Button size="sm" variant="secondary" onClick={() => onCreateStageChecklist(untrackedCurrentNodes)}><ListChecks className="mr-2 h-4 w-4" />Создать чек-лист этапа</Button>}
+          <Button size="sm" variant="secondary" onClick={() => setView((old) => old === "work" ? "map" : "work")}>{view === "work" ? <><Map className="mr-2 h-4 w-4" />Полная карта</> : <><PanelTop className="mr-2 h-4 w-4" />Рабочий список</>}</Button>
           <div className="flex items-center gap-1.5" aria-label="Этапы проекта">
             {B2G_STAGES.map((item, index) => <div key={item.id} title={getB2GStageLabel(item.id)} className={cn("h-2.5 w-8 rounded-full", index + 1 < currentPhase ? "bg-emerald-400" : index + 1 === currentPhase ? "bg-pine-sand" : "bg-white/20")} />)}
           </div>
@@ -87,7 +87,11 @@ export function B2GProcessMap({
     </Card>
 
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
-      <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
+      {view === "work" ? <Card className="border-border/70 shadow-sm"><CardContent className="p-5">
+        <div className="flex flex-col gap-2 border-b pb-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-pine">Рабочая очередь</p><h3 className="mt-1 text-lg font-bold text-pine-deep">Действия текущего этапа</h3><p className="mt-1 text-sm text-muted-foreground">Создайте чек-лист, назначьте исполнителей в задачах и завершайте действия по мере выполнения.</p></div><div className="rounded-full bg-pine/10 px-3 py-1 text-sm font-semibold text-pine-deep">{currentDone}/{currentNodes.length}</div></div>
+        {currentNodes.length > 0 ? <div className="mt-5 grid gap-3 md:grid-cols-2">{currentNodes.map((node) => <NodeCard key={node.id} node={node} />)}</div> : <p className="py-10 text-center text-sm text-muted-foreground">Для этого этапа пока нет обязательных действий.</p>}
+        {activeGates.length > 0 && <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"><div className="flex items-center gap-2 font-semibold"><LockKeyhole className="h-4 w-4" />Шлюзы этапа</div><p className="mt-1 text-xs leading-5">Перед переходом должны быть завершены: {activeGates.map((node) => node.title).join(" · ")}</p></div>}
+      </CardContent></Card> : <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
         <div className="min-w-[1250px]">
           <div className="grid grid-cols-[205px_repeat(6,minmax(160px,1fr))] border-b border-border bg-muted/60 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
             <div className="p-3">Подразделение</div>
@@ -103,7 +107,7 @@ export function B2GProcessMap({
             </div>)}
           </div>)}
         </div>
-      </div>
+      </div>}
 
       <Card className="h-fit border-border/70 shadow-sm xl:sticky xl:top-6">
         <CardContent className="space-y-4 p-5">

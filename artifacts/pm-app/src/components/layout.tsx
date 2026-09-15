@@ -117,7 +117,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </header>
 
         <div className="flex-1 overflow-auto bg-background">
-          <div className="p-6 md:p-8 max-w-[1400px] mx-auto w-full">
+          <div className={cn("p-6 md:p-8 mx-auto w-full", isB2GWorkspace ? "max-w-[1800px]" : "max-w-[1400px]")}>
             {children}
           </div>
         </div>

@@ -32,7 +32,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/project-constants";
@@ -50,6 +50,11 @@ export default function ProjectDetail() {
   const { data: tasks, isLoading: isTasksLoading } = useListTasks({ projectId });
   const { data: documents } = useListProjectDocuments(projectId);
   const { data: members } = useListMembers();
+  const isB2GProject = project?.projectType?.toLowerCase() === "b2g";
+
+  useEffect(() => {
+    if (isB2GProject) setActiveTab("process-map");
+  }, [isB2GProject]);
 
   const updateTask = useUpdateTask();
   const createWorkflowTask = useCreateTask();
@@ -138,7 +143,6 @@ export default function ProjectDetail() {
   };
 
   const budget = project.budget ?? 0;
-  const isB2GProject = project.projectType?.toLowerCase() === "b2g";
   const spent = project.budgetSpent ?? 0;
   const budgetLeft = budget > 0 ? budget - spent : null;
   const statusLabel = project.status === "active" ? t("common.active") : t("common.archived");
@@ -201,6 +205,14 @@ export default function ProjectDetail() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="bg-muted/40 border border-border/50">
+          <TabsTrigger value="overview" className="gap-2">
+            <LayoutGrid className="w-3.5 h-3.5" />
+            {t("common.overview")}
+          </TabsTrigger>
+          {isB2GProject && <TabsTrigger value="process-map" className="gap-2">
+            <Map className="w-3.5 h-3.5" />
+            {t("b2g.processMap")}
+          </TabsTrigger>}
           <TabsTrigger value="tasks" className="gap-2">
             <CheckCircle2 className="w-3.5 h-3.5" />
             {t("common.tasks")}
@@ -211,14 +223,6 @@ export default function ProjectDetail() {
             {t("common.documents")}
             {documents && <span className="font-mono text-xs">{documents.length}</span>}
           </TabsTrigger>
-          <TabsTrigger value="overview" className="gap-2">
-            <LayoutGrid className="w-3.5 h-3.5" />
-            {t("common.overview")}
-          </TabsTrigger>
-          {isB2GProject && <TabsTrigger value="process-map" className="gap-2">
-            <Map className="w-3.5 h-3.5" />
-            {t("b2g.processMap")}
-          </TabsTrigger>}
         </TabsList>
 
         <TabsContent value="tasks" className="mt-4 space-y-4">
