@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PROJECT_STAGES, PROJECT_KINDS } from "@/lib/project-constants";
-import { B2G_STAGES } from "@/lib/b2g-workflow";
+import { getB2GStageLabel } from "@/lib/b2g-workflow";
 import { Pencil } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -158,16 +158,21 @@ export function EditProjectDialog({
             </div>
             <div className="space-y-2">
               <Label>{t("common.stage")}</Label>
-              <Select value={stage} onValueChange={(v) => setStage(v as typeof stage)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {isB2GProject ? B2G_STAGES.map((s, index) => (
-                    <SelectItem key={s.id} value={s.id}>{index + 1}. {t(s.label)}</SelectItem>
-                  )) : PROJECT_STAGES.map((s) => (
+              {isB2GProject ? (
+                <div className="rounded-md border border-pine/20 bg-pine/5 px-3 py-2 text-sm text-pine-deep">
+                  <p className="font-medium">{getB2GStageLabel(stage)}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Этап B2G изменяется только после прохождения обязательных действий и шлюзов на карте процесса.</p>
+                </div>
+              ) : (
+                <Select value={stage} onValueChange={(v) => setStage(v as typeof stage)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {PROJECT_STAGES.map((s) => (
                     <SelectItem key={s.id} value={s.id}>{s.short} — {t(`stages.${s.id}`)}</SelectItem>
                   ))}
-                </SelectContent>
-              </Select>
+                  </SelectContent>
+                </Select>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">

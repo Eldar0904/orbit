@@ -3,6 +3,7 @@ import {
   useGetProjectProgress, 
   useListTasks, 
   useCreateTask,
+  useUpdateProject,
   useUpdateTask,
   useDeleteTask,
   useListProjectDocuments,
@@ -24,6 +25,7 @@ import { OverviewTab } from "@/components/overview-tab";
 import { TasksKanban } from "@/components/tasks-kanban";
 import { EditProjectDialog } from "@/components/edit-project-dialog";
 import { B2GProcessMap } from "@/components/b2g-process-map";
+import { B2G_STAGES, getB2GStageIndex, getB2GTaskTitle, type B2GWorkflowNode } from "@/lib/b2g-workflow";
 import { ArrowLeft, Plus, CheckCircle2, FileText, LayoutGrid, Map } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -50,6 +52,8 @@ export default function ProjectDetail() {
   const { data: members } = useListMembers();
 
   const updateTask = useUpdateTask();
+  const createWorkflowTask = useCreateTask();
+  const updateProject = useUpdateProject();
   const deleteTask = useDeleteTask();
   const { toast } = useToast();
 
@@ -92,6 +96,45 @@ export default function ProjectDetail() {
         },
       },
     );
+  };
+
+  const handleCreateWorkflowTask = (node: B2GWorkflowNode) => {
+    createWorkflowTask.mutate(
+      { data: { projectId, title: getB2GTaskTitle(node), description: node.detail, status: "todo", priority: node.kind === "gate" ? "high" : "medium", assigneeId: null, dueDate: null } },
+      { onSuccess: () => {
+        toast({ title: "Связанная B2G-задача создана", description: node.title });
+        setActiveTab("tasks");
+        queryClient.invalidateQueries({ queryKey: getListTasksQueryKey({ projectId }) });
+        queryClient.invalidateQueries({ queryKey: getGetProjectProgressQueryKey(projectId) });
+      }, onError: () => toast({ variant: "destructive", title: "Не удалось создать связанную задачу" }) },
+    );
+  };
+
+  const handleAdvanceB2GStage = () => {
+    const nextStage = B2G_STAGES[getB2GStageIndex(project?.stage)];
+    if (!nextStage) return;
+    updateProject.mutate({ id: projectId, data: { stage: nextStage.id } }, {
+      onSuccess: () => {
+        toast({ title: "Проект переведен на следующий этап", description: `Этап: ${nextStage.short}` });
+        queryClient.invalidateQueries({ queryKey: getGetProjectQueryKey(projectId) });
+        queryClient.invalidateQueries({ queryKey: getGetProjectProgressQueryKey(projectId) });
+      },
+      onError: () => toast({ variant: "destructive", title: "Не удалось изменить этап проекта" }),
+    });
+  };
+
+  const handleCreateStageChecklist = async (nodes: B2GWorkflowNode[]) => {
+    try {
+      await Promise.all(nodes.map((node) => createWorkflowTask.mutateAsync({
+        data: { projectId, title: getB2GTaskTitle(node), description: node.detail, status: "todo", priority: node.kind === "gate" ? "high" : "medium", assigneeId: null, dueDate: null },
+      })));
+      toast({ title: "Чек-лист этапа создан", description: `Добавлено задач: ${nodes.length}` });
+      setActiveTab("tasks");
+      queryClient.invalidateQueries({ queryKey: getListTasksQueryKey({ projectId }) });
+      queryClient.invalidateQueries({ queryKey: getGetProjectProgressQueryKey(projectId) });
+    } catch {
+      toast({ variant: "destructive", title: "Не удалось создать чек-лист этапа" });
+    }
   };
 
   const budget = project.budget ?? 0;
@@ -220,11 +263,13 @@ export default function ProjectDetail() {
         {isB2GProject && <TabsContent value="process-map" className="mt-4">
           <B2GProcessMap
             stage={project.stage}
-            taskCount={tasks?.length ?? 0}
+            tasks={tasks ?? []}
             documentCount={documents?.length ?? 0}
             onOpenTasks={() => setActiveTab("tasks")}
             onOpenDocuments={() => setActiveTab("documents")}
-            onCreateTask={() => { setActiveTab("tasks"); setIsTaskCreateOpen(true); }}
+            onCreateWorkflowTask={handleCreateWorkflowTask}
+            onCreateStageChecklist={handleCreateStageChecklist}
+            onAdvanceStage={handleAdvanceB2GStage}
           />
         </TabsContent>}
       </Tabs>
