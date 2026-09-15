@@ -27,15 +27,9 @@ export function TasksKanban({ tasks, members, onStatusChange, onUpdate, onDelete
   const { t } = useTranslation();
   const [draggedTaskId, setDraggedTaskId] = useState<number | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const seenWorkflowTasks = new Set<string>();
-  const visibleTasks = tasks.filter((task) => {
-    const match = task.title.match(/^\[B2G:([^\]]+)\]/);
-    if (!match) return true;
-    const workflowKey = `${task.projectId}:${match[1]}`;
-    if (seenWorkflowTasks.has(workflowKey)) return false;
-    seenWorkflowTasks.add(workflowKey);
-    return true;
-  });
+  // B2G workflow actions belong to the Process page. Keeping them out of the
+  // general Kanban leaves a clean board for project-specific work.
+  const visibleTasks = tasks.filter((task) => !task.title.startsWith("[B2G:"));
   const moveTask = (status: TaskStatus) => {
     const task = tasks.find((item) => item.id === draggedTaskId);
     if (task && task.status !== status) onStatusChange(task.id, status);
