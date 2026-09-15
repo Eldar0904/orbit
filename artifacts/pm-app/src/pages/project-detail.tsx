@@ -32,7 +32,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/project-constants";
@@ -43,6 +43,7 @@ export default function ProjectDetail() {
   const projectId = parseInt(id, 10);
   const [isTaskCreateOpen, setIsTaskCreateOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("tasks");
+  const creatingWorkflowNodeIdsRef = useRef<Set<string>>(new Set());
   const queryClient = useQueryClient();
 
   const { data: project, isLoading: isProjectLoading } = useGetProject(projectId);
@@ -76,8 +77,12 @@ export default function ProjectDetail() {
   }
 
   const handleStatusChange = (taskId: number, status: TaskUpdate["status"]) => {
+    handleTaskUpdate(taskId, { status });
+  };
+
+  const handleTaskUpdate = (taskId: number, data: TaskUpdate) => {
     updateTask.mutate(
-      { id: taskId, data: { status } },
+      { id: taskId, data },
       {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getListTasksQueryKey({ projectId }) });
@@ -104,6 +109,8 @@ export default function ProjectDetail() {
   };
 
   const handleCreateWorkflowTask = (node: B2GWorkflowNode) => {
+    if (creatingWorkflowNodeIdsRef.current.has(node.id) || tasks?.some((task) => task.title.startsWith(`[B2G:${node.id}]`))) return;
+    creatingWorkflowNodeIdsRef.current.add(node.id);
     createWorkflowTask.mutate(
       { data: { projectId, title: getB2GTaskTitle(node), description: node.detail, status: "todo", priority: node.kind === "gate" ? "high" : "medium", assigneeId: null, dueDate: null } },
       { onSuccess: () => {
@@ -111,7 +118,11 @@ export default function ProjectDetail() {
         setActiveTab("tasks");
         queryClient.invalidateQueries({ queryKey: getListTasksQueryKey({ projectId }) });
         queryClient.invalidateQueries({ queryKey: getGetProjectProgressQueryKey(projectId) });
-      }, onError: () => toast({ variant: "destructive", title: "Не удалось создать связанную задачу" }) },
+        creatingWorkflowNodeIdsRef.current.delete(node.id);
+      }, onError: () => {
+        creatingWorkflowNodeIdsRef.current.delete(node.id);
+        toast({ variant: "destructive", title: "Не удалось создать связанную задачу" });
+      } },
     );
   };
 
@@ -129,16 +140,21 @@ export default function ProjectDetail() {
   };
 
   const handleCreateStageChecklist = async (nodes: B2GWorkflowNode[]) => {
+    const newNodes = nodes.filter((node) => !creatingWorkflowNodeIdsRef.current.has(node.id) && !tasks?.some((task) => task.title.startsWith(`[B2G:${node.id}]`)));
+    if (newNodes.length === 0) return;
+    newNodes.forEach((node) => creatingWorkflowNodeIdsRef.current.add(node.id));
     try {
-      await Promise.all(nodes.map((node) => createWorkflowTask.mutateAsync({
+      await Promise.all(newNodes.map((node) => createWorkflowTask.mutateAsync({
         data: { projectId, title: getB2GTaskTitle(node), description: node.detail, status: "todo", priority: node.kind === "gate" ? "high" : "medium", assigneeId: null, dueDate: null },
       })));
-      toast({ title: "Чек-лист этапа создан", description: `Добавлено задач: ${nodes.length}` });
+      toast({ title: "Чек-лист этапа создан", description: `Добавлено задач: ${newNodes.length}` });
       setActiveTab("tasks");
       queryClient.invalidateQueries({ queryKey: getListTasksQueryKey({ projectId }) });
       queryClient.invalidateQueries({ queryKey: getGetProjectProgressQueryKey(projectId) });
     } catch {
       toast({ variant: "destructive", title: "Не удалось создать чек-лист этапа" });
+    } finally {
+      newNodes.forEach((node) => creatingWorkflowNodeIdsRef.current.delete(node.id));
     }
   };
 
@@ -240,7 +256,7 @@ export default function ProjectDetail() {
           {isTasksLoading ? (
             <Skeleton className="h-64 w-full" />
           ) : tasks && tasks.length > 0 ? (
-            <TasksKanban tasks={tasks} onStatusChange={handleStatusChange} onDelete={handleDeleteTask} />
+            <TasksKanban tasks={tasks} members={members ?? []} onStatusChange={handleStatusChange} onUpdate={handleTaskUpdate} onDelete={handleDeleteTask} />
           ) : (
             <Card className="border-border/50 shadow-sm">
               <CardContent className="p-12 text-center flex flex-col items-center">
