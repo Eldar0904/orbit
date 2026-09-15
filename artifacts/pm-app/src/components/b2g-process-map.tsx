@@ -29,6 +29,10 @@ export function B2GProcessMap({
   const selectedNode = allNodes.find((node) => node.id === selectedNodeId) ?? allNodes[0];
   const nodesForPhase = (phase: number) => allNodes.filter((node) => node.phase === phase && node.required)
     .sort((a, b) => B2G_PHASE_ORDER[phase].indexOf(a.id) - B2G_PHASE_ORDER[phase].indexOf(b.id));
+  const [viewedPhase, setViewedPhase] = useState(currentPhase);
+  const viewedStage = B2G_STAGES[viewedPhase - 1] ?? B2G_STAGES[0];
+  const viewedNodes = nodesForPhase(viewedPhase);
+  const isViewingCurrent = viewedPhase === currentPhase;
   const currentNodes = nodesForPhase(currentPhase);
   const currentDone = currentNodes.filter((node) => getB2GNodeTaskStatus(node.id, tasks) === "done").length;
   const activeGates = currentNodes.filter((node) => node.kind === "gate");
@@ -81,18 +85,18 @@ export function B2GProcessMap({
         <div className="flex flex-wrap items-center gap-3">
           {untrackedCurrentNodes.length > 0 && <Button size="sm" variant="secondary" onClick={() => onCreateStageChecklist(untrackedCurrentNodes)}><ListChecks className="mr-2 h-4 w-4" />Создать чек-лист этапа</Button>}
           <Button size="sm" variant="secondary" onClick={() => setView((old) => old === "work" ? "map" : "work")}>{view === "work" ? <><Map className="mr-2 h-4 w-4" />Полная карта</> : <><PanelTop className="mr-2 h-4 w-4" />Рабочий список</>}</Button>
-          <div className="flex items-center gap-1.5" aria-label="Этапы проекта">
-            {B2G_STAGES.map((item, index) => <div key={item.id} title={getB2GStageLabel(item.id)} className={cn("h-2.5 w-8 rounded-full", index + 1 < currentPhase ? "bg-emerald-400" : index + 1 === currentPhase ? "bg-pine-sand" : "bg-white/20")} />)}
+          <div className="flex max-w-full flex-wrap items-center justify-end gap-x-3 gap-y-1" aria-label="Навигация по этапам">
+            {B2G_STAGES.map((item, index) => { const phase = index + 1; return <button key={item.id} type="button" onClick={() => setViewedPhase(phase)} className={cn("border-b pb-0.5 text-xs transition-colors", viewedPhase === phase ? "border-pine-sand font-semibold text-white" : phase === currentPhase ? "border-white/70 text-white/90" : "border-transparent text-white/55 hover:text-white")}>{item.short} · {getB2GStageLabel(item.id)}</button>; })}
           </div>
         </div>
       </CardContent>
     </Card>
 
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
-      {view === "work" ? <Card className="border-border/70 shadow-sm"><CardContent className="space-y-4 p-5">
-        <div className="flex flex-col gap-2 border-b pb-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-pine">Процесс выполнения</p><h3 className="mt-1 text-lg font-bold text-pine-deep">Этапы и последовательность работ</h3><p className="mt-1 text-sm text-muted-foreground">Действия выстроены по BPMN-передачам между подразделениями.</p></div><div className="rounded-full bg-pine/10 px-3 py-1 text-sm font-semibold text-pine-deep">Текущий: {currentDone}/{currentNodes.length}</div></div>
-        <div className="space-y-3">{B2G_STAGES.map((stageItem, stageIndex) => { const phase = stageIndex + 1; const phaseNodes = nodesForPhase(phase); const isCurrent = phase === currentPhase; return <section key={stageItem.id} className={cn("overflow-hidden rounded-xl border", isCurrent ? "border-pine/35 bg-pine/[0.03]" : "border-border bg-background")}><div className="flex items-center gap-3 border-b border-border/70 px-3 py-2"><span className={cn("rounded-full px-2.5 py-1 text-[10px] font-bold", isCurrent ? "bg-pine text-white" : phase < currentPhase ? "bg-emerald-100 text-emerald-700" : "bg-muted text-muted-foreground")}>{stageItem.short}</span><h4 className={cn("text-sm font-semibold", isCurrent ? "text-pine-deep" : "text-foreground")}>{getB2GStageLabel(stageItem.id)}</h4>{isCurrent && <span className="ml-auto text-xs font-medium text-pine">Текущий этап</span>}</div><div className="overflow-x-auto p-3"><div className="flex min-w-max items-stretch gap-2">{phaseNodes.map((node, index) => <div key={node.id} className="flex items-center gap-2"><div className="w-48"><NodeCard node={node} sequence={index + 1} showLane /></div>{index < phaseNodes.length - 1 && <ChevronRight className="h-4 w-4 shrink-0 text-border" />}</div>)}</div></div></section>; })}</div>
-        {activeGates.length > 0 && <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm text-pine-deep"><div className="flex items-center gap-2 font-semibold"><LockKeyhole className="h-4 w-4 text-pine" />Шлюзы текущего этапа</div><p className="mt-1 text-xs leading-5 text-muted-foreground">Перед переходом должны быть завершены: {activeGates.map((node) => node.title).join(" · ")}</p></div>}
+      {view === "work" ? <Card className="min-h-[calc(100vh-19rem)] border-border/70 shadow-sm"><CardContent className="flex min-h-[calc(100vh-19rem)] flex-col p-5">
+        <div className="flex flex-col gap-3 border-b pb-5 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-pine">Этап {viewedStage.short}</p><h3 className="mt-1 text-2xl font-bold text-pine-deep">{getB2GStageLabel(viewedStage.id)}</h3><p className="mt-2 text-sm text-muted-foreground">Последовательность работ и передач между подразделениями по BPMN.</p></div><div className={cn("rounded-full px-3 py-1 text-sm font-semibold", isViewingCurrent ? "bg-pine/10 text-pine-deep" : "bg-muted text-muted-foreground")}>{isViewingCurrent ? `Выполнено: ${currentDone} из ${currentNodes.length}` : "Просмотр этапа"}</div></div>
+        <div className="flex flex-1 items-center overflow-x-auto py-8"><div className="flex min-w-max items-stretch gap-3">{viewedNodes.map((node, index) => <div key={node.id} className="flex items-center gap-3"><div className="w-56"><NodeCard node={node} sequence={index + 1} showLane /></div>{index < viewedNodes.length - 1 && <ChevronRight className="h-5 w-5 shrink-0 text-border" />}</div>)}</div></div>
+        {isViewingCurrent && activeGates.length > 0 && <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm text-pine-deep"><div className="flex items-center gap-2 font-semibold"><LockKeyhole className="h-4 w-4 text-pine" />Шлюзы текущего этапа</div><p className="mt-1 text-xs leading-5 text-muted-foreground">Перед переходом должны быть завершены: {activeGates.map((node) => node.title).join(" · ")}</p></div>}
       </CardContent></Card> : <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
         <div className="min-w-[1250px]">
           <div className="grid grid-cols-[205px_repeat(6,minmax(160px,1fr))] border-b border-border bg-muted/60 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
