@@ -32,6 +32,7 @@ export function B2GProcessMap({
   const [viewedPhase, setViewedPhase] = useState(currentPhase);
   const viewedStage = B2G_STAGES[viewedPhase - 1] ?? B2G_STAGES[0];
   const viewedNodes = nodesForPhase(viewedPhase);
+  const viewedLanes = B2G_LANES.filter((lane) => lane.nodes.some((node) => node.phase === viewedPhase && node.required));
   const isViewingCurrent = viewedPhase === currentPhase;
   const currentNodes = nodesForPhase(currentPhase);
   const currentDone = currentNodes.filter((node) => getB2GNodeTaskStatus(node.id, tasks) === "done").length;
@@ -92,11 +93,11 @@ export function B2GProcessMap({
       </CardContent>
     </Card>
 
-    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
-      {view === "work" ? <Card className="min-h-[calc(100vh-19rem)] border-border/70 shadow-sm"><CardContent className="flex min-h-[calc(100vh-19rem)] flex-col p-5">
-        <div className="flex flex-col gap-3 border-b pb-5 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-pine">Этап {viewedStage.short}</p><h3 className="mt-1 text-2xl font-bold text-pine-deep">{getB2GStageLabel(viewedStage.id)}</h3><p className="mt-2 text-sm text-muted-foreground">Последовательность работ и передач между подразделениями по BPMN.</p></div><div className={cn("rounded-full px-3 py-1 text-sm font-semibold", isViewingCurrent ? "bg-pine/10 text-pine-deep" : "bg-muted text-muted-foreground")}>{isViewingCurrent ? `Выполнено: ${currentDone} из ${currentNodes.length}` : "Просмотр этапа"}</div></div>
-        <div className="flex flex-1 items-center overflow-x-auto py-8"><div className="flex min-w-max items-stretch gap-3">{viewedNodes.map((node, index) => <div key={node.id} className="flex items-center gap-3"><div className="w-56"><NodeCard node={node} sequence={index + 1} showLane /></div>{index < viewedNodes.length - 1 && <ChevronRight className="h-5 w-5 shrink-0 text-border" />}</div>)}</div></div>
-        {isViewingCurrent && activeGates.length > 0 && <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm text-pine-deep"><div className="flex items-center gap-2 font-semibold"><LockKeyhole className="h-4 w-4 text-pine" />Шлюзы текущего этапа</div><p className="mt-1 text-xs leading-5 text-muted-foreground">Перед переходом должны быть завершены: {activeGates.map((node) => node.title).join(" · ")}</p></div>}
+    <div className={cn("grid gap-5", view === "work" ? "grid-cols-1" : "xl:grid-cols-[minmax(0,1fr)_340px]")}>
+      {view === "work" ? <Card className="border-border/70 shadow-sm"><CardContent className="p-0">
+        <div className="flex flex-col gap-3 border-b px-5 py-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-pine">Этап {viewedStage.short}</p><h3 className="mt-1 text-2xl font-bold text-pine-deep">{getB2GStageLabel(viewedStage.id)}</h3><p className="mt-2 text-sm text-muted-foreground">Схема исполнения по подразделениям и передачам BPMN.</p></div><div className={cn("rounded-full px-3 py-1 text-sm font-semibold", isViewingCurrent ? "bg-pine/10 text-pine-deep" : "bg-muted text-muted-foreground")}>{isViewingCurrent ? `Выполнено: ${currentDone} из ${currentNodes.length}` : "Просмотр этапа"}</div></div>
+        <div className="overflow-x-auto"><div className="min-w-[1100px]"><div className="bg-pine-deep px-5 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-white">Пул: PINE GROUP · {getB2GStageLabel(viewedStage.id)}</div><div className="grid border-b border-border bg-muted/35" style={{ gridTemplateColumns: `210px repeat(${viewedNodes.length}, minmax(150px, 1fr))` }}><div className="p-3 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Подразделение</div>{viewedNodes.map((node, index) => <div key={node.id} className="border-l border-border p-3 text-center text-[10px] font-semibold text-muted-foreground">{index + 1}</div>)}</div>{viewedLanes.map((lane) => <div key={lane.id} className="grid min-h-36 border-b border-border last:border-b-0" style={{ gridTemplateColumns: `210px repeat(${viewedNodes.length}, minmax(150px, 1fr))` }}><div className="flex items-center bg-muted/35 p-4 text-sm font-semibold text-pine-deep">{lane.label}</div>{viewedNodes.map((node) => <div key={node.id} className="flex items-center border-l border-border p-2">{node.lane === lane.label && <NodeCard node={node} />}</div>)}</div>)}</div></div>
+        {isViewingCurrent && activeGates.length > 0 && <div className="m-5 rounded-lg border border-border bg-muted/30 p-3 text-sm text-pine-deep"><div className="flex items-center gap-2 font-semibold"><LockKeyhole className="h-4 w-4 text-pine" />Шлюзы текущего этапа</div><p className="mt-1 text-xs leading-5 text-muted-foreground">Перед переходом должны быть завершены: {activeGates.map((node) => node.title).join(" · ")}</p></div>}
       </CardContent></Card> : <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
         <div className="min-w-[1250px]">
           <div className="grid grid-cols-[205px_repeat(6,minmax(160px,1fr))] border-b border-border bg-muted/60 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -115,7 +116,7 @@ export function B2GProcessMap({
         </div>
       </div>}
 
-      <Card className="h-fit border-border/70 shadow-sm xl:sticky xl:top-6">
+      {view === "map" && <Card className="h-fit border-border/70 shadow-sm xl:sticky xl:top-6">
         <CardContent className="space-y-4 p-5">
           <div className="flex items-start justify-between gap-3">
             <div><p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{selectedNode.kind === "gate" ? "Шлюз решения" : selectedNode.kind === "control" ? "Контроль" : "Действие"}</p><h3 className="mt-1 font-bold leading-5 text-pine-deep">{selectedNode.title}</h3></div>
@@ -136,7 +137,7 @@ export function B2GProcessMap({
             <Button className="w-full" variant={canAdvance ? "default" : "outline"} disabled={!canAdvance} onClick={onAdvanceStage}>Перейти к следующему этапу</Button>
           </div>}
         </CardContent>
-      </Card>
+      </Card>}
     </div>
   </div>;
 }
