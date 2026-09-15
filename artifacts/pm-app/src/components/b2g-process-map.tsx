@@ -53,11 +53,11 @@ export function B2GProcessMap({
     return <button type="button" title={node.title} onClick={() => setSelectedNodeId(node.id)}
       className={cn(
         "flex min-h-[58px] w-full items-start gap-1.5 rounded-md border p-2 text-left text-[11px] leading-4 transition-colors",
-        status === "complete" && "border-emerald-200 bg-emerald-50 text-emerald-950",
-        status === "active" && "border-pine/40 bg-pine/10 text-pine-deep",
-        status === "blocked" && "border-red-200 bg-red-50 text-red-900",
-        status === "pending" && "border-slate-200 bg-white text-slate-600",
-        status === "upcoming" && "border-slate-100 bg-slate-50 text-slate-400",
+        status === "complete" && "border-emerald-200 bg-white text-pine-deep",
+        status === "active" && "border-pine/45 bg-white text-pine-deep",
+        status === "blocked" && "border-red-200 bg-white text-pine-deep",
+        status === "pending" && "border-border bg-white text-slate-600",
+        status === "upcoming" && "border-border/70 bg-white text-slate-400",
         selectedNodeId === node.id && "ring-2 ring-pine/35",
       )}>
       {node.kind === "gate" ? <GitBranch className="h-3.5 w-3.5 shrink-0 text-amber-600" /> : <StatusIcon status={status} />}
@@ -90,7 +90,7 @@ export function B2GProcessMap({
       {view === "work" ? <Card className="border-border/70 shadow-sm"><CardContent className="p-5">
         <div className="flex flex-col gap-2 border-b pb-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-pine">Рабочая очередь</p><h3 className="mt-1 text-lg font-bold text-pine-deep">Действия текущего этапа</h3><p className="mt-1 text-sm text-muted-foreground">Создайте чек-лист, назначьте исполнителей в задачах и завершайте действия по мере выполнения.</p></div><div className="rounded-full bg-pine/10 px-3 py-1 text-sm font-semibold text-pine-deep">{currentDone}/{currentNodes.length}</div></div>
         {currentNodes.length > 0 ? <div className="mt-5 grid gap-3 md:grid-cols-2">{currentNodes.map((node) => <NodeCard key={node.id} node={node} />)}</div> : <p className="py-10 text-center text-sm text-muted-foreground">Для этого этапа пока нет обязательных действий.</p>}
-        {activeGates.length > 0 && <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"><div className="flex items-center gap-2 font-semibold"><LockKeyhole className="h-4 w-4" />Шлюзы этапа</div><p className="mt-1 text-xs leading-5">Перед переходом должны быть завершены: {activeGates.map((node) => node.title).join(" · ")}</p></div>}
+        {activeGates.length > 0 && <div className="mt-5 rounded-lg border border-border bg-muted/30 p-3 text-sm text-pine-deep"><div className="flex items-center gap-2 font-semibold"><LockKeyhole className="h-4 w-4 text-pine" />Шлюзы этапа</div><p className="mt-1 text-xs leading-5 text-muted-foreground">Перед переходом должны быть завершены: {activeGates.map((node) => node.title).join(" · ")}</p></div>}
       </CardContent></Card> : <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
         <div className="min-w-[1250px]">
           <div className="grid grid-cols-[205px_repeat(6,minmax(160px,1fr))] border-b border-border bg-muted/60 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -118,7 +118,7 @@ export function B2GProcessMap({
           <p className="text-sm leading-6 text-muted-foreground">{selectedNode.detail}</p>
           <div className="rounded-lg bg-muted/50 p-3 text-sm"><span className="text-muted-foreground">Ответственный контур</span><p className="mt-1 font-medium">{selectedNode.lane}</p></div>
           {selectedNode.documents && selectedNode.documents.length > 0 && <div className="rounded-lg border border-border p-3 text-sm"><div className="mb-2 flex items-center gap-2 font-medium"><FileText className="h-4 w-4 text-pine" />Обязательные документы</div><p className="text-xs leading-5 text-muted-foreground">{selectedNode.documents.join(" · ")}</p></div>}
-          {selectedNode.kind === "gate" && <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900"><div className="mb-1 flex items-center gap-1.5 font-semibold"><LockKeyhole className="h-3.5 w-3.5" />Шлюз блокирует следующий этап</div>Создайте задачу решения, зафиксируйте результат и отметьте ее выполненной после утверждения.</div>}
+          {selectedNode.kind === "gate" && <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs leading-5 text-pine-deep"><div className="mb-1 flex items-center gap-1.5 font-semibold"><LockKeyhole className="h-3.5 w-3.5 text-pine" />Шлюз блокирует следующий этап</div><span className="text-muted-foreground">Создайте задачу решения, зафиксируйте результат и отметьте ее выполненной после утверждения.</span></div>}
           <div className="grid gap-2">
             {!selectedTaskStatus
               ? <Button className="justify-start" onClick={() => onCreateWorkflowTask(selectedNode)}><ListChecks className="mr-2 h-4 w-4" />Создать связанную задачу</Button>
