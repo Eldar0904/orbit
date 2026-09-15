@@ -3,7 +3,6 @@ import {
   useGetProjectProgress, 
   useListTasks, 
   useCreateTask,
-  useUpdateProject,
   useUpdateTask,
   useDeleteTask,
   useListProjectDocuments,
@@ -24,15 +23,13 @@ import { DocumentsTab } from "@/components/documents-tab";
 import { OverviewTab } from "@/components/overview-tab";
 import { TasksKanban } from "@/components/tasks-kanban";
 import { EditProjectDialog } from "@/components/edit-project-dialog";
-import { B2GProcessMap } from "@/components/b2g-process-map";
-import { B2G_STAGES, getB2GStageIndex, getB2GTaskTitle, type B2GWorkflowNode } from "@/lib/b2g-workflow";
-import { ArrowLeft, Plus, CheckCircle2, FileText, LayoutGrid, Map } from "lucide-react";
+import { ArrowLeft, Plus, CheckCircle2, FileText, LayoutGrid } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/project-constants";
@@ -43,7 +40,6 @@ export default function ProjectDetail() {
   const projectId = parseInt(id, 10);
   const [isTaskCreateOpen, setIsTaskCreateOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("tasks");
-  const creatingWorkflowNodeIdsRef = useRef<Set<string>>(new Set());
   const queryClient = useQueryClient();
 
   const { data: project, isLoading: isProjectLoading } = useGetProject(projectId);
@@ -53,13 +49,7 @@ export default function ProjectDetail() {
   const { data: members } = useListMembers();
   const isB2GProject = project?.projectType?.toLowerCase() === "b2g";
 
-  useEffect(() => {
-    if (isB2GProject) setActiveTab("process-map");
-  }, [isB2GProject]);
-
   const updateTask = useUpdateTask();
-  const createWorkflowTask = useCreateTask();
-  const updateProject = useUpdateProject();
   const deleteTask = useDeleteTask();
   const { toast } = useToast();
 
@@ -106,56 +96,6 @@ export default function ProjectDetail() {
         },
       },
     );
-  };
-
-  const handleCreateWorkflowTask = (node: B2GWorkflowNode) => {
-    if (creatingWorkflowNodeIdsRef.current.has(node.id) || tasks?.some((task) => task.title.startsWith(`[B2G:${node.id}]`))) return;
-    creatingWorkflowNodeIdsRef.current.add(node.id);
-    createWorkflowTask.mutate(
-      { data: { projectId, title: getB2GTaskTitle(node), description: node.detail, status: "todo", priority: node.kind === "gate" ? "high" : "medium", assigneeId: null, dueDate: null } },
-      { onSuccess: () => {
-        toast({ title: "Связанная B2G-задача создана", description: node.title });
-        setActiveTab("tasks");
-        queryClient.invalidateQueries({ queryKey: getListTasksQueryKey({ projectId }) });
-        queryClient.invalidateQueries({ queryKey: getGetProjectProgressQueryKey(projectId) });
-        creatingWorkflowNodeIdsRef.current.delete(node.id);
-      }, onError: () => {
-        creatingWorkflowNodeIdsRef.current.delete(node.id);
-        toast({ variant: "destructive", title: "Не удалось создать связанную задачу" });
-      } },
-    );
-  };
-
-  const handleAdvanceB2GStage = () => {
-    const nextStage = B2G_STAGES[getB2GStageIndex(project?.stage)];
-    if (!nextStage) return;
-    updateProject.mutate({ id: projectId, data: { stage: nextStage.id } }, {
-      onSuccess: () => {
-        toast({ title: "Проект переведен на следующий этап", description: `Этап: ${nextStage.short}` });
-        queryClient.invalidateQueries({ queryKey: getGetProjectQueryKey(projectId) });
-        queryClient.invalidateQueries({ queryKey: getGetProjectProgressQueryKey(projectId) });
-      },
-      onError: () => toast({ variant: "destructive", title: "Не удалось изменить этап проекта" }),
-    });
-  };
-
-  const handleCreateStageChecklist = async (nodes: B2GWorkflowNode[]) => {
-    const newNodes = nodes.filter((node) => !creatingWorkflowNodeIdsRef.current.has(node.id) && !tasks?.some((task) => task.title.startsWith(`[B2G:${node.id}]`)));
-    if (newNodes.length === 0) return;
-    newNodes.forEach((node) => creatingWorkflowNodeIdsRef.current.add(node.id));
-    try {
-      await Promise.all(newNodes.map((node) => createWorkflowTask.mutateAsync({
-        data: { projectId, title: getB2GTaskTitle(node), description: node.detail, status: "todo", priority: node.kind === "gate" ? "high" : "medium", assigneeId: null, dueDate: null },
-      })));
-      toast({ title: "Чек-лист этапа создан", description: `Добавлено задач: ${newNodes.length}` });
-      setActiveTab("tasks");
-      queryClient.invalidateQueries({ queryKey: getListTasksQueryKey({ projectId }) });
-      queryClient.invalidateQueries({ queryKey: getGetProjectProgressQueryKey(projectId) });
-    } catch {
-      toast({ variant: "destructive", title: "Не удалось создать чек-лист этапа" });
-    } finally {
-      newNodes.forEach((node) => creatingWorkflowNodeIdsRef.current.delete(node.id));
-    }
   };
 
   const budget = project.budget ?? 0;
@@ -225,10 +165,6 @@ export default function ProjectDetail() {
             <LayoutGrid className="w-3.5 h-3.5" />
             {t("common.overview")}
           </TabsTrigger>
-          {isB2GProject && <TabsTrigger value="process-map" className="gap-2">
-            <Map className="w-3.5 h-3.5" />
-            {t("b2g.processMap")}
-          </TabsTrigger>}
           <TabsTrigger value="tasks" className="gap-2">
             <CheckCircle2 className="w-3.5 h-3.5" />
             {t("common.tasks")}
@@ -280,18 +216,6 @@ export default function ProjectDetail() {
           <OverviewTab project={project} />
         </TabsContent>
 
-        {isB2GProject && <TabsContent value="process-map" className="mt-4">
-          <B2GProcessMap
-            stage={project.stage}
-            tasks={tasks ?? []}
-            documentCount={documents?.length ?? 0}
-            onOpenTasks={() => setActiveTab("tasks")}
-            onOpenDocuments={() => setActiveTab("documents")}
-            onCreateWorkflowTask={handleCreateWorkflowTask}
-            onCreateStageChecklist={handleCreateStageChecklist}
-            onAdvanceStage={handleAdvanceB2GStage}
-          />
-        </TabsContent>}
       </Tabs>
     </div>
   );
