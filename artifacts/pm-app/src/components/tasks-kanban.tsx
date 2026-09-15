@@ -27,12 +27,31 @@ export function TasksKanban({ tasks, members, onStatusChange, onUpdate, onDelete
   const { t } = useTranslation();
   const [draggedTaskId, setDraggedTaskId] = useState<number | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [optimisticStatuses, setOptimisticStatuses] = useState<Record<number, TaskStatus>>({});
+  useEffect(() => {
+    setOptimisticStatuses((current) => {
+      const next = { ...current };
+      let changed = false;
+      tasks.forEach((task) => {
+        if (next[task.id] === task.status) {
+          delete next[task.id];
+          changed = true;
+        }
+      });
+      return changed ? next : current;
+    });
+  }, [tasks]);
   // B2G workflow actions belong to the Process page. Keeping them out of the
   // general Kanban leaves a clean board for project-specific work.
-  const visibleTasks = tasks.filter((task) => !task.title.startsWith("[B2G:"));
+  const visibleTasks = tasks.filter((task) => !task.title.startsWith("[B2G:")).map((task) => ({ ...task, status: optimisticStatuses[task.id] ?? task.status }));
+  const changeStatus = (taskId: number, status: TaskStatus) => {
+    const task = tasks.find((item) => item.id === taskId);
+    if (!task || (optimisticStatuses[taskId] ?? task.status) === status) return;
+    setOptimisticStatuses((current) => ({ ...current, [taskId]: status }));
+    onStatusChange(taskId, status);
+  };
   const moveTask = (status: TaskStatus) => {
-    const task = tasks.find((item) => item.id === draggedTaskId);
-    if (task && task.status !== status) onStatusChange(task.id, status);
+    if (draggedTaskId !== null) changeStatus(draggedTaskId, status);
     setDraggedTaskId(null);
   };
   return <>
@@ -43,7 +62,7 @@ export function TasksKanban({ tasks, members, onStatusChange, onUpdate, onDelete
         return <div key={col.id} className="space-y-3">
           <div className="flex items-center gap-2 px-1"><div className={"h-2 w-2 rounded-full " + col.color} /><span className="text-sm font-semibold">{t("status." + col.id)}</span><span className="rounded bg-muted px-1.5 py-0.5 text-xs font-mono text-muted-foreground">{columnTasks.length}</span></div>
           <div className={cn("min-h-[180px] space-y-2 rounded-xl border border-dashed p-2 transition-colors", isDropTarget ? "border-pine/50 bg-pine/5" : "border-transparent")} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); moveTask(col.id as TaskStatus); }}>
-            {columnTasks.map((task) => <KanbanCard key={task.id} task={task} onEdit={() => setEditingTask(task)} onStatusChange={onStatusChange} onDelete={onDelete} onDragStart={() => setDraggedTaskId(task.id)} onDragEnd={() => setDraggedTaskId(null)} />)}
+            {columnTasks.map((task) => <KanbanCard key={task.id} task={task} onEdit={() => setEditingTask(task)} onStatusChange={changeStatus} onDelete={onDelete} onDragStart={() => setDraggedTaskId(task.id)} onDragEnd={() => setDraggedTaskId(null)} />)}
             {columnTasks.length === 0 && <div className="rounded-lg border border-dashed border-border/60 p-4 text-center text-xs text-muted-foreground">{isDropTarget ? "Перетащите задачу сюда" : t("projectDetail.noTasksYet")}</div>}
           </div>
         </div>;
