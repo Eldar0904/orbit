@@ -27,6 +27,15 @@ export function TasksKanban({ tasks, members, onStatusChange, onUpdate, onDelete
   const { t } = useTranslation();
   const [draggedTaskId, setDraggedTaskId] = useState<number | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const seenWorkflowTasks = new Set<string>();
+  const visibleTasks = tasks.filter((task) => {
+    const match = task.title.match(/^\[B2G:([^\]]+)\]/);
+    if (!match) return true;
+    const workflowKey = `${task.projectId}:${match[1]}`;
+    if (seenWorkflowTasks.has(workflowKey)) return false;
+    seenWorkflowTasks.add(workflowKey);
+    return true;
+  });
   const moveTask = (status: TaskStatus) => {
     const task = tasks.find((item) => item.id === draggedTaskId);
     if (task && task.status !== status) onStatusChange(task.id, status);
@@ -35,7 +44,7 @@ export function TasksKanban({ tasks, members, onStatusChange, onUpdate, onDelete
   return <>
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
       {KANBAN_COLUMNS.map((col) => {
-        const columnTasks = tasks.filter((task) => task.status === col.id);
+        const columnTasks = visibleTasks.filter((task) => task.status === col.id);
         const isDropTarget = draggedTaskId !== null;
         return <div key={col.id} className="space-y-3">
           <div className="flex items-center gap-2 px-1"><div className={"h-2 w-2 rounded-full " + col.color} /><span className="text-sm font-semibold">{t("status." + col.id)}</span><span className="rounded bg-muted px-1.5 py-0.5 text-xs font-mono text-muted-foreground">{columnTasks.length}</span></div>
@@ -59,7 +68,7 @@ function KanbanCard({ task, onEdit, onStatusChange, onDelete, onDragStart, onDra
   return <Card draggable onDragStart={onDragStart} onDragEnd={onDragEnd} className="cursor-grab border-border/50 shadow-sm transition-colors hover:border-primary/30 active:cursor-grabbing">
     <CardContent className="space-y-2 p-3">
       <div className="flex items-start justify-between gap-2">
-        <button type="button" onClick={onEdit} className="text-left"><h4 className="text-sm font-semibold leading-snug hover:text-pine">{task.title}</h4></button>
+        <button type="button" onClick={onEdit} className="text-left"><h4 className="text-sm font-semibold leading-snug hover:text-pine">{task.title.replace(/^\[B2G:[^\]]+\]\s*/, "")}</h4></button>
         <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-muted-foreground"><span className="sr-only">Действия задачи</span><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
           <DropdownMenuContent align="end"><DropdownMenuItem onClick={onEdit}><Pencil className="mr-2 h-4 w-4" />Редактировать</DropdownMenuItem>{KANBAN_COLUMNS.map((col) => <DropdownMenuItem key={col.id} onClick={() => onStatusChange(task.id, col.id as TaskStatus)}>{t("status." + col.id)}</DropdownMenuItem>)}<DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => onDelete(task.id)}><Trash2 className="mr-2 h-4 w-4" />{t("common.delete")}</DropdownMenuItem></DropdownMenuContent>
         </DropdownMenu>
