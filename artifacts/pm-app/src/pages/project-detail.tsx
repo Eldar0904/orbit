@@ -6,7 +6,9 @@ import {
   useUpdateTask,
   useDeleteTask,
   useListProjectDocuments,
+  useCreateProjectDocument,
   getListTasksQueryKey,
+  getListProjectDocumentsQueryKey,
   getGetProjectProgressQueryKey,
   getGetProjectQueryKey,
   useListMembers,
@@ -263,12 +265,14 @@ function CreateTaskDialog({
   const { t } = useTranslation();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [documentLink, setDocumentLink] = useState("");
   const [assigneeId, setAssigneeId] = useState<string>("unassigned");
   const [dueDate, setDueDate] = useState("");
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const createTask = useCreateTask();
+  const createDocument = useCreateProjectDocument();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -287,7 +291,19 @@ function CreateTaskDialog({
         },
       },
       {
-        onSuccess: () => {
+        onSuccess: async () => {
+          const link = documentLink.trim();
+          if (link) {
+            try {
+              await createDocument.mutateAsync({
+                id: projectId,
+                data: { name: "Документ к задаче: " + title.trim(), category: "other", storageKey: link, mimeType: "text/uri-list" },
+              });
+              queryClient.invalidateQueries({ queryKey: getListProjectDocumentsQueryKey(projectId) });
+            } catch {
+              toast({ variant: "destructive", title: "Задача создана, но ссылка на документ не сохранена" });
+            }
+          }
           toast({ title: t("projectDetail.taskCreated") });
           onOpenChange(false);
           queryClient.invalidateQueries({ queryKey: getListTasksQueryKey({ projectId }) });
@@ -295,6 +311,7 @@ function CreateTaskDialog({
           queryClient.invalidateQueries({ queryKey: getGetProjectQueryKey(projectId) });
           setTitle("");
           setDescription("");
+          setDocumentLink("");
           setAssigneeId("unassigned");
           setDueDate("");
         },
@@ -324,6 +341,10 @@ function CreateTaskDialog({
             <div className="space-y-2">
               <Label htmlFor="description">{t("projectDetail.description")}</Label>
               <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="document-link">Ссылка на документ Google Drive</Label>
+              <Input id="document-link" type="url" placeholder="https://drive.google.com/..." value={documentLink} onChange={(e) => setDocumentLink(e.target.value)} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">

@@ -17,7 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { DOCUMENT_CATEGORIES, getDocumentCategoryLabel } from "@/lib/project-constants";
-import { FileText, Plus, Trash2, Upload } from "lucide-react";
+import { ExternalLink, FileText, Plus, Trash2, Upload } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 export function DocumentsTab({ projectId }: { projectId: number }) {
@@ -64,6 +64,7 @@ function DocumentRow({ document, projectId }: { document: ProjectDocument; proje
   const deleteDoc = useDeleteProjectDocument();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const documentUrl = document.storageKey?.startsWith("http") ? document.storageKey : null;
 
   const handleDelete = () => {
     if (!confirm(t("documents.deleteConfirm", { name: document.name }))) return;
@@ -97,6 +98,9 @@ function DocumentRow({ document, projectId }: { document: ProjectDocument; proje
         <Badge variant="secondary" className="bg-slate-100 text-slate-700 border-slate-200">
           {getDocumentCategoryLabel(document.category)}
         </Badge>
+        {documentUrl && <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" title="Открыть документ">
+          <a href={documentUrl} target="_blank" rel="noreferrer"><ExternalLink className="w-4 h-4" /><span className="sr-only">Открыть документ</span></a>
+        </Button>}
         <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={handleDelete}>
           <Trash2 className="w-4 h-4" />
         </Button>
