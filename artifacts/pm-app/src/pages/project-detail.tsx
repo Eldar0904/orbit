@@ -265,6 +265,7 @@ function CreateTaskDialog({
   const { t } = useTranslation();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [showDocumentLink, setShowDocumentLink] = useState(false);
   const [documentLink, setDocumentLink] = useState("");
   const [assigneeId, setAssigneeId] = useState<string>("unassigned");
   const [dueDate, setDueDate] = useState("");
@@ -311,6 +312,7 @@ function CreateTaskDialog({
           queryClient.invalidateQueries({ queryKey: getGetProjectQueryKey(projectId) });
           setTitle("");
           setDescription("");
+          setShowDocumentLink(false);
           setDocumentLink("");
           setAssigneeId("unassigned");
           setDueDate("");
@@ -342,10 +344,31 @@ function CreateTaskDialog({
               <Label htmlFor="description">{t("projectDetail.description")}</Label>
               <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="document-link">Ссылка на документ Google Drive</Label>
-              <Input id="document-link" type="url" placeholder="https://drive.google.com/..." value={documentLink} onChange={(e) => setDocumentLink(e.target.value)} />
-            </div>
+            {showDocumentLink ? (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <Label htmlFor="document-link">Ссылка на документ Google Drive</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-auto px-0 text-muted-foreground"
+                    onClick={() => {
+                      setDocumentLink("");
+                      setShowDocumentLink(false);
+                    }}
+                  >
+                    Убрать
+                  </Button>
+                </div>
+                <Input id="document-link" type="url" placeholder="https://drive.google.com/..." value={documentLink} onChange={(e) => setDocumentLink(e.target.value)} />
+              </div>
+            ) : (
+              <Button type="button" variant="outline" className="w-fit" onClick={() => setShowDocumentLink(true)}>
+                <FileText className="mr-2 h-4 w-4" />
+                Добавить документ
+              </Button>
+            )
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>{t("projectDetail.assignee")}</Label>
