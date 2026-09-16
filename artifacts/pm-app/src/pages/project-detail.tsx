@@ -123,7 +123,7 @@ export default function ProjectDetail() {
             {isB2GProject && <div className="text-xs font-mono px-2 py-1 bg-pine/10 text-pine-deep rounded border border-pine/20">B2G</div>}
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <EditProjectDialog project={project} members={members ?? []} />
+            <EditProjectDialog project={project} />
             <DeleteProjectDialog project={project} workspace={isB2GProject ? "b2g" : "b2b"} />
             <Button variant="outline" size="sm" onClick={() => setActiveTab("documents")}>
               <FileText className="w-4 h-4 mr-2" />
