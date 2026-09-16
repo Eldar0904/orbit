@@ -25,6 +25,7 @@ import { DocumentsTab } from "@/components/documents-tab";
 import { OverviewTab } from "@/components/overview-tab";
 import { TasksKanban } from "@/components/tasks-kanban";
 import { EditProjectDialog } from "@/components/edit-project-dialog";
+import { DeleteProjectDialog } from "@/components/delete-project-dialog";
 import { ArrowLeft, Plus, CheckCircle2, FileText, LayoutGrid } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -123,6 +124,7 @@ export default function ProjectDetail() {
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <EditProjectDialog project={project} members={members ?? []} />
+            <DeleteProjectDialog project={project} workspace={isB2GProject ? "b2g" : "b2b"} />
             <Button variant="outline" size="sm" onClick={() => setActiveTab("documents")}>
               <FileText className="w-4 h-4 mr-2" />
               {t("common.documents")}
