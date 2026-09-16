@@ -263,8 +263,6 @@ function CreateTaskDialog({
   const { t } = useTranslation();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [status, setStatus] = useState<"todo" | "in_progress" | "blocked" | "done">("todo");
-  const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
   const [assigneeId, setAssigneeId] = useState<string>("unassigned");
   const [dueDate, setDueDate] = useState("");
 
@@ -282,8 +280,8 @@ function CreateTaskDialog({
           projectId,
           title,
           description,
-          status,
-          priority,
+          status: "todo",
+          priority: "medium",
           assigneeId: assigneeId === "unassigned" ? null : parseInt(assigneeId, 10),
           dueDate: dueDate ? new Date(dueDate).toISOString() : null,
         },
@@ -297,8 +295,6 @@ function CreateTaskDialog({
           queryClient.invalidateQueries({ queryKey: getGetProjectQueryKey(projectId) });
           setTitle("");
           setDescription("");
-          setStatus("todo");
-          setPriority("medium");
           setAssigneeId("unassigned");
           setDueDate("");
         },
@@ -328,31 +324,6 @@ function CreateTaskDialog({
             <div className="space-y-2">
               <Label htmlFor="description">{t("projectDetail.description")}</Label>
               <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>{t("projectDetail.status")}</Label>
-                <Select value={status} onValueChange={(val) => setStatus(val as typeof status)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todo">{t("status.todo")}</SelectItem>
-                    <SelectItem value="in_progress">{t("status.in_progress")}</SelectItem>
-                    <SelectItem value="blocked">{t("status.blocked")}</SelectItem>
-                    <SelectItem value="done">{t("status.done")}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>{t("projectDetail.priority")}</Label>
-                <Select value={priority} onValueChange={(val) => setPriority(val as typeof priority)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">{t("priority.low")}</SelectItem>
-                    <SelectItem value="medium">{t("priority.medium")}</SelectItem>
-                    <SelectItem value="high">{t("priority.high")}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
