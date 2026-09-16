@@ -14,11 +14,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Pencil } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { DeleteProjectDialog } from "@/components/delete-project-dialog";
 
 export function EditProjectDialog({
   project,
+  workspace,
 }: {
   project: Project;
+  workspace: "b2b" | "b2g";
 }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -84,11 +87,14 @@ export function EditProjectDialog({
               <Textarea id="edit-desc" value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
             </div>
           </div>
-          <div className="flex justify-end gap-2 pt-2 border-t">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>{t("common.cancel")}</Button>
-            <Button type="submit" disabled={!name || updateProject.isPending}>
-              {updateProject.isPending ? t("common.saving") : t("editProject.saveChanges")}
-            </Button>
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-4">
+            <DeleteProjectDialog project={project} workspace={workspace} />
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>{t("common.cancel")}</Button>
+              <Button type="submit" disabled={!name || updateProject.isPending}>
+                {updateProject.isPending ? t("common.saving") : t("editProject.saveChanges")}
+              </Button>
+            </div>
           </div>
         </form>
       </DialogContent>
