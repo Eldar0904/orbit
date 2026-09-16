@@ -368,7 +368,7 @@ function CreateTaskDialog({
                 <FileText className="mr-2 h-4 w-4" />
                 Добавить документ
               </Button>
-            )
+            )}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>{t("projectDetail.assignee")}</Label>
