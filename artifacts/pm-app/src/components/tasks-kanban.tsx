@@ -78,12 +78,26 @@ function KanbanCard({ task, onEdit, onStatusChange, onDelete, onDragStart, onDra
   onDelete: (taskId: number) => void; onDragStart: () => void; onDragEnd: () => void;
 }) {
   const { t } = useTranslation();
-  return <Card draggable onDragStart={onDragStart} onDragEnd={onDragEnd} className="cursor-grab border-border/50 shadow-sm transition-colors hover:border-primary/30 active:cursor-grabbing">
+  return <Card
+    draggable
+    onDragStart={onDragStart}
+    onDragEnd={onDragEnd}
+    onClick={onEdit}
+    onKeyDown={(event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        onEdit();
+      }
+    }}
+    role="button"
+    tabIndex={0}
+    className="cursor-pointer border-border/50 shadow-sm transition-colors hover:border-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:cursor-grabbing"
+  >
     <CardContent className="space-y-2 p-3">
       <div className="flex items-start justify-between gap-2">
-        <button type="button" onClick={onEdit} className="text-left"><h4 className="text-sm font-semibold leading-snug hover:text-pine">{task.title.replace(/^\[B2G:[^\]]+\]\s*/, "")}</h4></button>
-        <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-muted-foreground"><span className="sr-only">Действия задачи</span><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
-          <DropdownMenuContent align="end"><DropdownMenuItem onClick={onEdit}><Pencil className="mr-2 h-4 w-4" />Редактировать</DropdownMenuItem>{KANBAN_COLUMNS.map((col) => <DropdownMenuItem key={col.id} onClick={() => onStatusChange(task.id, col.id as TaskStatus)}>{t("status." + col.id)}</DropdownMenuItem>)}<DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => onDelete(task.id)}><Trash2 className="mr-2 h-4 w-4" />{t("common.delete")}</DropdownMenuItem></DropdownMenuContent>
+        <h4 className="text-sm font-semibold leading-snug">{task.title.replace(/^\[B2G:[^\]]+\]\s*/, "")}</h4>
+        <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-muted-foreground" onClick={(event) => event.stopPropagation()}><span className="sr-only">Действия задачи</span><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
+          <DropdownMenuContent align="end"><DropdownMenuItem onClick={(event) => { event.stopPropagation(); onEdit(); }}><Pencil className="mr-2 h-4 w-4" />Редактировать</DropdownMenuItem>{KANBAN_COLUMNS.map((col) => <DropdownMenuItem key={col.id} onClick={(event) => { event.stopPropagation(); onStatusChange(task.id, col.id as TaskStatus); }}>{t("status." + col.id)}</DropdownMenuItem>)}<DropdownMenuItem className="text-destructive focus:text-destructive" onClick={(event) => { event.stopPropagation(); onDelete(task.id); }}><Trash2 className="mr-2 h-4 w-4" />{t("common.delete")}</DropdownMenuItem></DropdownMenuContent>
         </DropdownMenu>
       </div>
       {task.description && <p className="line-clamp-2 text-xs text-muted-foreground">{task.description}</p>}
