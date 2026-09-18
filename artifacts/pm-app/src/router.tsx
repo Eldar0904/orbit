@@ -25,7 +25,7 @@ function HomeRedirect() {
   return (
     <>
       <Show when="signed-in">
-        <Redirect to="/dashboard" />
+        <Redirect to="/b2g/projects" />
       </Show>
       <Show when="signed-out">
         <LandingPage />

@@ -4,7 +4,9 @@ const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 export default function SignInPage() {
   const workspace = new URLSearchParams(window.location.search).get("workspace");
-  const fallbackRedirectUrl = workspace === "b2g" ? `${basePath}/b2g/projects` : `${basePath}/projects`;
+  // B2G is the default workspace. The explicit B2B choice on the welcome
+  // page remains respected through ?workspace=b2b.
+  const fallbackRedirectUrl = workspace === "b2b" ? `${basePath}/projects` : `${basePath}/b2g/projects`;
 
   return (
     <div className="pine-pattern relative flex min-h-[100dvh] items-center justify-center overflow-hidden bg-pine px-4 py-10">
