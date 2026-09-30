@@ -50,17 +50,13 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="pine-pattern relative hidden min-h-[620px] overflow-hidden rounded-[2.5rem_2.5rem_9rem_2.5rem] bg-pine lg:block">
-          <div className="absolute inset-0 bg-gradient-to-br from-pine-deep/10 via-transparent to-pine-deep/45" />
-          <div className="absolute left-10 top-10 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white/90 backdrop-blur">
-            {t("landing.workspace")}
-          </div>
-          <div className="absolute inset-x-10 bottom-10 rounded-[2rem] border border-white/15 bg-white/10 p-8 text-white shadow-2xl backdrop-blur-md">
+        <aside className="hidden items-center justify-center px-8 py-16 lg:flex">
+          <div className="w-full max-w-md rounded-[2rem] border border-pine-deep/10 bg-pine p-8 text-white shadow-xl shadow-pine/15">
             <Layers3 className="mb-8 h-8 w-8 text-sand" />
             <p className="font-display text-3xl leading-tight">{t("landing.panelTitle")}</p>
-            <p className="mt-4 max-w-md leading-7 text-white/70">{t("landing.panelBody")}</p>
+            <p className="mt-4 max-w-md leading-7 text-white/75">{t("landing.panelBody")}</p>
           </div>
-        </section>
+        </aside>
       </main>
     </div>
   );
