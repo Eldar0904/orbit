@@ -8,8 +8,8 @@ import { useTranslation } from "react-i18next";
 
 export default function Dashboard() {
   const { t } = useTranslation();
-  const { data: summary, isLoading: isSummaryLoading } = useGetDashboardSummary({ workspace: "b2b" });
-  const { data: projects, isLoading: isProjectsLoading } = useListProjects({ status: "active", workspace: "b2b" });
+  const { data: summary, isLoading: isSummaryLoading } = useGetDashboardSummary();
+  const { data: projects, isLoading: isProjectsLoading } = useListProjects({ status: "active" });
 
   return (
     <div className="space-y-6">

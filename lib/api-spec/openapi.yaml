@@ -51,13 +51,6 @@ paths:
           schema:
             type: boolean
             default: false
-        - name: workspace
-          in: query
-          required: false
-          schema:
-            type: string
-            enum: [b2b, b2g]
-            default: b2b
       responses:
         "200":
           description: List of projects
@@ -474,14 +467,6 @@ paths:
       operationId: getDashboardSummary
       tags: [dashboard]
       summary: Get dashboard summary stats
-      parameters:
-        - name: workspace
-          in: query
-          required: false
-          schema:
-            type: string
-            enum: [b2b, b2g]
-            default: b2b
       responses:
         "200":
           description: Dashboard summary

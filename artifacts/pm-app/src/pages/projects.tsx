@@ -23,33 +23,31 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { StageStepper } from "@/components/stage-stepper";
 import { UserAvatar } from "@/components/user-avatar";
 import { formatCurrency, PROJECT_STAGES } from "@/lib/project-constants";
-import { B2G_STAGES } from "@/lib/b2g-workflow";
 
 function isProjectWithStats(p: unknown): p is ProjectWithStats {
   return typeof p === "object" && p !== null && "progress" in p;
 }
 
-export default function Projects({ workspace = "b2b" }: { workspace?: "b2b" | "b2g" }) {
+export default function Projects() {
   const { t } = useTranslation();
-  const isB2GWorkspace = workspace === "b2g";
   const [search, setSearch] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
-  const { data: projects, isLoading } = useListProjects({ withStats: true, workspace });
+  const { data: projects, isLoading } = useListProjects({ withStats: true });
 
-  const filteredProjects = projects?.filter((p) => (
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      (p.description && p.description.toLowerCase().includes(search.toLowerCase())) ||
-      (p.client && p.client.toLowerCase().includes(search.toLowerCase())) ||
-      (p.location && p.location.toLowerCase().includes(search.toLowerCase()))
-    ));
+  const filteredProjects = projects?.filter((p) =>
+    p.name.toLowerCase().includes(search.toLowerCase()) ||
+    (p.description && p.description.toLowerCase().includes(search.toLowerCase())) ||
+    (p.client && p.client.toLowerCase().includes(search.toLowerCase())) ||
+    (p.location && p.location.toLowerCase().includes(search.toLowerCase())),
+  );
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">{isB2GWorkspace ? "B2G-проекты" : t("projects.title")}</h1>
-          <p className="text-muted-foreground text-sm mt-1">{isB2GWorkspace ? "Тендеры, государственные контракты и проекты оснащения." : t("projects.subtitle")}</p>
+          <h1 className="text-2xl font-bold tracking-tight">{t("projects.title")}</h1>
+          <p className="text-muted-foreground text-sm mt-1">{t("projects.subtitle")}</p>
         </div>
 
         <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -62,7 +60,7 @@ export default function Projects({ workspace = "b2b" }: { workspace?: "b2b" | "b
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <CreateProjectDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} workspace={workspace} />
+          <CreateProjectDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} />
         </div>
       </div>
 
@@ -73,7 +71,7 @@ export default function Projects({ workspace = "b2b" }: { workspace?: "b2b" | "b
       ) : filteredProjects && filteredProjects.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredProjects.map((project) => (
-            <ProjectCard key={project.id} project={project as ProjectWithStats} workspace={workspace} />
+            <ProjectCard key={project.id} project={project as ProjectWithStats} />
           ))}
         </div>
       ) : (
@@ -97,14 +95,14 @@ export default function Projects({ workspace = "b2b" }: { workspace?: "b2b" | "b
   );
 }
 
-function ProjectCard({ project, workspace }: { project: ProjectWithStats; workspace: "b2b" | "b2g" }) {
+function ProjectCard({ project }: { project: ProjectWithStats }) {
   const { t } = useTranslation();
   const stats = isProjectWithStats(project) ? project : null;
   const progress = stats?.progress;
   const roleBreakdown = stats?.roleBreakdown ?? [];
 
   return (
-    <Link href={workspace === "b2g" ? `/b2g/projects/${project.id}` : `/projects/${project.id}`}>
+    <Link href={`/projects/${project.id}`}>
       <Card className="h-full shadow-sm border-border/50 hover:border-primary/50 transition-colors group cursor-pointer flex flex-col">
         <CardHeader className="p-5 pb-3">
           <div className="flex justify-between items-start gap-3">
@@ -149,9 +147,7 @@ function ProjectCard({ project, workspace }: { project: ProjectWithStats; worksp
 
           <div>
             <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium mb-2">{t("common.stage")}</p>
-            {workspace === "b2g" ? (
-              <p className="text-sm font-medium text-pine-deep">{t(B2G_STAGES.find((item) => item.id === project.stage)?.label ?? B2G_STAGES[0].label)}</p>
-            ) : <StageStepper stage={project.stage} compact />}
+            <StageStepper stage={project.stage} compact />
           </div>
 
           <div className="grid grid-cols-2 gap-2 text-xs">
@@ -204,7 +200,7 @@ function ProjectCard({ project, workspace }: { project: ProjectWithStats; worksp
   );
 }
 
-function CreateProjectDialog({ open, onOpenChange, workspace }: { open: boolean; onOpenChange: (open: boolean) => void; workspace: "b2b" | "b2g" }) {
+function CreateProjectDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const { t } = useTranslation();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -227,12 +223,12 @@ function CreateProjectDialog({ open, onOpenChange, workspace }: { open: boolean;
         data: {
           name,
           description: description || undefined,
-          color: workspace === "b2g" ? "#3B898E" : color,
+          color,
           status: "active",
-          projectType: workspace === "b2g" ? "B2G" : projectType || undefined,
+          projectType: projectType || undefined,
           location: location || undefined,
           client: client || undefined,
-          stage: (workspace === "b2g" ? "p1" : stage) as "p1",
+          stage: stage as "p1",
         },
       },
       {
@@ -265,54 +261,58 @@ function CreateProjectDialog({ open, onOpenChange, workspace }: { open: boolean;
       <DialogContent className="sm:max-w-[480px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>{workspace === "b2g" ? t("b2g.newProject") : t("projects.createNewProject")}</DialogTitle>
+            <DialogTitle>{t("projects.createNewProject")}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="name">{t("projects.projectName")}</Label>
               <Input id="name" placeholder={t("projects.projectNamePlaceholder")} value={name} onChange={(e) => setName(e.target.value)} autoFocus />
             </div>
-            {workspace !== "b2g" && <>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="type">{t("projects.type")}</Label>
-                  <Input id="type" placeholder={t("projects.typePlaceholder")} value={projectType} onChange={(e) => setProjectType(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label>{t("projects.startingStage")}</Label>
-                  <Select value={stage} onValueChange={setStage}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {PROJECT_STAGES.map((s) => (
-                        <SelectItem key={s.id} value={s.id}>{s.short} — {t(`stages.${s.id}`)}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="location">{t("projects.location")}</Label>
-                  <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="client">{t("projects.client")}</Label>
-                  <Input id="client" value={client} onChange={(e) => setClient(e.target.value)} />
-                </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="type">{t("projects.type")}</Label>
+                <Input id="type" placeholder={t("projects.typePlaceholder")} value={projectType} onChange={(e) => setProjectType(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="description">{t("projects.descriptionOptional")}</Label>
-                <Textarea id="description" placeholder={t("projects.descriptionPlaceholder")} value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
+                <Label>{t("projects.startingStage")}</Label>
+                <Select value={stage} onValueChange={setStage}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {PROJECT_STAGES.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>{s.short} — {t(`stages.${s.id}`)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="location">{t("projects.location")}</Label>
+                <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label>{t("projects.projectColor")}</Label>
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {colors.map((c) => (
-                    <button key={c} type="button" className={`w-6 h-6 rounded-full cursor-pointer transition-transform ${color === c ? "scale-125 ring-2 ring-offset-2 ring-primary" : "hover:scale-110"}`} style={{ backgroundColor: c }} onClick={() => setColor(c)} />
-                  ))}
-                </div>
+                <Label htmlFor="client">{t("projects.client")}</Label>
+                <Input id="client" value={client} onChange={(e) => setClient(e.target.value)} />
               </div>
-            </>}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">{t("projects.descriptionOptional")}</Label>
+              <Textarea id="description" placeholder={t("projects.descriptionPlaceholder")} value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
+            </div>
+            <div className="space-y-2">
+              <Label>{t("projects.projectColor")}</Label>
+              <div className="flex flex-wrap gap-2 pt-1">
+                {colors.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    className={`w-6 h-6 rounded-full cursor-pointer transition-transform ${color === c ? "scale-125 ring-2 ring-offset-2 ring-primary" : "hover:scale-110"}`}
+                    style={{ backgroundColor: c }}
+                    onClick={() => setColor(c)}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
           <div className="flex justify-end gap-2 pt-2 border-t">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{t("common.cancel")}</Button>

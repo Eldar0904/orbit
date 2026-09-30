@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, Briefcase, CheckSquare, Users, LogOut, Landmark, ArrowLeftRight } from "lucide-react";
+import { LayoutDashboard, Briefcase, CheckSquare, Users, LogOut } from "lucide-react";
 import { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
@@ -7,15 +7,11 @@ import { useClerk, useUser } from "@clerk/react";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { BrandLogo } from "@/components/brand-logo";
 
-const B2B_NAV_ITEMS = [
+const NAV_ITEMS = [
   { href: "/dashboard", labelKey: "nav.dashboard", icon: LayoutDashboard, testId: "dashboard" },
   { href: "/projects", labelKey: "nav.projects", icon: Briefcase, testId: "projects" },
   { href: "/tasks", labelKey: "nav.tasks", icon: CheckSquare, testId: "all-tasks" },
   { href: "/team", labelKey: "nav.team", icon: Users, testId: "team" },
-] as const;
-
-const B2G_NAV_ITEMS = [
-  { href: "/b2g/projects", labelKey: "nav.b2gProjects", icon: Landmark, testId: "b2g-projects" },
 ] as const;
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -25,8 +21,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const { signOut } = useClerk();
   const { user } = useUser();
   const { t } = useTranslation();
-  const isB2GWorkspace = location.startsWith("/b2g");
-  const navItems = isB2GWorkspace ? B2G_NAV_ITEMS : B2B_NAV_ITEMS;
 
   return (
     <div className="flex min-h-screen w-full bg-background text-foreground">
@@ -36,7 +30,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </div>
 
         <div className="flex-1 py-4 flex flex-col gap-1 px-3">
-          {navItems.map((item) => {
+          {NAV_ITEMS.map((item) => {
             const isActive =
               location === item.href ||
               (item.href !== "/dashboard" && location.startsWith(item.href));
@@ -61,10 +55,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </div>
 
         <div className="space-y-3 border-t border-white/15 p-3 text-white">
-          <Link href={isB2GWorkspace ? "/projects" : "/b2g/projects"} className="flex items-center gap-2 rounded-md px-2 py-2 text-xs font-medium text-white/70 transition-colors hover:bg-white/10 hover:text-white">
-            <ArrowLeftRight className="h-3.5 w-3.5" />
-            {t(isB2GWorkspace ? "nav.switchToB2B" : "nav.switchToB2G")}
-          </Link>
           <LanguageSwitcher />
           <div className="flex items-center gap-3 px-2 py-2">
             {user?.imageUrl ? (
@@ -117,7 +107,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </header>
 
         <div className="flex-1 overflow-auto bg-background">
-          <div className={cn("p-6 md:p-8 mx-auto w-full", isB2GWorkspace ? "max-w-[1800px]" : "max-w-[1400px]")}>
+          <div className="p-6 md:p-8 max-w-[1400px] mx-auto w-full">
             {children}
           </div>
         </div>

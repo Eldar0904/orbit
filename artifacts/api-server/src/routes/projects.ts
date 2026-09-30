@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import {
   db,
   projectsTable,
@@ -55,11 +55,6 @@ router.get("/projects", async (req, res): Promise<void> => {
   if (params.data.status) {
     conditions.push(eq(projectsTable.status, params.data.status as "active" | "archived"));
   }
-  conditions.push(
-    params.data.workspace === "b2g"
-      ? sql`lower(coalesce(${projectsTable.projectType}, '')) = 'b2g'`
-      : sql`lower(coalesce(${projectsTable.projectType}, '')) <> 'b2g'`,
-  );
 
   const projects = await db
     .select()

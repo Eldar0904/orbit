@@ -6,9 +6,7 @@ import {
   useUpdateTask,
   useDeleteTask,
   useListProjectDocuments,
-  useCreateProjectDocument,
   getListTasksQueryKey,
-  getListProjectDocumentsQueryKey,
   getGetProjectProgressQueryKey,
   getGetProjectQueryKey,
   useListMembers,
@@ -25,6 +23,7 @@ import { DocumentsTab } from "@/components/documents-tab";
 import { OverviewTab } from "@/components/overview-tab";
 import { TasksKanban } from "@/components/tasks-kanban";
 import { EditProjectDialog } from "@/components/edit-project-dialog";
+import { DeleteProjectDialog } from "@/components/delete-project-dialog";
 import { ArrowLeft, Plus, CheckCircle2, FileText, LayoutGrid } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -49,7 +48,6 @@ export default function ProjectDetail() {
   const { data: tasks, isLoading: isTasksLoading } = useListTasks({ projectId });
   const { data: documents } = useListProjectDocuments(projectId);
   const { data: members } = useListMembers();
-  const isB2GProject = project?.projectType?.toLowerCase() === "b2g";
 
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
@@ -69,12 +67,8 @@ export default function ProjectDetail() {
   }
 
   const handleStatusChange = (taskId: number, status: TaskUpdate["status"]) => {
-    handleTaskUpdate(taskId, { status });
-  };
-
-  const handleTaskUpdate = (taskId: number, data: TaskUpdate) => {
     updateTask.mutate(
-      { id: taskId, data },
+      { id: taskId, data: { status } },
       {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getListTasksQueryKey({ projectId }) });
@@ -108,7 +102,7 @@ export default function ProjectDetail() {
   return (
     <div className="space-y-6">
       <div>
-        <Link href={isB2GProject ? "/b2g/projects" : "/projects"} className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors">
+        <Link href="/projects" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors">
           <ArrowLeft className="w-4 h-4 mr-1" />
           {t("projectDetail.backToProjects")}
         </Link>
@@ -119,10 +113,10 @@ export default function ProjectDetail() {
             <div className="text-xs font-mono px-2 py-1 bg-muted rounded text-muted-foreground border">
               {statusLabel.toUpperCase()}
             </div>
-            {isB2GProject && <div className="text-xs font-mono px-2 py-1 bg-pine/10 text-pine-deep rounded border border-pine/20">B2G</div>}
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <EditProjectDialog project={project} workspace={isB2GProject ? "b2g" : "b2b"} />
+            <EditProjectDialog project={project} members={members ?? []} />
+            <DeleteProjectDialog project={project} />
             <Button variant="outline" size="sm" onClick={() => setActiveTab("documents")}>
               <FileText className="w-4 h-4 mr-2" />
               {t("common.documents")}
@@ -163,10 +157,6 @@ export default function ProjectDetail() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="bg-muted/40 border border-border/50">
-          <TabsTrigger value="overview" className="gap-2">
-            <LayoutGrid className="w-3.5 h-3.5" />
-            {t("common.overview")}
-          </TabsTrigger>
           <TabsTrigger value="tasks" className="gap-2">
             <CheckCircle2 className="w-3.5 h-3.5" />
             {t("common.tasks")}
@@ -176,6 +166,10 @@ export default function ProjectDetail() {
             <FileText className="w-3.5 h-3.5" />
             {t("common.documents")}
             {documents && <span className="font-mono text-xs">{documents.length}</span>}
+          </TabsTrigger>
+          <TabsTrigger value="overview" className="gap-2">
+            <LayoutGrid className="w-3.5 h-3.5" />
+            {t("common.overview")}
           </TabsTrigger>
         </TabsList>
 
@@ -194,7 +188,7 @@ export default function ProjectDetail() {
           {isTasksLoading ? (
             <Skeleton className="h-64 w-full" />
           ) : tasks && tasks.length > 0 ? (
-            <TasksKanban tasks={tasks} members={members ?? []} onStatusChange={handleStatusChange} onUpdate={handleTaskUpdate} onDelete={handleDeleteTask} />
+            <TasksKanban tasks={tasks} onStatusChange={handleStatusChange} onDelete={handleDeleteTask} />
           ) : (
             <Card className="border-border/50 shadow-sm">
               <CardContent className="p-12 text-center flex flex-col items-center">
@@ -217,7 +211,6 @@ export default function ProjectDetail() {
         <TabsContent value="overview" className="mt-4">
           <OverviewTab project={project} />
         </TabsContent>
-
       </Tabs>
     </div>
   );
@@ -265,15 +258,12 @@ function CreateTaskDialog({
   const { t } = useTranslation();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [showDocumentLink, setShowDocumentLink] = useState(false);
-  const [documentLink, setDocumentLink] = useState("");
   const [assigneeId, setAssigneeId] = useState<string>("unassigned");
   const [dueDate, setDueDate] = useState("");
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const createTask = useCreateTask();
-  const createDocument = useCreateProjectDocument();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -292,19 +282,7 @@ function CreateTaskDialog({
         },
       },
       {
-        onSuccess: async () => {
-          const link = documentLink.trim();
-          if (link) {
-            try {
-              await createDocument.mutateAsync({
-                id: projectId,
-                data: { name: "Документ к задаче: " + title.trim(), category: "other", storageKey: link, mimeType: "text/uri-list" },
-              });
-              queryClient.invalidateQueries({ queryKey: getListProjectDocumentsQueryKey(projectId) });
-            } catch {
-              toast({ variant: "destructive", title: "Задача создана, но ссылка на документ не сохранена" });
-            }
-          }
+        onSuccess: () => {
           toast({ title: t("projectDetail.taskCreated") });
           onOpenChange(false);
           queryClient.invalidateQueries({ queryKey: getListTasksQueryKey({ projectId }) });
@@ -312,8 +290,6 @@ function CreateTaskDialog({
           queryClient.invalidateQueries({ queryKey: getGetProjectQueryKey(projectId) });
           setTitle("");
           setDescription("");
-          setShowDocumentLink(false);
-          setDocumentLink("");
           setAssigneeId("unassigned");
           setDueDate("");
         },
@@ -344,31 +320,6 @@ function CreateTaskDialog({
               <Label htmlFor="description">{t("projectDetail.description")}</Label>
               <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
             </div>
-            {showDocumentLink ? (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between gap-3">
-                  <Label htmlFor="document-link">Ссылка на документ Google Drive</Label>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-auto px-0 text-muted-foreground"
-                    onClick={() => {
-                      setDocumentLink("");
-                      setShowDocumentLink(false);
-                    }}
-                  >
-                    Убрать
-                  </Button>
-                </div>
-                <Input id="document-link" type="url" placeholder="https://drive.google.com/..." value={documentLink} onChange={(e) => setDocumentLink(e.target.value)} />
-              </div>
-            ) : (
-              <Button type="button" variant="outline" className="w-fit" onClick={() => setShowDocumentLink(true)}>
-                <FileText className="mr-2 h-4 w-4" />
-                Добавить документ
-              </Button>
-            )}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>{t("projectDetail.assignee")}</Label>

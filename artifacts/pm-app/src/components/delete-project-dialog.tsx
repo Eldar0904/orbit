@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 
-export function DeleteProjectDialog({ project, workspace }: { project: Project; workspace: "b2b" | "b2g" }) {
+export function DeleteProjectDialog({ project }: { project: Project }) {
   const [open, setOpen] = useState(false);
   const [confirmation, setConfirmation] = useState("");
   const [, setLocation] = useLocation();
@@ -25,7 +25,7 @@ export function DeleteProjectDialog({ project, workspace }: { project: Project; 
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getListProjectsQueryKey() });
           toast({ title: "Проект удален" });
-          setLocation(workspace === "b2g" ? "/b2g/projects" : "/projects");
+          setLocation("/projects");
         },
         onError: () => toast({ variant: "destructive", title: "Не удалось удалить проект" }),
       },

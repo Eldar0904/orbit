@@ -13,19 +13,11 @@ import SignInPage from "./pages/sign-in";
 import SignUpPage from "./pages/sign-up";
 import LandingPage from "./pages/landing";
 
-function B2GProjectsRoute() {
-  return <Projects workspace="b2g" />;
-}
-
-function B2BProjectsRoute() {
-  return <Projects />;
-}
-
 function HomeRedirect() {
   return (
     <>
       <Show when="signed-in">
-        <Redirect to="/b2g/projects" />
+        <Redirect to="/dashboard" />
       </Show>
       <Show when="signed-out">
         <LandingPage />
@@ -41,10 +33,8 @@ function ProtectedApp() {
         <AppLayout>
           <Switch>
             <Route path="/dashboard" component={Dashboard} />
-            <Route path="/projects" component={B2BProjectsRoute} />
+            <Route path="/projects" component={Projects} />
             <Route path="/projects/:id" component={ProjectDetail} />
-            <Route path="/b2g/projects" component={B2GProjectsRoute} />
-            <Route path="/b2g/projects/:id" component={ProjectDetail} />
             <Route path="/tasks" component={Tasks} />
             <Route path="/team" component={Team} />
             <Route component={NotFound} />
