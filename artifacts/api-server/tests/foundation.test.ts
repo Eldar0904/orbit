@@ -1,6 +1,9 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readFile, mkdtemp, writeFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { mountFrontend } from "../src/lib/frontend";
 import express from "express";
 import type { Server } from "node:http";
 import { eq } from "drizzle-orm";
@@ -152,4 +155,28 @@ test("browser origin policy rejects unlisted and opaque origins", () => {
   assert.equal(trustedOrigin("https://attacker.example", "orbit.example", undefined), false);
   assert.equal(trustedOrigin("null", "orbit.example", undefined), false);
   assert.equal(trustedOrigin("http://localhost:5173", "localhost:8080", "http://localhost:5173"), true);
+});
+
+test("standalone hosting serves deep links without swallowing API or asset errors", async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), "orbit-hosting-"));
+  let uiServer: Server | undefined;
+  try {
+    await writeFile(path.join(directory, "index.html"), "<html>Orbit hosting fixture</html>");
+    const app = express();
+    app.get("/api/healthz", (_req, res) => { res.json({ status: "ok" }); });
+    mountFrontend(app, directory);
+    uiServer = await new Promise<Server>(resolve => { const s = app.listen(0, "127.0.0.1", () => resolve(s)); });
+    const base = `http://127.0.0.1:${(uiServer.address() as { port: number }).port}`;
+    const page = await fetch(base + "/projects/123", { headers: { accept: "text/html" } });
+    assert.equal(page.status, 200);
+    assert.equal(page.headers.get("cache-control"), "no-store");
+    assert.match(await page.text(), /Orbit hosting fixture/);
+    assert.deepEqual(await (await fetch(base + "/api/healthz")).json(), { status: "ok" });
+    const missingApi = await fetch(base + "/api/missing");
+    assert.equal(missingApi.status, 404); assert.deepEqual(await missingApi.json(), { error: "Not found" });
+    assert.equal((await fetch(base + "/assets/missing.js")).status, 404);
+  } finally {
+    if (uiServer) await new Promise<void>(resolve => uiServer!.close(() => resolve()));
+    await rm(directory, { recursive: true, force: true });
+  }
 });

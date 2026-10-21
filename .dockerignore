@@ -1,0 +1,12 @@
+.git
+**/node_modules
+**/dist
+**/.test-build
+**/.env
+**/.env.*
+**/vercel.env
+**/.vercel
+**/dk-private-data
+**/tests
+analysis
+sources

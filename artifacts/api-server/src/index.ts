@@ -1,5 +1,8 @@
 import app from "./app";
 import { logger } from "./lib/logger";
+import { mountFrontend } from "./lib/frontend";
+
+if (process.env.STATIC_DIR) mountFrontend(app, process.env.STATIC_DIR);
 
 const rawPort = process.env["PORT"] ?? "8080";
 
