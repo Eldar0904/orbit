@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { db, tasksTable, projectsTable, membersTable, activityTable } from "@workspace/db";
 import { syncProjectStatus } from "../lib/project-utils";
 import {
@@ -20,7 +20,7 @@ router.get("/tasks", async (req, res): Promise<void> => {
     return;
   }
 
-  const conditions = [];
+  const conditions = [inArray(tasksTable.projectId, req.access.projectIds)];
   if (params.data.projectId) {
     conditions.push(eq(tasksTable.projectId, params.data.projectId));
   }
@@ -65,7 +65,7 @@ router.get("/tasks", async (req, res): Promise<void> => {
       },
     })
     .from(tasksTable)
-    .leftJoin(membersTable, eq(tasksTable.assigneeId, membersTable.id))
+    .leftJoin(membersTable, and(eq(tasksTable.assigneeId, membersTable.id), eq(membersTable.workspaceId, req.access.workspaceId)))
     .leftJoin(projectsTable, eq(tasksTable.projectId, projectsTable.id))
     .where(conditions.length ? and(...conditions) : undefined)
     .orderBy(tasksTable.createdAt);
@@ -120,6 +120,7 @@ router.post("/tasks", async (req, res): Promise<void> => {
 
   await db.insert(activityTable).values({
     type: "task_created",
+    projectId: task.projectId,
     title: `Task "${task.title}" created`,
     entityType: "task",
     entityId: task.id,
@@ -161,7 +162,7 @@ router.post("/tasks", async (req, res): Promise<void> => {
       },
     })
     .from(tasksTable)
-    .leftJoin(membersTable, eq(tasksTable.assigneeId, membersTable.id))
+    .leftJoin(membersTable, and(eq(tasksTable.assigneeId, membersTable.id), eq(membersTable.workspaceId, req.access.workspaceId)))
     .leftJoin(projectsTable, eq(tasksTable.projectId, projectsTable.id))
     .where(eq(tasksTable.id, task.id));
 
@@ -211,7 +212,7 @@ router.get("/tasks/:id", async (req, res): Promise<void> => {
       },
     })
     .from(tasksTable)
-    .leftJoin(membersTable, eq(tasksTable.assigneeId, membersTable.id))
+    .leftJoin(membersTable, and(eq(tasksTable.assigneeId, membersTable.id), eq(membersTable.workspaceId, req.access.workspaceId)))
     .leftJoin(projectsTable, eq(tasksTable.projectId, projectsTable.id))
     .where(eq(tasksTable.id, params.data.id));
 
@@ -278,6 +279,7 @@ router.patch("/tasks/:id", async (req, res): Promise<void> => {
   }
   await db.insert(activityTable).values({
     type: activityType,
+    projectId: task.projectId,
     title: `Task "${task.title}" ${activityType === "task_completed" ? "completed" : "updated"}`,
     entityType: "task",
     entityId: task.id,

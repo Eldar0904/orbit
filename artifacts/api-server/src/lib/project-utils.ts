@@ -24,6 +24,8 @@ export function computeProgress(tasks: { status: string; dueDate: string | null 
 }
 
 export async function syncProjectStatus(projectId: number): Promise<void> {
+  const [capability] = await db.select({ enabled: projectsTable.equipmentEnabled }).from(projectsTable).where(eq(projectsTable.id, projectId));
+  if (capability?.enabled) return;
   const tasks = await db
     .select({ status: tasksTable.status })
     .from(tasksTable)
@@ -55,6 +57,8 @@ export async function syncProjectStatus(projectId: number): Promise<void> {
 }
 
 export async function getProjectManagers(projectId: number) {
+  const [project] = await db.select({ workspaceId: projectsTable.workspaceId }).from(projectsTable).where(eq(projectsTable.id, projectId));
+  if (!project?.workspaceId) return [];
   const rows = await db
     .select({
       id: membersTable.id,
@@ -66,7 +70,7 @@ export async function getProjectManagers(projectId: number) {
     })
     .from(projectManagersTable)
     .innerJoin(membersTable, eq(projectManagersTable.memberId, membersTable.id))
-    .where(eq(projectManagersTable.projectId, projectId));
+    .where(and(eq(projectManagersTable.projectId, projectId), eq(membersTable.workspaceId, project.workspaceId)));
 
   return rows;
 }
@@ -80,6 +84,8 @@ export async function setProjectManagers(projectId: number, managerIds: number[]
 }
 
 export async function buildRoleBreakdown(projectId: number) {
+  const [project] = await db.select({ workspaceId: projectsTable.workspaceId }).from(projectsTable).where(eq(projectsTable.id, projectId));
+  if (!project?.workspaceId) return [];
   const rows = await db
     .select({
       memberId: membersTable.id,
@@ -88,7 +94,7 @@ export async function buildRoleBreakdown(projectId: number) {
     })
     .from(tasksTable)
     .innerJoin(membersTable, eq(tasksTable.assigneeId, membersTable.id))
-    .where(eq(tasksTable.projectId, projectId));
+    .where(and(eq(tasksTable.projectId, projectId), eq(membersTable.workspaceId, project.workspaceId)));
 
   const map = new Map<number, { memberId: number; memberName: string; total: number; done: number }>();
   for (const row of rows) {

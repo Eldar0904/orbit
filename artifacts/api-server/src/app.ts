@@ -10,6 +10,7 @@ import {
 } from "./middlewares/clerkProxyMiddleware";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { trustedOrigin } from "./modules/access/origin";
 
 const app: Express = express();
 
@@ -36,6 +37,13 @@ app.use(
 // Clerk proxy must come before body parsers (streams raw bytes)
 app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 
+app.use((req, res, next) => {
+  const origin = req.header("origin");
+  if (origin && !trustedOrigin(origin, req.header("host"), process.env.CORS_ALLOWED_ORIGINS)) {
+    res.status(403).json({ error: "Origin not allowed" }); return;
+  }
+  next();
+});
 app.use(cors({ credentials: true, origin: true }));
 // Spreadsheet rows are sent as JSON by the browser. Keep enough headroom for
 // realistic catalogues while still bounding request memory usage.
@@ -57,8 +65,8 @@ app.use("/api", router);
 // Keep API failures JSON-shaped. Without this, Vercel/Express may return an
 // HTML error page and the frontend reports the misleading `Unexpected token <`.
 app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  const message = error instanceof Error ? error.message : "Internal server error";
-  res.status(500).json({ error: message });
+  logger.error({ err: error }, "Request failed");
+  res.status(500).json({ error: "Internal server error" });
 });
 
 export default app;

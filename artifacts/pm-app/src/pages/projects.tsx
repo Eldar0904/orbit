@@ -23,6 +23,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { StageStepper } from "@/components/stage-stepper";
 import { UserAvatar } from "@/components/user-avatar";
 import { formatCurrency, PROJECT_STAGES } from "@/lib/project-constants";
+import { CreateEquipmentButton } from "@/features/equipment/create-equipment-button";
 
 function isProjectWithStats(p: unknown): p is ProjectWithStats {
   return typeof p === "object" && p !== null && "progress" in p;
@@ -61,6 +62,7 @@ export default function Projects() {
             />
           </div>
           <CreateProjectDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} />
+          <CreateEquipmentButton />
         </div>
       </div>
 
@@ -161,7 +163,7 @@ function ProjectCard({ project }: { project: ProjectWithStats }) {
             </div>
             <div className="bg-muted/40 rounded-md p-2 border border-border/40">
               <p className="text-muted-foreground">{t("common.budget")}</p>
-              <p className="font-mono font-bold text-sm truncate">{formatCurrency(project.budget)}</p>
+              <p className="font-mono font-bold text-sm truncate">{project.equipmentEnabled ? 'Не подтверждён' : formatCurrency(project.budget)}</p>
             </div>
             <div className="bg-muted/40 rounded-md p-2 border border-border/40">
               <p className="text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" />{t("common.deadline")}</p>

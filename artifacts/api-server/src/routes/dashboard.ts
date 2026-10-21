@@ -1,14 +1,14 @@
 import { Router, type IRouter } from "express";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, inArray } from "drizzle-orm";
 import { db, projectsTable, tasksTable, activityTable } from "@workspace/db";
 import { GetRecentActivityQueryParams } from "@workspace/api-zod";
 
 const router: IRouter = Router();
 
-router.get("/dashboard/summary", async (_req, res): Promise<void> => {
+router.get("/dashboard/summary", async (req, res): Promise<void> => {
   const [projects, tasks] = await Promise.all([
-    db.select({ status: projectsTable.status }).from(projectsTable),
-    db.select({ status: tasksTable.status, dueDate: tasksTable.dueDate }).from(tasksTable),
+    db.select({ status: projectsTable.status }).from(projectsTable).where(inArray(projectsTable.id, req.access.projectIds)),
+    db.select({ status: tasksTable.status, dueDate: tasksTable.dueDate }).from(tasksTable).where(inArray(tasksTable.projectId, req.access.projectIds)),
   ]);
 
   const now = new Date().toISOString().split("T")[0];
@@ -45,6 +45,7 @@ router.get("/dashboard/activity", async (req, res): Promise<void> => {
   const activities = await db
     .select()
     .from(activityTable)
+    .where(inArray(activityTable.projectId, req.access.projectIds))
     .orderBy(desc(activityTable.createdAt))
     .limit(limit);
 

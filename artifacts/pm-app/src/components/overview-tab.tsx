@@ -69,7 +69,7 @@ export function OverviewTab({ project }: { project: Project }) {
         </Card>
       </div>
 
-      {budget > 0 && (
+      {!project.equipmentEnabled && budget > 0 && (
         <Card className="border-border/50 shadow-sm">
           <CardContent className="p-5 space-y-3">
             <div className="flex justify-between items-end">

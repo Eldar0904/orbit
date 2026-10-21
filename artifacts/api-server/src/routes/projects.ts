@@ -1,10 +1,11 @@
 import { Router, type IRouter } from "express";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import {
   db,
   projectsTable,
   tasksTable,
   projectDocumentsTable,
+  projectMembershipsTable,
 } from "@workspace/db";
 import {
   ListProjectsQueryParams,
@@ -51,7 +52,7 @@ router.get("/projects", async (req, res): Promise<void> => {
     return;
   }
 
-  const conditions = [];
+  const conditions = [inArray(projectsTable.id, req.access.projectIds)];
   if (params.data.status) {
     conditions.push(eq(projectsTable.status, params.data.status as "active" | "archived"));
   }
@@ -103,8 +104,11 @@ router.post("/projects", async (req, res): Promise<void> => {
       color: parsed.data.color ?? "#6366f1",
       stage: (parsed.data.stage as "p1" | "p2" | "p3" | "p4" | "p5" | "p6") ?? "p1",
       ...values,
+      workspaceId: req.access.workspaceId,
     })
     .returning();
+
+  await db.insert(projectMembershipsTable).values({ projectId: project.id, clerkSubject: req.access.subject, role: "editor" });
 
   if (managerIds?.length) {
     await setProjectManagers(project.id, managerIds);
@@ -151,6 +155,11 @@ router.patch("/projects/:id", async (req, res): Promise<void> => {
   }
 
   const { managerIds, ...rest } = parsed.data;
+  const [existing] = await db.select({ equipmentEnabled: projectsTable.equipmentEnabled }).from(projectsTable).where(eq(projectsTable.id, params.data.id));
+  if (existing?.equipmentEnabled && (rest.status === "archived" || rest.budget !== undefined || rest.budgetSpent !== undefined)) {
+    res.status(422).json({ error: "Equipment budgets and closure require an approved operational workflow" });
+    return;
+  }
   const updateData = { ...projectValuesFromInput(rest), updatedAt: new Date() };
 
   const [project] = await db
@@ -173,6 +182,8 @@ router.patch("/projects/:id", async (req, res): Promise<void> => {
 });
 
 router.delete("/projects/:id", async (req, res): Promise<void> => {
+  const [equipment] = await db.select({ enabled: projectsTable.equipmentEnabled }).from(projectsTable).where(eq(projectsTable.id, Number(req.params.id)));
+  if (equipment?.enabled) { res.status(422).json({ error: "Equipment projects cannot be deleted through the legacy route" }); return; }
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const params = DeleteProjectParams.safeParse({ id: parseInt(raw, 10) });
   if (!params.success) {

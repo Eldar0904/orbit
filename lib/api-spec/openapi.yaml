@@ -7,6 +7,9 @@ info:
 servers:
   - url: /api
     description: Base API path
+security:
+  - ClerkSession: []
+  - ClerkBearer: []
 tags:
   - name: health
     description: Health operations
@@ -21,6 +24,7 @@ tags:
 paths:
   /healthz:
     get:
+      security: []
       operationId: healthCheck
       tags: [health]
       summary: Health check
@@ -497,7 +501,377 @@ paths:
                 items:
                   $ref: "#/components/schemas/ActivityItem"
 
+  /me/workspaces:
+    get:
+      operationId: listMyWorkspaces
+      tags:
+      - equipment
+      parameters:
+      - name: x-workspace-id
+        in: header
+        required: false
+        description: Explicit workspace selection; may be omitted only for a single membership.
+        schema: &id001
+          type: integer
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WorkspaceInfo'
+        '401':
+          description: Authentication required
+        '403':
+          description: Permission denied
+        '404':
+          description: Record not found
+        '409':
+          description: Duplicate or conflicting record
+  /dk/access:
+    get:
+      operationId: getWorkspaceAccess
+      tags:
+      - equipment
+      parameters:
+      - name: x-workspace-id
+        in: header
+        required: false
+        description: Explicit workspace selection; may be omitted only for a single membership.
+        schema: *id001
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceAccess'
+        '401':
+          description: Authentication required
+        '403':
+          description: Permission denied
+        '404':
+          description: Record not found
+        '409':
+          description: Duplicate or conflicting record
+  /dk/projects:
+    post:
+      operationId: createEquipmentProject
+      tags:
+      - equipment
+      parameters:
+      - name: x-workspace-id
+        in: header
+        required: false
+        description: Explicit workspace selection; may be omitted only for a single membership.
+        schema: *id001
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EquipmentProjectCreated'
+        '401':
+          description: Authentication required
+        '403':
+          description: Permission denied
+        '404':
+          description: Record not found
+        '409':
+          description: Duplicate or conflicting record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EquipmentProjectInput'
+  /dk/projects/{id}/sites:
+    get:
+      operationId: listEquipmentSites
+      tags:
+      - equipment
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema: *id001
+      - name: x-workspace-id
+        in: header
+        required: false
+        description: Explicit workspace selection; may be omitted only for a single membership.
+        schema: *id001
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EquipmentSite'
+        '401':
+          description: Authentication required
+        '403':
+          description: Permission denied
+        '404':
+          description: Record not found
+        '409':
+          description: Duplicate or conflicting record
+    post:
+      operationId: createEquipmentSite
+      tags:
+      - equipment
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema: *id001
+      - name: x-workspace-id
+        in: header
+        required: false
+        description: Explicit workspace selection; may be omitted only for a single membership.
+        schema: *id001
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EquipmentSite'
+        '401':
+          description: Authentication required
+        '403':
+          description: Permission denied
+        '404':
+          description: Record not found
+        '409':
+          description: Duplicate or conflicting record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EquipmentSiteInput'
+  /dk/projects/{id}/sites/{siteId}/rooms:
+    get:
+      operationId: listEquipmentRooms
+      tags:
+      - equipment
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema: *id001
+      - name: siteId
+        in: path
+        required: true
+        schema: *id001
+      - name: x-workspace-id
+        in: header
+        required: false
+        description: Explicit workspace selection; may be omitted only for a single membership.
+        schema: *id001
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EquipmentRoom'
+        '401':
+          description: Authentication required
+        '403':
+          description: Permission denied
+        '404':
+          description: Record not found
+        '409':
+          description: Duplicate or conflicting record
+    post:
+      operationId: createEquipmentRoom
+      tags:
+      - equipment
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema: *id001
+      - name: siteId
+        in: path
+        required: true
+        schema: *id001
+      - name: x-workspace-id
+        in: header
+        required: false
+        description: Explicit workspace selection; may be omitted only for a single membership.
+        schema: *id001
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EquipmentRoom'
+        '401':
+          description: Authentication required
+        '403':
+          description: Permission denied
+        '404':
+          description: Record not found
+        '409':
+          description: Duplicate or conflicting record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EquipmentRoomInput'
+  /dk/projects/{id}/imports:
+    get:
+      operationId: listEquipmentImports
+      tags:
+      - equipment
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema: *id001
+      - name: x-workspace-id
+        in: header
+        required: false
+        description: Explicit workspace selection; may be omitted only for a single membership.
+        schema: *id001
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EquipmentImport'
+        '401':
+          description: Authentication required
+        '403':
+          description: Permission denied
+        '404':
+          description: Record not found
+        '409':
+          description: Duplicate or conflicting record
+    post:
+      operationId: stageEquipmentImport
+      tags:
+      - equipment
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema: *id001
+      - name: x-workspace-id
+        in: header
+        required: false
+        description: Explicit workspace selection; may be omitted only for a single membership.
+        schema: *id001
+      responses:
+        '201': &id002
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EquipmentImportResult'
+        '401':
+          description: Authentication required
+        '403':
+          description: Permission denied
+        '404':
+          description: Record not found
+        '409':
+          description: Duplicate or conflicting record
+        '200': *id002
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EquipmentImportInput'
+  /dk/projects/{id}/imports/{batchId}:
+    get:
+      operationId: getEquipmentImport
+      tags:
+      - equipment
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema: *id001
+      - name: batchId
+        in: path
+        required: true
+        schema: *id001
+      - name: x-workspace-id
+        in: header
+        required: false
+        description: Explicit workspace selection; may be omitted only for a single membership.
+        schema: *id001
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EquipmentImport'
+        '401':
+          description: Authentication required
+        '403':
+          description: Permission denied
+        '404':
+          description: Record not found
+        '409':
+          description: Duplicate or conflicting record
+  /dk/projects/{id}/summary:
+    get:
+      operationId: getEquipmentSummary
+      tags:
+      - equipment
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema: *id001
+      - name: x-workspace-id
+        in: header
+        required: false
+        description: Explicit workspace selection; may be omitted only for a single membership.
+        schema: *id001
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EquipmentSummary'
+        '401':
+          description: Authentication required
+        '403':
+          description: Permission denied
+        '404':
+          description: Record not found
+        '409':
+          description: Duplicate or conflicting record
+
 components:
+  securitySchemes:
+    ClerkSession:
+      type: apiKey
+      in: cookie
+      name: __session
+    ClerkBearer:
+      type: http
+      scheme: bearer
   schemas:
     HealthStatus:
       type: object
@@ -511,6 +885,10 @@ components:
       type: object
       required: [id, name, status, color, stage, budgetSpent, createdAt, updatedAt]
       properties:
+        equipmentEnabled:
+          type: boolean
+        reportingCurrency:
+          type: ["string", "null"]
         id:
           type: integer
         name:
@@ -948,3 +1326,262 @@ components:
           type: string
           format: date-time
 
+
+    WorkspaceInfo:
+      type: object
+      properties:
+        id: &id001
+          type: integer
+        name: &id002
+          type: string
+        role:
+          type: string
+          enum:
+          - admin
+          - editor
+          - viewer
+      required:
+      - id
+      - name
+      - role
+    WorkspaceAccess:
+      type: object
+      properties:
+        workspaceId: *id001
+        subject: *id002
+        role: *id002
+        projectIds:
+          type: array
+          items: *id001
+        writableProjectIds:
+          type: array
+          items: *id001
+        canReviewImports:
+          type: boolean
+      required:
+      - workspaceId
+      - subject
+      - role
+      - projectIds
+      - writableProjectIds
+      - canReviewImports
+    EquipmentProjectInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        reportingCurrency:
+          type: string
+          enum:
+          - KZT
+          - USD
+          - CNY
+      required:
+      - name
+      - reportingCurrency
+      additionalProperties: false
+    EquipmentProjectCreated:
+      type: object
+      properties:
+        id: *id001
+        name: *id002
+        sites: *id001
+        baselineApproved:
+          type: boolean
+      required:
+      - id
+      - name
+      - sites
+      - baselineApproved
+    EquipmentSiteInput:
+      type: object
+      properties:
+        code:
+          type: string
+          pattern: ^[a-z0-9-]{1,40}$
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        region: &id003
+          type:
+          - string
+          - 'null'
+      required:
+      - code
+      - name
+      additionalProperties: false
+    EquipmentSite:
+      type: object
+      properties:
+        id: *id001
+        projectId: *id001
+        code: *id002
+        name: *id002
+        region: *id003
+      required:
+      - id
+      - projectId
+      - code
+      - name
+    EquipmentRoomInput:
+      type: object
+      properties:
+        code:
+          type: string
+          pattern: ^[a-z0-9-]{1,50}$
+        name:
+          type: string
+          minLength: 1
+          maxLength: 300
+        numberText: *id003
+        areaM2:
+          type:
+          - string
+          - 'null'
+          pattern: ^\d{1,10}(\.\d{1,2})?$
+      required:
+      - code
+      - name
+      additionalProperties: false
+    EquipmentRoom:
+      type: object
+      properties:
+        id: *id001
+        siteId: *id001
+        code: *id002
+        name: *id002
+        numberText: *id003
+        areaM2: *id003
+        technical:
+          type: object
+          additionalProperties: *id003
+      required:
+      - id
+      - siteId
+      - code
+      - name
+    EquipmentSourceRow:
+      type: object
+      properties:
+        sheetId:
+          type: integer
+          minimum: 0
+        row:
+          type: integer
+          minimum: 1
+        kind:
+          type: string
+          enum:
+          - site
+          - room
+          - requirement
+          - payment
+          - reference
+        values:
+          type: object
+          maxProperties: 60
+          additionalProperties:
+            type:
+            - string
+            - number
+            - 'null'
+      required:
+      - sheetId
+      - row
+      - kind
+      - values
+      additionalProperties: false
+    EquipmentImportInput:
+      type: object
+      properties:
+        sourceBookId:
+          type: string
+          pattern: ^[A-Za-z0-9_-]{10,200}$
+        capturedAt:
+          type: string
+          format: date-time
+        captureMode:
+          type: string
+          enum:
+          - sequential
+          - snapshot
+        rows:
+          type: array
+          items:
+            $ref: '#/components/schemas/EquipmentSourceRow'
+          minItems: 1
+          maxItems: 2000
+      required:
+      - sourceBookId
+      - capturedAt
+      - captureMode
+      - rows
+      additionalProperties: false
+    EquipmentImport:
+      type: object
+      properties:
+        id: *id001
+        sourceBookId: *id002
+        capturedAt: *id002
+        contentHash: *id002
+        status:
+          type: string
+          enum:
+          - staged
+        summary:
+          type: object
+          additionalProperties: {}
+        payload:
+          type: object
+          additionalProperties: {}
+      required:
+      - id
+      - sourceBookId
+      - capturedAt
+      - contentHash
+      - status
+      - summary
+    EquipmentImportResult:
+      type: object
+      properties:
+        id: *id001
+        repeated:
+          type: boolean
+        contentHash: *id002
+        status:
+          type: string
+          enum:
+          - staged
+        summary:
+          type: object
+          additionalProperties: {}
+      required:
+      - id
+      - repeated
+      - contentHash
+      - status
+      - summary
+    EquipmentSummary:
+      type: object
+      properties:
+        reportingCurrency: *id003
+        approvedPurchaseBudget: *id003
+        sites: *id001
+        rooms: *id001
+        baselineApproved:
+          type: boolean
+        confirmedPayments:
+          type: 'null'
+        deliveryProgress:
+          type: 'null'
+      required:
+      - sites
+      - rooms
+      - baselineApproved
+      - reportingCurrency
+      - approvedPurchaseBudget
+      - confirmedPayments
+      - deliveryProgress

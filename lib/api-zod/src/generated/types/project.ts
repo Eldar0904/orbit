@@ -11,6 +11,9 @@ import type { ProjectStage } from './projectStage';
 import type { ProjectStatus } from './projectStatus';
 
 export interface Project {
+  equipmentEnabled?: boolean;
+  /** @nullable */
+  reportingCurrency?: string | null;
   id: number;
   name: string;
   /** @nullable */

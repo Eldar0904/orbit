@@ -22,6 +22,16 @@ import type {
 import type {
   ActivityItem,
   DashboardSummary,
+  EquipmentImport,
+  EquipmentImportInput,
+  EquipmentImportResult,
+  EquipmentProjectCreated,
+  EquipmentProjectInput,
+  EquipmentRoom,
+  EquipmentRoomInput,
+  EquipmentSite,
+  EquipmentSiteInput,
+  EquipmentSummary,
   GetRecentActivityParams,
   HealthStatus,
   ListProjectsParams,
@@ -39,7 +49,9 @@ import type {
   ProjectWithStats,
   Task,
   TaskInput,
-  TaskUpdate
+  TaskUpdate,
+  WorkspaceAccess,
+  WorkspaceInfo
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -1790,6 +1802,778 @@ export function useGetRecentActivity<TData = Awaited<ReturnType<typeof getRecent
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetRecentActivityQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListMyWorkspacesUrl = () => {
+
+
+
+
+  return `/api/me/workspaces`
+}
+
+export const listMyWorkspaces = async ( options?: RequestInit): Promise<WorkspaceInfo[]> => {
+
+  return customFetch<WorkspaceInfo[]>(getListMyWorkspacesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListMyWorkspacesQueryKey = () => {
+    return [
+    `/api/me/workspaces`
+    ] as const;
+    }
+
+
+export const getListMyWorkspacesQueryOptions = <TData = Awaited<ReturnType<typeof listMyWorkspaces>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMyWorkspaces>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListMyWorkspacesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listMyWorkspaces>>> = ({ signal }) => listMyWorkspaces({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listMyWorkspaces>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListMyWorkspacesQueryResult = NonNullable<Awaited<ReturnType<typeof listMyWorkspaces>>>
+export type ListMyWorkspacesQueryError = ErrorType<void>
+
+
+
+export function useListMyWorkspaces<TData = Awaited<ReturnType<typeof listMyWorkspaces>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMyWorkspaces>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListMyWorkspacesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetWorkspaceAccessUrl = () => {
+
+
+
+
+  return `/api/dk/access`
+}
+
+export const getWorkspaceAccess = async ( options?: RequestInit): Promise<WorkspaceAccess> => {
+
+  return customFetch<WorkspaceAccess>(getGetWorkspaceAccessUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetWorkspaceAccessQueryKey = () => {
+    return [
+    `/api/dk/access`
+    ] as const;
+    }
+
+
+export const getGetWorkspaceAccessQueryOptions = <TData = Awaited<ReturnType<typeof getWorkspaceAccess>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWorkspaceAccess>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetWorkspaceAccessQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getWorkspaceAccess>>> = ({ signal }) => getWorkspaceAccess({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getWorkspaceAccess>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetWorkspaceAccessQueryResult = NonNullable<Awaited<ReturnType<typeof getWorkspaceAccess>>>
+export type GetWorkspaceAccessQueryError = ErrorType<void>
+
+
+
+export function useGetWorkspaceAccess<TData = Awaited<ReturnType<typeof getWorkspaceAccess>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWorkspaceAccess>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetWorkspaceAccessQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateEquipmentProjectUrl = () => {
+
+
+
+
+  return `/api/dk/projects`
+}
+
+export const createEquipmentProject = async (equipmentProjectInput: EquipmentProjectInput, options?: RequestInit): Promise<EquipmentProjectCreated> => {
+
+  return customFetch<EquipmentProjectCreated>(getCreateEquipmentProjectUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(equipmentProjectInput)
+  }
+);}
+
+
+
+
+
+export const getCreateEquipmentProjectMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createEquipmentProject>>, TError,{data: BodyType<EquipmentProjectInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createEquipmentProject>>, TError,{data: BodyType<EquipmentProjectInput>}, TContext> => {
+
+const mutationKey = ['createEquipmentProject'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createEquipmentProject>>, {data: BodyType<EquipmentProjectInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createEquipmentProject(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateEquipmentProjectMutationResult = NonNullable<Awaited<ReturnType<typeof createEquipmentProject>>>
+    export type CreateEquipmentProjectMutationBody = BodyType<EquipmentProjectInput>
+    export type CreateEquipmentProjectMutationError = ErrorType<void>
+
+    export const useCreateEquipmentProject = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createEquipmentProject>>, TError,{data: BodyType<EquipmentProjectInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createEquipmentProject>>,
+        TError,
+        {data: BodyType<EquipmentProjectInput>},
+        TContext
+      > => {
+      return useMutation(getCreateEquipmentProjectMutationOptions(options));
+    }
+
+export const getListEquipmentSitesUrl = (id: number,) => {
+
+
+
+
+  return `/api/dk/projects/${id}/sites`
+}
+
+export const listEquipmentSites = async (id: number, options?: RequestInit): Promise<EquipmentSite[]> => {
+
+  return customFetch<EquipmentSite[]>(getListEquipmentSitesUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListEquipmentSitesQueryKey = (id: number,) => {
+    return [
+    `/api/dk/projects/${id}/sites`
+    ] as const;
+    }
+
+
+export const getListEquipmentSitesQueryOptions = <TData = Awaited<ReturnType<typeof listEquipmentSites>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listEquipmentSites>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListEquipmentSitesQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listEquipmentSites>>> = ({ signal }) => listEquipmentSites(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listEquipmentSites>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListEquipmentSitesQueryResult = NonNullable<Awaited<ReturnType<typeof listEquipmentSites>>>
+export type ListEquipmentSitesQueryError = ErrorType<void>
+
+
+
+export function useListEquipmentSites<TData = Awaited<ReturnType<typeof listEquipmentSites>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listEquipmentSites>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListEquipmentSitesQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateEquipmentSiteUrl = (id: number,) => {
+
+
+
+
+  return `/api/dk/projects/${id}/sites`
+}
+
+export const createEquipmentSite = async (id: number,
+    equipmentSiteInput: EquipmentSiteInput, options?: RequestInit): Promise<EquipmentSite> => {
+
+  return customFetch<EquipmentSite>(getCreateEquipmentSiteUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(equipmentSiteInput)
+  }
+);}
+
+
+
+
+
+export const getCreateEquipmentSiteMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createEquipmentSite>>, TError,{id: number;data: BodyType<EquipmentSiteInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createEquipmentSite>>, TError,{id: number;data: BodyType<EquipmentSiteInput>}, TContext> => {
+
+const mutationKey = ['createEquipmentSite'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createEquipmentSite>>, {id: number;data: BodyType<EquipmentSiteInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  createEquipmentSite(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateEquipmentSiteMutationResult = NonNullable<Awaited<ReturnType<typeof createEquipmentSite>>>
+    export type CreateEquipmentSiteMutationBody = BodyType<EquipmentSiteInput>
+    export type CreateEquipmentSiteMutationError = ErrorType<void>
+
+    export const useCreateEquipmentSite = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createEquipmentSite>>, TError,{id: number;data: BodyType<EquipmentSiteInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createEquipmentSite>>,
+        TError,
+        {id: number;data: BodyType<EquipmentSiteInput>},
+        TContext
+      > => {
+      return useMutation(getCreateEquipmentSiteMutationOptions(options));
+    }
+
+export const getListEquipmentRoomsUrl = (id: number,
+    siteId: number,) => {
+
+
+
+
+  return `/api/dk/projects/${id}/sites/${siteId}/rooms`
+}
+
+export const listEquipmentRooms = async (id: number,
+    siteId: number, options?: RequestInit): Promise<EquipmentRoom[]> => {
+
+  return customFetch<EquipmentRoom[]>(getListEquipmentRoomsUrl(id,siteId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListEquipmentRoomsQueryKey = (id: number,
+    siteId: number,) => {
+    return [
+    `/api/dk/projects/${id}/sites/${siteId}/rooms`
+    ] as const;
+    }
+
+
+export const getListEquipmentRoomsQueryOptions = <TData = Awaited<ReturnType<typeof listEquipmentRooms>>, TError = ErrorType<void>>(id: number,
+    siteId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listEquipmentRooms>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListEquipmentRoomsQueryKey(id,siteId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listEquipmentRooms>>> = ({ signal }) => listEquipmentRooms(id,siteId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined && siteId !== null && siteId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listEquipmentRooms>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListEquipmentRoomsQueryResult = NonNullable<Awaited<ReturnType<typeof listEquipmentRooms>>>
+export type ListEquipmentRoomsQueryError = ErrorType<void>
+
+
+
+export function useListEquipmentRooms<TData = Awaited<ReturnType<typeof listEquipmentRooms>>, TError = ErrorType<void>>(
+ id: number,
+    siteId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listEquipmentRooms>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListEquipmentRoomsQueryOptions(id,siteId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateEquipmentRoomUrl = (id: number,
+    siteId: number,) => {
+
+
+
+
+  return `/api/dk/projects/${id}/sites/${siteId}/rooms`
+}
+
+export const createEquipmentRoom = async (id: number,
+    siteId: number,
+    equipmentRoomInput: EquipmentRoomInput, options?: RequestInit): Promise<EquipmentRoom> => {
+
+  return customFetch<EquipmentRoom>(getCreateEquipmentRoomUrl(id,siteId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(equipmentRoomInput)
+  }
+);}
+
+
+
+
+
+export const getCreateEquipmentRoomMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createEquipmentRoom>>, TError,{id: number;siteId: number;data: BodyType<EquipmentRoomInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createEquipmentRoom>>, TError,{id: number;siteId: number;data: BodyType<EquipmentRoomInput>}, TContext> => {
+
+const mutationKey = ['createEquipmentRoom'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createEquipmentRoom>>, {id: number;siteId: number;data: BodyType<EquipmentRoomInput>}> = (props) => {
+          const {id,siteId,data} = props ?? {};
+
+          return  createEquipmentRoom(id,siteId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateEquipmentRoomMutationResult = NonNullable<Awaited<ReturnType<typeof createEquipmentRoom>>>
+    export type CreateEquipmentRoomMutationBody = BodyType<EquipmentRoomInput>
+    export type CreateEquipmentRoomMutationError = ErrorType<void>
+
+    export const useCreateEquipmentRoom = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createEquipmentRoom>>, TError,{id: number;siteId: number;data: BodyType<EquipmentRoomInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createEquipmentRoom>>,
+        TError,
+        {id: number;siteId: number;data: BodyType<EquipmentRoomInput>},
+        TContext
+      > => {
+      return useMutation(getCreateEquipmentRoomMutationOptions(options));
+    }
+
+export const getListEquipmentImportsUrl = (id: number,) => {
+
+
+
+
+  return `/api/dk/projects/${id}/imports`
+}
+
+export const listEquipmentImports = async (id: number, options?: RequestInit): Promise<EquipmentImport[]> => {
+
+  return customFetch<EquipmentImport[]>(getListEquipmentImportsUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListEquipmentImportsQueryKey = (id: number,) => {
+    return [
+    `/api/dk/projects/${id}/imports`
+    ] as const;
+    }
+
+
+export const getListEquipmentImportsQueryOptions = <TData = Awaited<ReturnType<typeof listEquipmentImports>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listEquipmentImports>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListEquipmentImportsQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listEquipmentImports>>> = ({ signal }) => listEquipmentImports(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listEquipmentImports>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListEquipmentImportsQueryResult = NonNullable<Awaited<ReturnType<typeof listEquipmentImports>>>
+export type ListEquipmentImportsQueryError = ErrorType<void>
+
+
+
+export function useListEquipmentImports<TData = Awaited<ReturnType<typeof listEquipmentImports>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listEquipmentImports>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListEquipmentImportsQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getStageEquipmentImportUrl = (id: number,) => {
+
+
+
+
+  return `/api/dk/projects/${id}/imports`
+}
+
+export const stageEquipmentImport = async (id: number,
+    equipmentImportInput: EquipmentImportInput, options?: RequestInit): Promise<EquipmentImportResult> => {
+
+  return customFetch<EquipmentImportResult>(getStageEquipmentImportUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(equipmentImportInput)
+  }
+);}
+
+
+
+
+
+export const getStageEquipmentImportMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof stageEquipmentImport>>, TError,{id: number;data: BodyType<EquipmentImportInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof stageEquipmentImport>>, TError,{id: number;data: BodyType<EquipmentImportInput>}, TContext> => {
+
+const mutationKey = ['stageEquipmentImport'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof stageEquipmentImport>>, {id: number;data: BodyType<EquipmentImportInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  stageEquipmentImport(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StageEquipmentImportMutationResult = NonNullable<Awaited<ReturnType<typeof stageEquipmentImport>>>
+    export type StageEquipmentImportMutationBody = BodyType<EquipmentImportInput>
+    export type StageEquipmentImportMutationError = ErrorType<void>
+
+    export const useStageEquipmentImport = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof stageEquipmentImport>>, TError,{id: number;data: BodyType<EquipmentImportInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof stageEquipmentImport>>,
+        TError,
+        {id: number;data: BodyType<EquipmentImportInput>},
+        TContext
+      > => {
+      return useMutation(getStageEquipmentImportMutationOptions(options));
+    }
+
+export const getGetEquipmentImportUrl = (id: number,
+    batchId: number,) => {
+
+
+
+
+  return `/api/dk/projects/${id}/imports/${batchId}`
+}
+
+export const getEquipmentImport = async (id: number,
+    batchId: number, options?: RequestInit): Promise<EquipmentImport> => {
+
+  return customFetch<EquipmentImport>(getGetEquipmentImportUrl(id,batchId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetEquipmentImportQueryKey = (id: number,
+    batchId: number,) => {
+    return [
+    `/api/dk/projects/${id}/imports/${batchId}`
+    ] as const;
+    }
+
+
+export const getGetEquipmentImportQueryOptions = <TData = Awaited<ReturnType<typeof getEquipmentImport>>, TError = ErrorType<void>>(id: number,
+    batchId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getEquipmentImport>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetEquipmentImportQueryKey(id,batchId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getEquipmentImport>>> = ({ signal }) => getEquipmentImport(id,batchId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined && batchId !== null && batchId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getEquipmentImport>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetEquipmentImportQueryResult = NonNullable<Awaited<ReturnType<typeof getEquipmentImport>>>
+export type GetEquipmentImportQueryError = ErrorType<void>
+
+
+
+export function useGetEquipmentImport<TData = Awaited<ReturnType<typeof getEquipmentImport>>, TError = ErrorType<void>>(
+ id: number,
+    batchId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getEquipmentImport>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetEquipmentImportQueryOptions(id,batchId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetEquipmentSummaryUrl = (id: number,) => {
+
+
+
+
+  return `/api/dk/projects/${id}/summary`
+}
+
+export const getEquipmentSummary = async (id: number, options?: RequestInit): Promise<EquipmentSummary> => {
+
+  return customFetch<EquipmentSummary>(getGetEquipmentSummaryUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetEquipmentSummaryQueryKey = (id: number,) => {
+    return [
+    `/api/dk/projects/${id}/summary`
+    ] as const;
+    }
+
+
+export const getGetEquipmentSummaryQueryOptions = <TData = Awaited<ReturnType<typeof getEquipmentSummary>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getEquipmentSummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetEquipmentSummaryQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getEquipmentSummary>>> = ({ signal }) => getEquipmentSummary(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getEquipmentSummary>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetEquipmentSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof getEquipmentSummary>>>
+export type GetEquipmentSummaryQueryError = ErrorType<void>
+
+
+
+export function useGetEquipmentSummary<TData = Awaited<ReturnType<typeof getEquipmentSummary>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getEquipmentSummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetEquipmentSummaryQueryOptions(id,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
