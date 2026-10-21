@@ -1,4 +1,5 @@
-import { pgTable, serial, text, timestamp, integer, date } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, integer, date, boolean, numeric } from "drizzle-orm/pg-core";
+import { workspacesTable } from "./workspaces";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -8,6 +9,10 @@ export const projectStatusEnum = ["active", "archived"] as const;
 
 export const projectsTable = pgTable("projects", {
   id: serial("id").primaryKey(),
+  workspaceId: integer("workspace_id").references(() => workspacesTable.id),
+  equipmentEnabled: boolean("equipment_enabled").notNull().default(false),
+  reportingCurrency: text("reporting_currency", { enum: ["KZT", "USD", "CNY"] }),
+  approvedPurchaseBudget: numeric("approved_purchase_budget", { precision: 20, scale: 2 }),
   name: text("name").notNull(),
   description: text("description"),
   status: text("status", { enum: projectStatusEnum }).notNull().default("active"),

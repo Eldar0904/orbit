@@ -322,6 +322,9 @@ async function parseSuccessBody(
   }
 }
 
+let workspaceId: number | null = null;
+export function setWorkspaceId(id: number | null): void { workspaceId = id; }
+
 export async function customFetch<T = unknown>(
   input: RequestInfo | URL,
   options: CustomFetchOptions = {},
@@ -336,6 +339,7 @@ export async function customFetch<T = unknown>(
   }
 
   const headers = mergeHeaders(isRequest(input) ? input.headers : undefined, headersInit);
+  if (workspaceId !== null) headers.set("x-workspace-id", String(workspaceId));
 
   if (
     typeof init.body === "string" &&

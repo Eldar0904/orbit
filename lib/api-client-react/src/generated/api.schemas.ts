@@ -60,6 +60,9 @@ export interface Member {
 }
 
 export interface Project {
+  equipmentEnabled?: boolean;
+  /** @nullable */
+  reportingCurrency?: string | null;
   id: number;
   name: string;
   /** @nullable */
@@ -475,6 +478,201 @@ export interface ActivityItem {
   /** @nullable */
   assigneeName?: string | null;
   createdAt: string;
+}
+
+export type WorkspaceInfoRole = typeof WorkspaceInfoRole[keyof typeof WorkspaceInfoRole];
+
+
+export const WorkspaceInfoRole = {
+  admin: 'admin',
+  editor: 'editor',
+  viewer: 'viewer',
+} as const;
+
+export interface WorkspaceInfo {
+  id: number;
+  name: string;
+  role: WorkspaceInfoRole;
+}
+
+export interface WorkspaceAccess {
+  workspaceId: number;
+  subject: string;
+  role: string;
+  projectIds: number[];
+  writableProjectIds: number[];
+  canReviewImports: boolean;
+}
+
+export type EquipmentProjectInputReportingCurrency = typeof EquipmentProjectInputReportingCurrency[keyof typeof EquipmentProjectInputReportingCurrency];
+
+
+export const EquipmentProjectInputReportingCurrency = {
+  KZT: 'KZT',
+  USD: 'USD',
+  CNY: 'CNY',
+} as const;
+
+export interface EquipmentProjectInput {
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  name: string;
+  reportingCurrency: EquipmentProjectInputReportingCurrency;
+}
+
+export interface EquipmentProjectCreated {
+  id: number;
+  name: string;
+  sites: number;
+  baselineApproved: boolean;
+}
+
+export interface EquipmentSiteInput {
+  /** @pattern ^[a-z0-9-]{1,40}$ */
+  code: string;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  name: string;
+  /** @nullable */
+  region?: string | null;
+}
+
+export interface EquipmentSite {
+  id: number;
+  projectId: number;
+  code: string;
+  name: string;
+  /** @nullable */
+  region?: string | null;
+}
+
+export interface EquipmentRoomInput {
+  /** @pattern ^[a-z0-9-]{1,50}$ */
+  code: string;
+  /**
+     * @minLength 1
+     * @maxLength 300
+     */
+  name: string;
+  /** @nullable */
+  numberText?: string | null;
+  /**
+     * @nullable
+     * @pattern ^\d{1,10}(\.\d{1,2})?$
+     */
+  areaM2?: string | null;
+}
+
+export type EquipmentRoomTechnical = {[key: string]: string | null};
+
+export interface EquipmentRoom {
+  id: number;
+  siteId: number;
+  code: string;
+  name: string;
+  /** @nullable */
+  numberText?: string | null;
+  /** @nullable */
+  areaM2?: string | null;
+  technical?: EquipmentRoomTechnical;
+}
+
+export type EquipmentSourceRowKind = typeof EquipmentSourceRowKind[keyof typeof EquipmentSourceRowKind];
+
+
+export const EquipmentSourceRowKind = {
+  site: 'site',
+  room: 'room',
+  requirement: 'requirement',
+  payment: 'payment',
+  reference: 'reference',
+} as const;
+
+export type EquipmentSourceRowValues = {[key: string]: string | number | null};
+
+export interface EquipmentSourceRow {
+  /** @minimum 0 */
+  sheetId: number;
+  /** @minimum 1 */
+  row: number;
+  kind: EquipmentSourceRowKind;
+  values: EquipmentSourceRowValues;
+}
+
+export type EquipmentImportInputCaptureMode = typeof EquipmentImportInputCaptureMode[keyof typeof EquipmentImportInputCaptureMode];
+
+
+export const EquipmentImportInputCaptureMode = {
+  sequential: 'sequential',
+  snapshot: 'snapshot',
+} as const;
+
+export interface EquipmentImportInput {
+  /** @pattern ^[A-Za-z0-9_-]{10,200}$ */
+  sourceBookId: string;
+  capturedAt: string;
+  captureMode: EquipmentImportInputCaptureMode;
+  /**
+     * @minItems 1
+     * @maxItems 2000
+     */
+  rows: EquipmentSourceRow[];
+}
+
+export type EquipmentImportStatus = typeof EquipmentImportStatus[keyof typeof EquipmentImportStatus];
+
+
+export const EquipmentImportStatus = {
+  staged: 'staged',
+} as const;
+
+export type EquipmentImportSummary = {[key: string]: unknown};
+
+export type EquipmentImportPayload = {[key: string]: unknown};
+
+export interface EquipmentImport {
+  id: number;
+  sourceBookId: string;
+  capturedAt: string;
+  contentHash: string;
+  status: EquipmentImportStatus;
+  summary: EquipmentImportSummary;
+  payload?: EquipmentImportPayload;
+}
+
+export type EquipmentImportResultStatus = typeof EquipmentImportResultStatus[keyof typeof EquipmentImportResultStatus];
+
+
+export const EquipmentImportResultStatus = {
+  staged: 'staged',
+} as const;
+
+export type EquipmentImportResultSummary = {[key: string]: unknown};
+
+export interface EquipmentImportResult {
+  id: number;
+  repeated: boolean;
+  contentHash: string;
+  status: EquipmentImportResultStatus;
+  summary: EquipmentImportResultSummary;
+}
+
+export interface EquipmentSummary {
+  /** @nullable */
+  reportingCurrency: string | null;
+  /** @nullable */
+  approvedPurchaseBudget: string | null;
+  sites: number;
+  rooms: number;
+  baselineApproved: boolean;
+  /** @nullable */
+  confirmedPayments: null;
+  /** @nullable */
+  deliveryProgress: null;
 }
 
 export type ListProjectsParams = {

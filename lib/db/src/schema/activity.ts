@@ -2,6 +2,7 @@ import { pgTable, serial, text, integer, timestamp } from "drizzle-orm/pg-core";
 
 export const activityTable = pgTable("activity", {
   id: serial("id").primaryKey(),
+  projectId: integer("project_id"),
   type: text("type", {
     enum: ["task_created", "task_updated", "task_completed", "project_created", "project_updated"],
   }).notNull(),

@@ -34,13 +34,14 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { formatCurrency } from "@/lib/project-constants";
+import { EquipmentTab } from "@/features/equipment/equipment-tab";
 
 export default function ProjectDetail() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const projectId = parseInt(id, 10);
   const [isTaskCreateOpen, setIsTaskCreateOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("tasks");
+  const [activeTab, setActiveTab] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const { data: project, isLoading: isProjectLoading } = useGetProject(projectId);
@@ -115,8 +116,7 @@ export default function ProjectDetail() {
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <EditProjectDialog project={project} members={members ?? []} />
-            <DeleteProjectDialog project={project} />
+            {!project.equipmentEnabled && <><EditProjectDialog project={project} members={members ?? []} /><DeleteProjectDialog project={project} /></>}
             <Button variant="outline" size="sm" onClick={() => setActiveTab("documents")}>
               <FileText className="w-4 h-4 mr-2" />
               {t("common.documents")}
@@ -147,7 +147,7 @@ export default function ProjectDetail() {
         />
         <StatPill label={t("common.tasks")} value={String(progress?.total ?? tasks?.length ?? 0)} />
         <StatPill label={t("common.documents")} value={String(documents?.length ?? 0)} />
-        <StatPill label={t("projectDetail.budgetLeft")} value={budgetLeft != null ? formatCurrency(budgetLeft) : "—"} />
+        <StatPill label={t("projectDetail.budgetLeft")} value={project.equipmentEnabled ? "Не подтверждён" : budgetLeft != null ? formatCurrency(budgetLeft) : "—"} />
         <StatPill
           label={t("projectDetail.areaRooms")}
           value={project.area ? `${project.area} m²` : "—"}
@@ -155,8 +155,9 @@ export default function ProjectDetail() {
         />
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab ?? (project.equipmentEnabled ? "equipment" : "tasks")} onValueChange={setActiveTab}>
         <TabsList className="bg-muted/40 border border-border/50">
+          {project.equipmentEnabled && <TabsTrigger value="equipment">Оснащение ДК</TabsTrigger>}
           <TabsTrigger value="tasks" className="gap-2">
             <CheckCircle2 className="w-3.5 h-3.5" />
             {t("common.tasks")}
@@ -211,6 +212,7 @@ export default function ProjectDetail() {
         <TabsContent value="overview" className="mt-4">
           <OverviewTab project={project} />
         </TabsContent>
+        {project.equipmentEnabled && <TabsContent value="equipment" className="mt-4"><EquipmentTab projectId={projectId} /></TabsContent>}
       </Tabs>
     </div>
   );

@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
 import { Router } from "./router";
+import { WorkspaceGate } from "./components/workspace-gate";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -152,7 +153,7 @@ function ClerkProviderWithRoutes() {
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <ClerkQueryClientCacheInvalidator />
-          <Router />
+          <WorkspaceGate><Router /></WorkspaceGate>
           <Toaster />
         </TooltipProvider>
       </QueryClientProvider>

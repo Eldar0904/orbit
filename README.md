@@ -6,6 +6,8 @@ Originally exported from [Replit](https://replit.com); evolved from the **B2B Fi
 
 ## Features
 
+The isolated DK equipment foundation is described in [docs/DK_FOUNDATION.md](docs/DK_FOUNDATION.md). It requires reviewed database migration and explicit workspace provisioning before use; it is not a live data migration.
+
 - **Dashboard** — project and task stats, completion rate, recent activity feed
 - **Projects** — rich project cards with progress, P1–P6 stage stepper, budget and deadline stats
 - **Project detail** — Tasks (kanban), Documents, and Overview (project passport)

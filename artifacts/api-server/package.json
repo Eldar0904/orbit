@@ -8,7 +8,8 @@
     "dev:watch": "node -e \"process.env.NODE_ENV='development'\" && pnpm run dev",
     "build": "node ./build.mjs",
     "start": "node --env-file=../../.env --enable-source-maps ./dist/index.mjs",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:foundation": "node tests/run.mjs"
   },
   "dependencies": {
     "@clerk/express": "^2.1.43",
@@ -25,6 +26,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.10",
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",

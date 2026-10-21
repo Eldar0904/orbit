@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { db, membersTable, tasksTable } from "@workspace/db";
 import {
   CreateMemberBody,
@@ -12,10 +12,11 @@ import {
 
 const router: IRouter = Router();
 
-router.get("/members", async (_req, res): Promise<void> => {
+router.get("/members", async (req, res): Promise<void> => {
   const members = await db
     .select()
     .from(membersTable)
+    .where(eq(membersTable.workspaceId, req.access.workspaceId))
     .orderBy(membersTable.createdAt);
   res.json(members);
 });
@@ -31,6 +32,7 @@ router.post("/members", async (req, res): Promise<void> => {
     .insert(membersTable)
     .values({
       name: parsed.data.name,
+      workspaceId: req.access.workspaceId,
       email: parsed.data.email,
       avatarUrl: parsed.data.avatarUrl,
       role: (parsed.data.role as "admin" | "member") ?? "member",
@@ -137,7 +139,7 @@ router.get("/members/:id/workload", async (req, res): Promise<void> => {
   const tasks = await db
     .select({ status: tasksTable.status, dueDate: tasksTable.dueDate })
     .from(tasksTable)
-    .where(eq(tasksTable.assigneeId, params.data.id));
+    .where(and(eq(tasksTable.assigneeId, params.data.id), inArray(tasksTable.projectId, req.access.projectIds)));
 
   const now = new Date().toISOString().split("T")[0];
   const total = tasks.length;

@@ -28,6 +28,8 @@ export const ListProjectsQueryParams = zod.object({
 })
 
 export const ListProjectsResponseItem = zod.union([zod.object({
+  "equipmentEnabled": zod.boolean().optional(),
+  "reportingCurrency": zod.string().nullish(),
   "id": zod.number(),
   "name": zod.string(),
   "description": zod.string().nullish(),
@@ -58,6 +60,8 @@ export const ListProjectsResponseItem = zod.union([zod.object({
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 }),zod.object({
+  "equipmentEnabled": zod.boolean().optional(),
+  "reportingCurrency": zod.string().nullish(),
   "id": zod.number(),
   "name": zod.string(),
   "description": zod.string().nullish(),
@@ -139,6 +143,8 @@ export const CreateProjectBody = zod.object({
 })
 
 export const CreateProjectResponse = zod.object({
+  "equipmentEnabled": zod.boolean().optional(),
+  "reportingCurrency": zod.string().nullish(),
   "id": zod.number(),
   "name": zod.string(),
   "description": zod.string().nullish(),
@@ -179,6 +185,8 @@ export const GetProjectParams = zod.object({
 })
 
 export const GetProjectResponse = zod.object({
+  "equipmentEnabled": zod.boolean().optional(),
+  "reportingCurrency": zod.string().nullish(),
   "id": zod.number(),
   "name": zod.string(),
   "description": zod.string().nullish(),
@@ -243,6 +251,8 @@ export const UpdateProjectBody = zod.object({
 })
 
 export const UpdateProjectResponse = zod.object({
+  "equipmentEnabled": zod.boolean().optional(),
+  "reportingCurrency": zod.string().nullish(),
   "id": zod.number(),
   "name": zod.string(),
   "description": zod.string().nullish(),
@@ -394,6 +404,8 @@ export const ListTasksResponseItem = zod.object({
   "createdAt": zod.coerce.date()
 }).optional(),
   "project": zod.object({
+  "equipmentEnabled": zod.boolean().optional(),
+  "reportingCurrency": zod.string().nullish(),
   "id": zod.number(),
   "name": zod.string(),
   "description": zod.string().nullish(),
@@ -465,6 +477,8 @@ export const CreateTaskResponse = zod.object({
   "createdAt": zod.coerce.date()
 }).optional(),
   "project": zod.object({
+  "equipmentEnabled": zod.boolean().optional(),
+  "reportingCurrency": zod.string().nullish(),
   "id": zod.number(),
   "name": zod.string(),
   "description": zod.string().nullish(),
@@ -525,6 +539,8 @@ export const GetTaskResponse = zod.object({
   "createdAt": zod.coerce.date()
 }).optional(),
   "project": zod.object({
+  "equipmentEnabled": zod.boolean().optional(),
+  "reportingCurrency": zod.string().nullish(),
   "id": zod.number(),
   "name": zod.string(),
   "description": zod.string().nullish(),
@@ -597,6 +613,8 @@ export const UpdateTaskResponse = zod.object({
   "createdAt": zod.coerce.date()
 }).optional(),
   "project": zod.object({
+  "equipmentEnabled": zod.boolean().optional(),
+  "reportingCurrency": zod.string().nullish(),
   "id": zod.number(),
   "name": zod.string(),
   "description": zod.string().nullish(),
@@ -785,5 +803,248 @@ export const GetRecentActivityResponseItem = zod.object({
   "createdAt": zod.coerce.date()
 })
 export const GetRecentActivityResponse = zod.array(GetRecentActivityResponseItem)
+
+
+export const ListMyWorkspacesHeader = zod.object({
+  "x-workspace-id": zod.number().optional().describe('Explicit workspace selection; may be omitted only for a single membership.')
+})
+
+export const ListMyWorkspacesResponseItem = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "role": zod.enum(['admin', 'editor', 'viewer'])
+})
+export const ListMyWorkspacesResponse = zod.array(ListMyWorkspacesResponseItem)
+
+
+export const GetWorkspaceAccessHeader = zod.object({
+  "x-workspace-id": zod.number().optional().describe('Explicit workspace selection; may be omitted only for a single membership.')
+})
+
+export const GetWorkspaceAccessResponse = zod.object({
+  "workspaceId": zod.number(),
+  "subject": zod.string(),
+  "role": zod.string(),
+  "projectIds": zod.array(zod.number()),
+  "writableProjectIds": zod.array(zod.number()),
+  "canReviewImports": zod.boolean()
+})
+
+
+export const CreateEquipmentProjectHeader = zod.object({
+  "x-workspace-id": zod.number().optional().describe('Explicit workspace selection; may be omitted only for a single membership.')
+})
+
+export const createEquipmentProjectBodyNameMax = 200;
+
+
+
+export const CreateEquipmentProjectBody = zod.object({
+  "name": zod.string().min(1).max(createEquipmentProjectBodyNameMax),
+  "reportingCurrency": zod.enum(['KZT', 'USD', 'CNY'])
+})
+
+export const CreateEquipmentProjectResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "sites": zod.number(),
+  "baselineApproved": zod.boolean()
+})
+
+
+export const ListEquipmentSitesParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ListEquipmentSitesHeader = zod.object({
+  "x-workspace-id": zod.number().optional().describe('Explicit workspace selection; may be omitted only for a single membership.')
+})
+
+export const ListEquipmentSitesResponseItem = zod.object({
+  "id": zod.number(),
+  "projectId": zod.number(),
+  "code": zod.string(),
+  "name": zod.string(),
+  "region": zod.string().nullish()
+})
+export const ListEquipmentSitesResponse = zod.array(ListEquipmentSitesResponseItem)
+
+
+export const CreateEquipmentSiteParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const CreateEquipmentSiteHeader = zod.object({
+  "x-workspace-id": zod.number().optional().describe('Explicit workspace selection; may be omitted only for a single membership.')
+})
+
+export const createEquipmentSiteBodyCodeRegExp = new RegExp('^[a-z0-9-]{1,40}$');
+export const createEquipmentSiteBodyNameMax = 200;
+
+
+
+export const CreateEquipmentSiteBody = zod.object({
+  "code": zod.string().regex(createEquipmentSiteBodyCodeRegExp),
+  "name": zod.string().min(1).max(createEquipmentSiteBodyNameMax),
+  "region": zod.string().nullish()
+})
+
+export const CreateEquipmentSiteResponse = zod.object({
+  "id": zod.number(),
+  "projectId": zod.number(),
+  "code": zod.string(),
+  "name": zod.string(),
+  "region": zod.string().nullish()
+})
+
+
+export const ListEquipmentRoomsParams = zod.object({
+  "id": zod.coerce.number(),
+  "siteId": zod.coerce.number()
+})
+
+export const ListEquipmentRoomsHeader = zod.object({
+  "x-workspace-id": zod.number().optional().describe('Explicit workspace selection; may be omitted only for a single membership.')
+})
+
+export const ListEquipmentRoomsResponseItem = zod.object({
+  "id": zod.number(),
+  "siteId": zod.number(),
+  "code": zod.string(),
+  "name": zod.string(),
+  "numberText": zod.string().nullish(),
+  "areaM2": zod.string().nullish(),
+  "technical": zod.record(zod.string(), zod.string().nullable()).optional()
+})
+export const ListEquipmentRoomsResponse = zod.array(ListEquipmentRoomsResponseItem)
+
+
+export const CreateEquipmentRoomParams = zod.object({
+  "id": zod.coerce.number(),
+  "siteId": zod.coerce.number()
+})
+
+export const CreateEquipmentRoomHeader = zod.object({
+  "x-workspace-id": zod.number().optional().describe('Explicit workspace selection; may be omitted only for a single membership.')
+})
+
+export const createEquipmentRoomBodyCodeRegExp = new RegExp('^[a-z0-9-]{1,50}$');
+export const createEquipmentRoomBodyNameMax = 300;
+
+export const createEquipmentRoomBodyAreaM2RegExp = new RegExp('^\\d{1,10}(\\.\\d{1,2})?$');
+
+
+export const CreateEquipmentRoomBody = zod.object({
+  "code": zod.string().regex(createEquipmentRoomBodyCodeRegExp),
+  "name": zod.string().min(1).max(createEquipmentRoomBodyNameMax),
+  "numberText": zod.string().nullish(),
+  "areaM2": zod.string().regex(createEquipmentRoomBodyAreaM2RegExp).nullish()
+})
+
+export const CreateEquipmentRoomResponse = zod.object({
+  "id": zod.number(),
+  "siteId": zod.number(),
+  "code": zod.string(),
+  "name": zod.string(),
+  "numberText": zod.string().nullish(),
+  "areaM2": zod.string().nullish(),
+  "technical": zod.record(zod.string(), zod.string().nullable()).optional()
+})
+
+
+export const ListEquipmentImportsParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ListEquipmentImportsHeader = zod.object({
+  "x-workspace-id": zod.number().optional().describe('Explicit workspace selection; may be omitted only for a single membership.')
+})
+
+export const ListEquipmentImportsResponseItem = zod.object({
+  "id": zod.number(),
+  "sourceBookId": zod.string(),
+  "capturedAt": zod.string(),
+  "contentHash": zod.string(),
+  "status": zod.enum(['staged']),
+  "summary": zod.record(zod.string(), zod.unknown()),
+  "payload": zod.record(zod.string(), zod.unknown()).optional()
+})
+export const ListEquipmentImportsResponse = zod.array(ListEquipmentImportsResponseItem)
+
+
+export const StageEquipmentImportParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const StageEquipmentImportHeader = zod.object({
+  "x-workspace-id": zod.number().optional().describe('Explicit workspace selection; may be omitted only for a single membership.')
+})
+
+export const stageEquipmentImportBodySourceBookIdRegExp = new RegExp('^[A-Za-z0-9_-]{10,200}$');
+export const stageEquipmentImportBodyRowsItemSheetIdMin = 0;
+
+
+export const stageEquipmentImportBodyRowsMax = 2000;
+
+
+
+export const StageEquipmentImportBody = zod.object({
+  "sourceBookId": zod.string().regex(stageEquipmentImportBodySourceBookIdRegExp),
+  "capturedAt": zod.coerce.date(),
+  "captureMode": zod.enum(['sequential', 'snapshot']),
+  "rows": zod.array(zod.object({
+  "sheetId": zod.number().min(stageEquipmentImportBodyRowsItemSheetIdMin),
+  "row": zod.number().min(1),
+  "kind": zod.enum(['site', 'room', 'requirement', 'payment', 'reference']),
+  "values": zod.record(zod.string(), zod.union([zod.string(),zod.number()]).nullable())
+})).min(1).max(stageEquipmentImportBodyRowsMax)
+})
+
+export const StageEquipmentImportResponse = zod.object({
+  "id": zod.number(),
+  "repeated": zod.boolean(),
+  "contentHash": zod.string(),
+  "status": zod.enum(['staged']),
+  "summary": zod.record(zod.string(), zod.unknown())
+})
+
+
+export const GetEquipmentImportParams = zod.object({
+  "id": zod.coerce.number(),
+  "batchId": zod.coerce.number()
+})
+
+export const GetEquipmentImportHeader = zod.object({
+  "x-workspace-id": zod.number().optional().describe('Explicit workspace selection; may be omitted only for a single membership.')
+})
+
+export const GetEquipmentImportResponse = zod.object({
+  "id": zod.number(),
+  "sourceBookId": zod.string(),
+  "capturedAt": zod.string(),
+  "contentHash": zod.string(),
+  "status": zod.enum(['staged']),
+  "summary": zod.record(zod.string(), zod.unknown()),
+  "payload": zod.record(zod.string(), zod.unknown()).optional()
+})
+
+
+export const GetEquipmentSummaryParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetEquipmentSummaryHeader = zod.object({
+  "x-workspace-id": zod.number().optional().describe('Explicit workspace selection; may be omitted only for a single membership.')
+})
+
+export const GetEquipmentSummaryResponse = zod.object({
+  "reportingCurrency": zod.string().nullable(),
+  "approvedPurchaseBudget": zod.string().nullable(),
+  "sites": zod.number(),
+  "rooms": zod.number(),
+  "baselineApproved": zod.boolean(),
+  "confirmedPayments": zod.null(),
+  "deliveryProgress": zod.null()
+})
 
 

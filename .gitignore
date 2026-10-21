@@ -55,3 +55,5 @@ vercel.env
 artifacts/pm-app/.env.local
 
 .vercel
+.test-build/
+dk-private-data/
